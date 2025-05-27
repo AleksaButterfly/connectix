@@ -1,103 +1,133 @@
-import Image from "next/image";
+import Link from 'next/link'
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-16">
+      {/* Terminal Window */}
+      <div className="w-full max-w-4xl">
+        <div className="terminal-window animate-fade-in">
+          {/* Terminal Header */}
+          <div className="terminal-header">
+            <div className="flex gap-1.5">
+              <div className="terminal-dot bg-terminal-red" />
+              <div className="terminal-dot bg-terminal-yellow" />
+              <div className="terminal-dot bg-terminal-green" />
+            </div>
+            <div className="ml-4 text-xs text-foreground-subtle">connectix@ssh-manager:~</div>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          {/* Terminal Content */}
+          <div className="p-8">
+            {/* Welcome Message */}
+            <div className="space-y-4 text-foreground">
+              <p className="text-terminal-green">
+                <span className="text-foreground-muted">$</span> ./connectix --help
+              </p>
+
+              <div className="ml-4 space-y-2">
+                <p>Connectix - Secure SSH File Manager for Developers</p>
+                <p className="text-foreground-muted">
+                  Browse, upload, download, and manage files on remote servers directly from your
+                  browser.
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <p className="mb-2 text-terminal-green">
+                  <span className="text-foreground-muted">$</span> ./connectix --features
+                </p>
+
+                <ul className="ml-4 space-y-1 text-sm">
+                  <li>
+                    <span className="text-terminal-blue">[+]</span> Secure SSH/SFTP connections
+                  </li>
+                  <li>
+                    <span className="text-terminal-purple">[+]</span> Password & private key
+                    authentication
+                  </li>
+                  <li>
+                    <span className="text-terminal-orange">[+]</span> Real-time file operations
+                  </li>
+                  <li>
+                    <span className="text-terminal-pink">[+]</span> Multi-server management
+                  </li>
+                  <li>
+                    <span className="text-terminal-yellow">[+]</span> Terminal-inspired UI
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8 flex items-center gap-4">
+                <p className="text-terminal-green">
+                  <span className="text-foreground-muted">$</span> ./connectix --start
+                </p>
+                <span className="terminal-cursor"></span>
+              </div>
+
+              <div className="mt-6 flex gap-4">
+                <Link href="/register" className="btn-primary inline-flex items-center gap-2">
+                  <span>Get Started</span>
+                  <span className="text-lg">→</span>
+                </Link>
+                <Link href="/login" className="btn-secondary inline-flex items-center gap-2">
+                  <span>Sign In</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Status Line */}
+            <div className="mt-8 border-t border-border pt-4">
+              <p className="text-xs text-foreground-subtle">
+                <span className="text-terminal-green">●</span> System ready
+                <span className="mx-2">|</span>
+                <span>Version 1.0.0</span>
+                <span className="mx-2">|</span>
+                <span>Secure connection required</span>
+              </p>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {/* Feature Cards */}
+        <div className="mb-8 mt-16 grid animate-slide-up gap-6 md:grid-cols-3">
+          <FeatureCard
+            icon="🔐"
+            title="Secure by Design"
+            description="End-to-end encryption with SSH protocol. Your credentials never leave your session."
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <FeatureCard
+            icon="⚡"
+            title="Lightning Fast"
+            description="Optimized for speed with streaming downloads and efficient file operations."
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+          <FeatureCard
+            icon="🛠️"
+            title="Developer First"
+            description="Built by developers, for developers. Clean UI with powerful features."
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+      </div>
     </div>
-  );
+  )
+}
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-border bg-background-secondary p-6 transition-all hover:border-terminal-green/50 hover:shadow-terminal">
+      <div className="absolute inset-0 bg-gradient-to-br from-terminal-green/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="relative">
+        <div className="mb-4 text-2xl">{icon}</div>
+        <h3 className="mb-2 font-bold text-foreground">{title}</h3>
+        <p className="text-sm text-foreground-muted">{description}</p>
+      </div>
+    </div>
+  )
 }

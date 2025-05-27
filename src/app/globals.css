@@ -1,26 +1,37 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@layer base {
+  html {
+    @apply bg-background text-foreground;
+  }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    @apply bg-background min-h-screen font-mono text-sm;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Terminal window styling */
+  .terminal-window {
+    @apply bg-background-secondary overflow-hidden rounded-lg border border-[#27272a];
+  }
+
+  .terminal-header {
+    @apply bg-background-tertiary flex items-center gap-2 border-b border-[#27272a] px-4 py-2;
+  }
+
+  .terminal-dot {
+    @apply h-3 w-3 rounded-full;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply bg-terminal-green text-background hover:bg-terminal-green/90 rounded px-4 py-2 font-medium;
+  }
+
+  .btn-secondary {
+    @apply bg-background-tertiary text-foreground hover:bg-background-secondary rounded border border-[#27272a] px-4 py-2 font-medium;
+  }
 }
