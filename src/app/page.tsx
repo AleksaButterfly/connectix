@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function LandingPage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4 py-16">
+    <div className="relative flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-16">
       {/* Terminal Window */}
       <div className="w-full max-w-4xl">
         <div className="terminal-window animate-fade-in">
@@ -78,18 +78,15 @@ export default function LandingPage() {
             {/* Status Line */}
             <div className="mt-8 border-t border-border pt-4">
               <p className="text-xs text-foreground-subtle">
-                <span className="text-terminal-green">●</span> System ready
-                <span className="mx-2">|</span>
-                <span>Version 1.0.0</span>
-                <span className="mx-2">|</span>
-                <span>Secure connection required</span>
+                <span className="text-terminal-green">●</span>
+                <span>&nbsp;System ready | Version 1.0.0 | Secure connection required</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* Feature Cards */}
-        <div className="mb-8 mt-16 grid animate-slide-up gap-6 md:grid-cols-3">
+        <div className="mt-8 grid animate-slide-up gap-6 md:grid-cols-3">
           <FeatureCard
             icon="🔐"
             title="Secure by Design"
