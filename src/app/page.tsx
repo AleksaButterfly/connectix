@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function LandingPage() {
   return (
@@ -25,10 +28,10 @@ export default function LandingPage() {
               </p>
 
               <div className="ml-4 space-y-2">
-                <p>Connectix - Secure SSH File Manager for Developers</p>
+                <p>Connectix - Complete SSH Management Platform for Teams</p>
                 <p className="text-foreground-muted">
-                  Browse, upload, download, and manage files on remote servers directly from your
-                  browser.
+                  Terminal, file manager, and team collaboration. All your servers, one secure
+                  platform.
                 </p>
               </div>
 
@@ -39,20 +42,24 @@ export default function LandingPage() {
 
                 <ul className="ml-4 space-y-1 text-sm">
                   <li>
-                    <span className="text-terminal-blue">[+]</span> Secure SSH/SFTP connections
+                    <span className="text-terminal-blue">[+]</span> Integrated terminal & file
+                    browser
                   </li>
                   <li>
-                    <span className="text-terminal-purple">[+]</span> Password & private key
-                    authentication
+                    <span className="text-terminal-purple">[+]</span> Team access control &
+                    permissions
                   </li>
                   <li>
-                    <span className="text-terminal-orange">[+]</span> Real-time file operations
+                    <span className="text-terminal-orange">[+]</span> Multi-project organization
                   </li>
                   <li>
-                    <span className="text-terminal-pink">[+]</span> Multi-server management
+                    <span className="text-terminal-pink">[+]</span> Real-time collaboration
                   </li>
                   <li>
-                    <span className="text-terminal-yellow">[+]</span> Terminal-inspired UI
+                    <span className="text-terminal-yellow">[+]</span> Complete audit trail
+                  </li>
+                  <li>
+                    <span className="text-terminal-green">[+]</span> Secure credential management
                   </li>
                 </ul>
               </div>
@@ -66,7 +73,7 @@ export default function LandingPage() {
 
               <div className="mt-6 flex gap-4">
                 <Link href="/register" className="btn-primary inline-flex items-center gap-2">
-                  <span>Get Started</span>
+                  <span>Start Free Trial</span>
                   <span className="text-lg">→</span>
                 </Link>
                 <Link href="/login" className="btn-secondary inline-flex items-center gap-2">
@@ -79,29 +86,125 @@ export default function LandingPage() {
             <div className="mt-8 border-t border-border pt-4">
               <p className="text-xs text-foreground-subtle">
                 <span className="text-terminal-green">●</span>
-                <span>&nbsp;System ready | Version 1.0.0 | Secure connection required</span>
+                <span>&nbsp;System ready | Version 1.0.0 | Enterprise-grade security</span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Feature Cards */}
+        {/* Main Feature Cards */}
         <div className="mt-8 grid animate-slide-up gap-6 md:grid-cols-3">
           <FeatureCard
-            icon="🔐"
-            title="Secure by Design"
-            description="End-to-end encryption with SSH protocol. Your credentials never leave your session."
+            icon="💻"
+            title="Integrated Terminal"
+            description="Full terminal access right in your browser. Run commands, edit files, manage services."
           />
           <FeatureCard
-            icon="⚡"
-            title="Lightning Fast"
-            description="Optimized for speed with streaming downloads and efficient file operations."
+            icon="👥"
+            title="Team Collaboration"
+            description="Grant specific permissions by folder, server, or project. See who's doing what in real-time."
           />
           <FeatureCard
-            icon="🛠️"
-            title="Developer First"
-            description="Built by developers, for developers. Clean UI with powerful features."
+            icon="📁"
+            title="Project Organization"
+            description="Group servers by client, environment, or team. Switch contexts instantly."
           />
+        </div>
+
+        {/* Detailed Features Section */}
+        <div className="mt-16 animate-slide-up">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
+            Everything your team needs, in one place
+          </h2>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <DetailedFeatureCard
+              title="Powerful Terminal"
+              features={[
+                'Native terminal experience with xterm.js',
+                'Persistent sessions across devices',
+                'Command history and autocomplete',
+                'Multi-tab support',
+              ]}
+            />
+            <DetailedFeatureCard
+              title="Smart File Management"
+              features={[
+                'Visual file browser with drag & drop',
+                'Bulk operations and quick search',
+                'File preview and inline editing',
+                'Secure upload/download streaming',
+              ]}
+            />
+            <DetailedFeatureCard
+              title="Team Access Control"
+              features={[
+                'Role-based permissions (read/write/execute)',
+                'Folder-level access restrictions',
+                'Temporary access links',
+                'SSO and 2FA support',
+              ]}
+            />
+            <DetailedFeatureCard
+              title="Complete Audit Trail"
+              features={[
+                'Track every command and file change',
+                'Real-time activity monitoring',
+                'Compliance-ready logging',
+                'Instant security alerts',
+              ]}
+            />
+          </div>
+        </div>
+
+        {/* Use Cases */}
+        <div className="mt-16 animate-slide-up">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
+            Built for modern teams
+          </h2>
+
+          <div className="grid gap-4">
+            <UseCase
+              role="Development Teams"
+              description="Give developers the access they need without sharing root credentials"
+              details={[
+                'Create read-only access for junior developers',
+                'Grant temporary elevated permissions for deployments',
+                'Separate staging and production environments',
+                'Track all changes with developer attribution',
+              ]}
+            />
+            <UseCase
+              role="Agencies"
+              description="Manage multiple client servers with organized projects and clear boundaries"
+              details={[
+                'Organize servers by client and project',
+                'Set up client-specific access for contractors',
+                'Generate audit reports for client compliance',
+                'Quick-switch between different client contexts',
+              ]}
+            />
+            <UseCase
+              role="DevOps"
+              description="Streamline operations with audit trails and granular permissions"
+              details={[
+                'Automate access provisioning with API',
+                'Set up approval workflows for sensitive operations',
+                'Monitor all infrastructure changes in real-time',
+                'Export logs for compliance and security audits',
+              ]}
+            />
+            <UseCase
+              role="Startups"
+              description="Scale your team's server access without compromising security"
+              details={[
+                'Onboard new developers in minutes',
+                'Revoke access instantly when team members leave',
+                'Start with simple permissions, add complexity as you grow',
+                'Keep infrastructure costs low with efficient resource sharing',
+              ]}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -124,6 +227,73 @@ function FeatureCard({
         <div className="mb-4 text-2xl">{icon}</div>
         <h3 className="mb-2 font-bold text-foreground">{title}</h3>
         <p className="text-sm text-foreground-muted">{description}</p>
+      </div>
+    </div>
+  )
+}
+
+function DetailedFeatureCard({ title, features }: { title: string; features: string[] }) {
+  return (
+    <div className="rounded-lg border border-border bg-background-secondary p-6">
+      <h3 className="mb-4 font-bold text-foreground">{title}</h3>
+      <ul className="space-y-2">
+        {features.map((feature, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-foreground-muted">
+            <span className="text-terminal-green">→</span>
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function UseCase({
+  role,
+  description,
+  details,
+}: {
+  role: string
+  description: string
+  details: string[]
+}) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  return (
+    <div
+      className="cursor-pointer overflow-hidden rounded-lg border border-border bg-background-secondary transition-all hover:border-terminal-green/50"
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <span
+              className={`text-terminal-green transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+            >
+              ▸
+            </span>
+            <div className="flex-1">
+              <h4 className="font-medium text-foreground">{role}</h4>
+              <p className="text-sm text-foreground-muted">{description}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Expandable content */}
+        <div
+          className={`grid transition-all duration-300 ${isExpanded ? 'mt-4 grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        >
+          <div className="overflow-hidden">
+            <ul className="ml-6 space-y-2 border-t border-border pt-4">
+              {details.map((detail, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground-muted">
+                  <span className="text-terminal-green">•</span>
+                  <span>{detail}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   )
