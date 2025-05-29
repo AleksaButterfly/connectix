@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import FormInput from '@/components/ui/FormInput'
+import { authService } from '@/lib/auth/auth.service'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -21,18 +22,29 @@ export default function ForgotPasswordPage() {
     register,
     handleSubmit,
     formState: { errors },
+    setError,
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
   })
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true)
-    // Tomorrow we'll implement the actual reset logic
-    console.log('Reset email:', data)
-    setTimeout(() => {
-      setIsLoading(false)
+
+    try {
+      const { error } = await authService.resetPassword(data.email)
+
+      if (error) {
+        setError('root', { message: error.message })
+        setIsLoading(false)
+        return
+      }
+
+      // Success
       setIsSubmitted(true)
-    }, 2000)
+    } catch (error) {
+      setError('root', { message: 'An unexpected error occurred. Please try again.' })
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -63,6 +75,12 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {errors.root && (
+                    <div className="rounded-lg border border-terminal-red/50 bg-terminal-red/10 p-3">
+                      <p className="text-sm text-terminal-red">{errors.root.message}</p>
+                    </div>
+                  )}
+
                   <FormInput
                     label="Email Address"
                     type="email"

@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useAuthStore } from '@/stores/auth.store'
 
 export default function LandingPage() {
+  const { isAuthenticated } = useAuthStore()
   return (
     <div className="relative flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-16">
       {/* Terminal Window */}
@@ -72,13 +74,22 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-6 flex gap-4">
-                <Link href="/register" className="btn-primary inline-flex items-center gap-2">
-                  <span>Start Free Trial</span>
-                  <span className="text-lg">→</span>
-                </Link>
-                <Link href="/login" className="btn-secondary inline-flex items-center gap-2">
-                  <span>Sign In</span>
-                </Link>
+                {isAuthenticated ? (
+                  <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
+                    <span>Go to Console</span>
+                    <span className="text-lg">→</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/register" className="btn-primary inline-flex items-center gap-2">
+                      <span>Start Free Trial</span>
+                      <span className="text-lg">→</span>
+                    </Link>
+                    <Link href="/login" className="btn-secondary inline-flex items-center gap-2">
+                      <span>Sign In</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
