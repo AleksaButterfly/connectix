@@ -1,11 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuthStore()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <div className="relative flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-16">
       {/* Terminal Window */}
@@ -74,9 +80,9 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-6 flex gap-4">
-                {isAuthenticated ? (
+                {mounted && isAuthenticated ? (
                   <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
-                    <span>Go to Console</span>
+                    <span>Go to Dashboard</span>
                     <span className="text-lg">→</span>
                   </Link>
                 ) : (
@@ -103,6 +109,7 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* Rest of your component remains the same... */}
         {/* Main Feature Cards */}
         <div className="mt-8 grid animate-slide-up gap-6 md:grid-cols-3">
           <FeatureCard

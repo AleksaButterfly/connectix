@@ -25,19 +25,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <div className="flex min-h-screen flex-col bg-background">
-          {/* Terminal-style gradient background */}
-          <div className="pointer-events-none fixed inset-0 bg-gradient-to-tr from-terminal-green/5 via-transparent to-terminal-purple/5" />
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col bg-background">
+            {/* Terminal-style gradient background */}
+            <div className="pointer-events-none fixed inset-0 bg-gradient-to-tr from-terminal-green/5 via-transparent to-terminal-purple/5" />
 
-          {/* Scanline effect (subtle) */}
-          <div className="pointer-events-none fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJhIiB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')] opacity-50" />
+            {/* Scanline effect (subtle) */}
+            <div className="pointer-events-none fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJhIiB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')] opacity-50" />
 
-          <Header />
+            <Header />
 
-          <main className="relative flex-1">{children}</main>
+            <main className="relative flex-1">{children}</main>
 
-          <Footer />
-        </div>
+            <Footer />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )

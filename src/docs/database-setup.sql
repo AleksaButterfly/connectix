@@ -20,6 +20,9 @@ CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE 
   USING (auth.uid() = id);
 
+CREATE POLICY "Anyone can check usernames" ON profiles
+  FOR SELECT USING (true);
+
 -- Create audit_logs table for security tracking
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

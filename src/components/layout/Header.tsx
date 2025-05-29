@@ -36,30 +36,20 @@ export default function Header() {
 
               {/* Desktop Navigation */}
               <div className="hidden items-center gap-8 md:flex">
+                <Link
+                  href="/about"
+                  className="text-sm text-foreground-muted transition-colors hover:text-foreground"
+                >
+                  About Connectix
+                </Link>
                 {isAuthenticated ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className="text-sm text-foreground-muted transition-colors hover:text-foreground"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link href="/dashboard" className="btn-primary text-sm">
-                      Go to Console →
-                    </Link>
-                  </>
+                  <Link href="/dashboard" className="btn-primary text-sm">
+                    Go to Dashboard →
+                  </Link>
                 ) : (
-                  <>
-                    <Link
-                      href="/about"
-                      className="text-sm text-foreground-muted transition-colors hover:text-foreground"
-                    >
-                      About Connectix
-                    </Link>
-                    <Link href="/login" className="btn-primary text-sm">
-                      Sign in to Console →
-                    </Link>
-                  </>
+                  <Link href="/login" className="btn-primary text-sm">
+                    Sign in to Dashboard →
+                  </Link>
                 )}
               </div>
 
