@@ -1,10 +1,82 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { organizationService } from '@/lib/organizations/organization.service'
+import type { OrganizationWithDetails } from '@/types/organization'
 
 export default function OrganizationsPage() {
-  const [organizations, setOrganizations] = useState([])
+  const router = useRouter()
+  const [organizations, setOrganizations] = useState<OrganizationWithDetails[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadOrganizations()
+  }, [])
+
+  const loadOrganizations = async () => {
+    try {
+      setIsLoading(true)
+      const orgs = await organizationService.getOrganizations()
+      setOrganizations(orgs)
+    } catch (err: any) {
+      setError(err.message || 'Failed to load organizations')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleNewOrganization = () => {
+    router.push('/dashboard/organizations/new')
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto max-w-6xl px-6 py-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center">
+            <svg
+              className="mx-auto mb-4 h-8 w-8 animate-spin text-terminal-green"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <p className="text-foreground-muted">Loading organizations...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-6xl px-6 py-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center">
+            <p className="mb-4 text-red-500">{error}</p>
+            <button onClick={loadOrganizations} className="btn-secondary">
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto max-w-6xl px-6 py-8">
@@ -26,7 +98,10 @@ export default function OrganizationsPage() {
               Create your first organization to start managing your SSH connections and
               collaborating with your team.
             </p>
-            <button className="btn-primary inline-flex items-center gap-2">
+            <button
+              onClick={handleNewOrganization}
+              className="btn-primary inline-flex items-center gap-2"
+            >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -41,13 +116,16 @@ export default function OrganizationsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Organization cards will go here */}
+          {/* Organization cards */}
           {organizations.map((org) => (
             <OrganizationCard key={org.id} organization={org} />
           ))}
 
           {/* New Organization Card */}
-          <button className="group relative overflow-hidden rounded-lg border border-dashed border-border bg-background-secondary/50 p-6 text-left transition-all hover:border-terminal-green/50 hover:bg-background-secondary">
+          <button
+            onClick={handleNewOrganization}
+            className="group relative overflow-hidden rounded-lg border border-dashed border-border bg-background-secondary/50 p-6 text-left transition-all hover:border-terminal-green/50 hover:bg-background-secondary"
+          >
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-border group-hover:border-terminal-green/50">
                 <svg
@@ -73,10 +151,16 @@ export default function OrganizationsPage() {
   )
 }
 
-function OrganizationCard({ organization }: { organization: any }) {
+function OrganizationCard({ organization }: { organization: OrganizationWithDetails }) {
+  const createdDate = new Date(organization.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
   return (
     <Link
-      href={`/${organization.slug}`}
+      href={`/dashboard/organizations/${organization.id}`}
       className="group relative overflow-hidden rounded-lg border border-border bg-background-secondary p-6 transition-all hover:border-terminal-green/50 hover:shadow-lg"
     >
       <div className="mb-4 flex items-start justify-between">
@@ -84,7 +168,7 @@ function OrganizationCard({ organization }: { organization: any }) {
           <span className="text-xl font-bold">{organization.name[0].toUpperCase()}</span>
         </div>
         <span className="rounded-full bg-background-tertiary px-2 py-1 text-xs text-foreground-muted">
-          {organization.plan || 'Free'}
+          Free
         </span>
       </div>
 
@@ -92,13 +176,15 @@ function OrganizationCard({ organization }: { organization: any }) {
         {organization.name}
       </h3>
       <p className="mb-4 text-sm text-foreground-muted">
-        {organization.projectsCount || 0} projects
+        {organization.projectsCount} {organization.projectsCount === 1 ? 'project' : 'projects'}
       </p>
 
       <div className="flex items-center gap-2 text-xs text-foreground-subtle">
-        <span>{organization.membersCount || 1} members</span>
+        <span>
+          {organization.membersCount} {organization.membersCount === 1 ? 'member' : 'members'}
+        </span>
         <span>•</span>
-        <span>Created {organization.createdAt}</span>
+        <span>Created {createdDate}</span>
       </div>
     </Link>
   )

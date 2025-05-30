@@ -38,7 +38,7 @@ export default function Header() {
               <div className="hidden items-center gap-4 md:flex">
                 {isAuthenticated ? (
                   <>
-                    <Link href="/organizations" className="btn-primary text-sm">
+                    <Link href="/dashboard/organizations" className="btn-primary text-sm">
                       Dashboard
                     </Link>
                     <UserMenu user={user} />
@@ -99,7 +99,7 @@ export default function Header() {
                       <UserMenu user={user} />
                     </div>
                     <Link
-                      href="/organizations"
+                      href="/dashboard/organizations"
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >

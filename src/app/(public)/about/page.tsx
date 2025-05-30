@@ -226,7 +226,10 @@ export default function AboutPage() {
               Start managing your servers the modern way. Free for up to 3 team members.
             </p>
             <div className="flex justify-center gap-4">
-              <Link href="/organizations" className="btn-primary inline-flex items-center gap-2">
+              <Link
+                href="/dashboard/organizations"
+                className="btn-primary inline-flex items-center gap-2"
+              >
                 <span>Start your project</span>
                 <span className="text-lg">→</span>
               </Link>

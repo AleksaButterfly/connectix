@@ -28,7 +28,10 @@ export default function LandingPage() {
             Start free • No credit card required • Set up in 2 minutes
           </p>
           <div className="flex justify-center gap-4">
-            <Link href="/organizations" className="btn-primary inline-flex items-center gap-2">
+            <Link
+              href="/dashboard/organizations"
+              className="btn-primary inline-flex items-center gap-2"
+            >
               <span>Start your project</span>
               <span className="text-lg">→</span>
             </Link>
@@ -345,7 +348,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                href="/organizations"
+                href="/dashboard/organizations"
                 className="btn-primary inline-flex items-center gap-2 px-8 py-4 text-lg"
               >
                 <span>Start Free Today</span>
