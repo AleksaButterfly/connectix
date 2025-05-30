@@ -5,26 +5,39 @@ import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import RouteGuard from '@/components/auth/RouteGuard'
 
 export default function VerifyEmailPage() {
+  return (
+    <RouteGuard requireAuth>
+      <VerifyEmailContent />
+    </RouteGuard>
+  )
+}
+
+function VerifyEmailContent() {
   const { user } = useAuthStore()
   const router = useRouter()
   const [isResending, setIsResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendError, setResendError] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
 
   useEffect(() => {
-    // Check if already verified
+    // Check if already verified on mount and periodically
     const checkVerification = async () => {
       const supabase = createClient()
       const {
-        data: { user },
+        data: { user: currentUser },
       } = await supabase.auth.getUser()
 
-      if (user?.email_confirmed_at) {
+      if (currentUser?.email_confirmed_at) {
         router.push('/dashboard')
       }
     }
+
+    // Check immediately
+    checkVerification()
 
     // Check every 5 seconds
     const interval = setInterval(checkVerification, 5000)
@@ -44,21 +57,25 @@ export default function VerifyEmailPage() {
     if (!user?.email || timeLeft > 0) return
 
     setIsResending(true)
+    setResendError('')
+    setResendSuccess(false)
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: user.email,
-      })
+      const { error } = await authService.resendVerificationEmail(user.email)
 
       if (error) throw error
 
       setResendSuccess(true)
       setTimeLeft(60) // 60 second cooldown
+
+      // Clear success message after 5 seconds
       setTimeout(() => setResendSuccess(false), 5000)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resending email:', error)
+      setResendError(error.message || 'Failed to resend email. Please try again.')
+
+      // Clear error message after 5 seconds
+      setTimeout(() => setResendError(''), 5000)
     } finally {
       setIsResending(false)
     }
@@ -67,6 +84,20 @@ export default function VerifyEmailPage() {
   const handleSignOut = async () => {
     await authService.signOut()
     router.push('/')
+  }
+
+  // If user is already verified, don't show the page content
+  if (user?.email_confirmed_at) {
+    return (
+      <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-16">
+        <div className="text-center">
+          <div className="mb-4 inline-block">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-terminal-green border-t-transparent"></div>
+          </div>
+          <p className="text-sm text-foreground-muted">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -89,7 +120,7 @@ export default function VerifyEmailPage() {
               <div className="mb-4 text-4xl">📧</div>
               <h1 className="mb-2 text-2xl font-bold text-foreground">Verify your email</h1>
               <p className="mb-6 text-sm text-foreground-muted">
-                We've sent a verification email to:
+                Please verify your email to continue:
               </p>
               <p className="mb-6 font-mono text-terminal-green">{user?.email}</p>
 
@@ -98,17 +129,24 @@ export default function VerifyEmailPage() {
                   <span className="text-foreground-muted">$</span> mail status --check
                 </p>
                 <div className="ml-4 space-y-1 font-mono text-xs text-foreground-muted">
-                  <p>[→] Click the link in your email</p>
+                  <p>[!] Email verification required</p>
+                  <p>[→] Click button below to send verification email</p>
+                  <p>[→] Check your inbox and click the link</p>
                   <p>[→] Page will auto-redirect when verified</p>
-                  <p>[→] Check spam folder if not received</p>
                 </div>
               </div>
 
               {resendSuccess && (
                 <div className="mb-4 rounded-lg border border-terminal-green/50 bg-terminal-green/10 p-3">
                   <p className="text-sm text-terminal-green">
-                    Verification email resent successfully!
+                    Verification email sent successfully!
                   </p>
+                </div>
+              )}
+
+              {resendError && (
+                <div className="mb-4 rounded-lg border border-terminal-red/50 bg-terminal-red/10 p-3">
+                  <p className="text-sm text-terminal-red">{resendError}</p>
                 </div>
               )}
 
@@ -126,7 +164,7 @@ export default function VerifyEmailPage() {
                   ) : timeLeft > 0 ? (
                     `Resend in ${timeLeft}s`
                   ) : (
-                    'Resend verification email'
+                    'Send verification email'
                   )}
                 </button>
 

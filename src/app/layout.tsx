@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
 import AuthInitializer from '@/components/auth/AuthInitializer'
 import './globals.css'
 
@@ -33,11 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Scanline effect (subtle) */}
             <div className="pointer-events-none fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMiIgaGVpZ2h0PSIyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJhIiB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAuMDMiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYSkiLz48L3N2Zz4=')] opacity-50" />
 
-            <Header />
-
-            <main className="relative flex-1">{children}</main>
-
-            <Footer />
+            {children}
           </div>
         </AuthInitializer>
       </body>

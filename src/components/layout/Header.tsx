@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { useRouter } from 'next/navigation'
+import UserMenu from '@/components/dashboard/UserMenu' // Adjust the import path as needed
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -35,21 +36,23 @@ export default function Header() {
               </Link>
 
               {/* Desktop Navigation */}
-              <div className="hidden items-center gap-8 md:flex">
-                <Link
-                  href="/about"
-                  className="text-sm text-foreground-muted transition-colors hover:text-foreground"
-                >
-                  About Connectix
-                </Link>
+              <div className="hidden items-center gap-4 md:flex">
                 {isAuthenticated ? (
-                  <Link href="/dashboard" className="btn-primary text-sm">
-                    Go to Dashboard →
-                  </Link>
+                  <>
+                    <Link href="/dashboard" className="btn-primary text-sm">
+                      Dashboard
+                    </Link>
+                    <UserMenu user={user} />
+                  </>
                 ) : (
-                  <Link href="/login" className="btn-primary text-sm">
-                    Sign in to Dashboard →
-                  </Link>
+                  <>
+                    <Link href="/login" className="btn-secondary text-sm">
+                      Sign in
+                    </Link>
+                    <Link href="/register" className="btn-primary text-sm">
+                      Start your project →
+                    </Link>
+                  </>
                 )}
               </div>
 
@@ -92,12 +95,23 @@ export default function Header() {
               <div className="border-t border-border py-4">
                 {isAuthenticated ? (
                   <>
+                    <div className="flex items-center justify-between pb-4">
+                      <span className="text-sm font-medium text-foreground">{user?.email}</span>
+                      <UserMenu user={user} />
+                    </div>
                     <Link
                       href="/dashboard"
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Dashboard
+                    </Link>
+                    <Link
+                      href="/account"
+                      className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Account Settings
                     </Link>
                     <button
                       onClick={() => {

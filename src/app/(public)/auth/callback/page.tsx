@@ -30,7 +30,6 @@ export default function AuthCallbackPage() {
 
       // Check the hash fragment for tokens
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get('access_token')
       const tokenType = hashParams.get('type')
 
       if (tokenType === 'recovery' || type === 'recovery') {

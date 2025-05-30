@@ -82,17 +82,15 @@ export default function LandingPage() {
               <div className="mt-6 flex gap-4">
                 {mounted && isAuthenticated ? (
                   <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
-                    <span>Go to Dashboard</span>
-                    <span className="text-lg">→</span>
+                    Dashboard
                   </Link>
                 ) : (
                   <>
-                    <Link href="/register" className="btn-primary inline-flex items-center gap-2">
-                      <span>Start Free Trial</span>
-                      <span className="text-lg">→</span>
-                    </Link>
                     <Link href="/login" className="btn-secondary inline-flex items-center gap-2">
-                      <span>Sign In</span>
+                      Sign in
+                    </Link>
+                    <Link href="/register" className="btn-primary inline-flex items-center gap-2">
+                      Start your project →
                     </Link>
                   </>
                 )}
