@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import FormInput from '@/components/ui/FormInput'
 import { createClient } from '@/lib/supabase/client'
 import { authService } from '@/lib/auth/auth.service'
+import { useAuthStore } from '@/stores/auth.store'
 
 const resetPasswordSchema = z
   .object({
@@ -29,7 +30,6 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
 export default function ResetPasswordPage() {
-  // No guard - anyone can access this page
   return <ResetPasswordContent />
 }
 
@@ -38,9 +38,11 @@ function ResetPasswordContent() {
   const [isReset, setIsReset] = useState(false)
   const [isValidToken, setIsValidToken] = useState(false)
   const [checkingToken, setCheckingToken] = useState(true)
+  const [isOAuthUser, setIsOAuthUser] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const router = useRouter()
+  const { user } = useAuthStore()
 
   // Password requirements state
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -52,7 +54,7 @@ function ResetPasswordContent() {
   })
 
   useEffect(() => {
-    // Check if user is logged in (they should be from the recovery link)
+    // Check if user is logged in and how they authenticated
     const checkSession = async () => {
       const supabase = createClient()
       const {
@@ -60,7 +62,15 @@ function ResetPasswordContent() {
       } = await supabase.auth.getSession()
 
       if (session) {
-        setIsValidToken(true)
+        // Check if user signed up with OAuth
+        const hasPassword = session.user.app_metadata.provider === 'email'
+
+        if (!hasPassword) {
+          // User signed up with OAuth (GitHub, Google, etc)
+          setIsOAuthUser(true)
+        } else {
+          setIsValidToken(true)
+        }
       } else {
         setIsValidToken(false)
       }
@@ -83,13 +93,13 @@ function ResetPasswordContent() {
     setIsLoading(true)
 
     try {
-      // User is already logged in from the recovery link
-      // Just update the password
       const { error } = await authService.updatePassword(data.password)
 
       if (error) {
         console.error('Password update error:', error)
-        setError('root', { message: error.message || 'Failed to update password' })
+        setError('root', {
+          message: (error as { message?: string }).message || 'Failed to update password',
+        })
         setIsLoading(false)
         return
       }
@@ -146,6 +156,26 @@ function ResetPasswordContent() {
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-terminal-green border-t-transparent"></div>
                 </div>
                 <p className="text-sm text-foreground-muted">Verifying reset link...</p>
+              </div>
+            ) : isOAuthUser ? (
+              <div className="text-center">
+                <div className="mb-4 text-4xl">🔐</div>
+                <h2 className="mb-2 text-xl font-bold text-terminal-yellow">
+                  OAuth Account Detected
+                </h2>
+                <p className="mb-6 text-sm text-foreground-muted">
+                  You signed up using {user?.app_metadata.provider || 'a third-party provider'}.
+                  Password reset is not available for OAuth accounts.
+                </p>
+                <p className="mb-6 text-xs text-foreground-subtle">
+                  To change your authentication method, please contact support.
+                </p>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Back to Dashboard →
+                </button>
               </div>
             ) : !isValidToken ? (
               <div className="text-center">
@@ -291,6 +321,19 @@ function ResetPasswordContent() {
                       'Reset Password →'
                     )}
                   </button>
+
+                  {/* Add option to go back to dashboard if they're already logged in */}
+                  {user && (
+                    <div className="mt-4 text-center">
+                      <button
+                        type="button"
+                        onClick={() => router.push('/dashboard')}
+                        className="text-sm text-foreground-muted hover:text-foreground"
+                      >
+                        Back to Dashboard
+                      </button>
+                    </div>
+                  )}
                 </form>
               </>
             ) : (
