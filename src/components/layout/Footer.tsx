@@ -8,12 +8,14 @@ export default function Footer() {
           <div className="grid gap-8 md:grid-cols-4">
             {/* Brand Column */}
             <div className="md:col-span-1">
-              <Link
-                href="/"
-                className="group flex items-center gap-2 text-lg font-bold transition-colors hover:text-terminal-green"
-              >
-                <span className="text-terminal-green">$</span>
-                <span>Connectix</span>
+              <Link href="/" className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green">
+                  <span className="text-sm font-bold text-background">C</span>
+                </div>
+                <span className="text-lg font-semibold text-foreground">Connectix</span>
+                <span className="animate-terminal-blink text-terminal-green opacity-0 group-hover:opacity-100">
+                  _
+                </span>
               </Link>
               <p className="mt-3 text-xs text-foreground-subtle">
                 Secure SSH file manager for developers

@@ -24,12 +24,11 @@ export default function Header() {
           <div className="px-6">
             <div className="flex h-16 items-center justify-between">
               {/* Logo/Brand */}
-              <Link
-                href="/"
-                className="group flex items-center gap-2 text-lg font-bold transition-colors hover:text-terminal-green"
-              >
-                <span className="text-terminal-green">$</span>
-                <span>Connectix</span>
+              <Link href="/" className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green">
+                  <span className="text-sm font-bold text-background">C</span>
+                </div>
+                <span className="text-lg font-semibold text-foreground">Connectix</span>
                 <span className="animate-terminal-blink text-terminal-green opacity-0 group-hover:opacity-100">
                   _
                 </span>
@@ -39,7 +38,7 @@ export default function Header() {
               <div className="hidden items-center gap-4 md:flex">
                 {isAuthenticated ? (
                   <>
-                    <Link href="/dashboard" className="btn-primary text-sm">
+                    <Link href="/organizations" className="btn-primary text-sm">
                       Dashboard
                     </Link>
                     <UserMenu user={user} />
@@ -100,7 +99,7 @@ export default function Header() {
                       <UserMenu user={user} />
                     </div>
                     <Link
-                      href="/dashboard"
+                      href="/organizations"
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >

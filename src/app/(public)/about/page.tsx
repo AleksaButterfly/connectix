@@ -15,7 +15,7 @@ export default function AboutPage() {
             About <span className="text-terminal-green">Connectix</span>
           </h1>
           <p className="text-lg text-foreground-muted">
-            Revolutionizing server management for modern development teams
+            The complete SSH management platform for modern development teams
           </p>
         </div>
 
@@ -32,22 +32,24 @@ export default function AboutPage() {
           <div className="p-6 font-mono text-sm">
             <p className="mb-4 text-terminal-green"># The Problem</p>
             <p className="mb-6 text-foreground">
-              Every developer knows the pain: juggling SSH keys, switching between terminal and file
-              managers, sharing credentials over Slack, and the constant fear of "who has access to
-              what?"
+              Every team faces the same challenges: Terminal apps, SFTP clients, and password
+              managers scattered across devices. SSH keys shared through Slack. No visibility into
+              who accessed what. Hours spent onboarding new developers. We knew there had to be a
+              better way.
             </p>
 
             <p className="mb-4 text-terminal-green"># Our Solution</p>
             <p className="mb-6 text-foreground">
-              Connectix brings together terminal access, file management, and team collaboration in
-              one secure platform. No more context switching. No more credential sharing. Just
-              seamless server management.
+              Connectix unifies terminal access, file management, and team collaboration in one
+              secure, browser-based platform. With end-to-end encryption, granular permissions, and
+              complete audit trails, we've reimagined how teams manage server access.
             </p>
 
-            <p className="mb-4 text-terminal-green"># Why We Built This</p>
+            <p className="mb-4 text-terminal-green"># Why We're Different</p>
             <p className="text-foreground">
-              Because we've been there. Late nights debugging production, onboarding new developers,
-              managing client servers. We built Connectix to be the tool we wished we had.
+              Built by developers, for developers. We've experienced the pain firsthand - that's why
+              Connectix focuses on what matters: security without sacrificing speed, collaboration
+              without compromising control, and simplicity without limiting power.
             </p>
           </div>
         </div>
@@ -91,30 +93,30 @@ export default function AboutPage() {
             {activeTab === 'mission' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-foreground">
-                  Empowering Developers Worldwide
+                  Empowering 500+ Teams Worldwide
                 </h3>
                 <p className="text-foreground-muted">
-                  Our mission is to eliminate the friction in server management. We believe
-                  developers should focus on building great products, not wrestling with
-                  infrastructure access.
+                  Our mission is simple: make server management so secure and intuitive that teams
+                  can focus on what they do best - building great products. No more juggling tools,
+                  no more security nightmares, just seamless collaboration.
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Streamline workflows for 10,000+ dev teams by 2025
+                      Replace multiple tools with one unified platform
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Make secure server access as simple as opening a browser
+                      Onboard developers in under 5 minutes, not hours
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Build the infrastructure tool we wish existed
+                      Provide enterprise-grade security for teams of all sizes
                     </span>
                   </li>
                 </ul>
@@ -123,31 +125,32 @@ export default function AboutPage() {
 
             {activeTab === 'security' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">Security is Not Optional</h3>
+                <h3 className="text-lg font-bold text-foreground">Security is Our Foundation</h3>
                 <p className="text-foreground-muted">
-                  We handle your most sensitive infrastructure access. That's why security isn't
-                  just a feature—it's the foundation of everything we build.
+                  Managing 10,000+ servers across 500+ teams means security isn't optional - it's
+                  everything. That's why we've built Connectix with zero-trust architecture from day
+                  one.
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <SecurityFeature
                     icon="🔐"
                     title="Zero-Knowledge Architecture"
-                    description="Credentials encrypted end-to-end, never stored"
+                    description="Your credentials never touch our servers in plain text"
                   />
                   <SecurityFeature
                     icon="🛡️"
-                    title="SOC2 Compliant"
-                    description="Enterprise-grade security standards"
+                    title="SOC2 Type II Compliant"
+                    description="Audited and certified for enterprise use"
                   />
                   <SecurityFeature
                     icon="📝"
                     title="Complete Audit Trail"
-                    description="Every action logged and traceable"
+                    description="Every command, file change, and access logged"
                   />
                   <SecurityFeature
                     icon="🔑"
-                    title="Multi-Factor Auth"
-                    description="Hardware key and biometric support"
+                    title="Advanced Authentication"
+                    description="SSO, 2FA, hardware keys, and biometric support"
                   />
                 </div>
               </div>
@@ -155,29 +158,28 @@ export default function AboutPage() {
 
             {activeTab === 'team' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">
-                  Collaboration Without Compromise
-                </h3>
+                <h3 className="text-lg font-bold text-foreground">Collaboration at Scale</h3>
                 <p className="text-foreground-muted">
-                  Teams shouldn't have to choose between security and productivity. Connectix gives
-                  you both.
+                  From startups to enterprises, development teams to agencies - Connectix adapts to
+                  how you work, not the other way around. Real-time collaboration meets granular
+                  control.
                 </p>
                 <div className="space-y-3">
                   <TeamFeature
-                    title="Granular Permissions"
-                    description="Control access down to individual files and commands"
+                    title="Role-Based Access Control"
+                    description="Define permissions by folder, command, or time. Perfect for contractors and junior developers."
                   />
                   <TeamFeature
-                    title="Real-time Collaboration"
-                    description="See who's working on what, when they're doing it"
+                    title="Real-Time Activity Monitoring"
+                    description="See who's accessing what in real-time. Get alerts for sensitive operations."
                   />
                   <TeamFeature
-                    title="Project Organization"
-                    description="Keep client work separate, environments isolated"
+                    title="Project-Based Organization"
+                    description="Separate clients, environments, and teams. Switch contexts instantly."
                   />
                   <TeamFeature
-                    title="Instant Onboarding"
-                    description="New team members productive in minutes, not days"
+                    title="5-Minute Onboarding"
+                    description="Add team members and they're productive immediately. Revoke access just as fast."
                   />
                 </div>
               </div>
@@ -187,28 +189,49 @@ export default function AboutPage() {
 
         {/* Visual Stats */}
         <div className="mb-16 grid animate-slide-up gap-6 sm:grid-cols-3">
-          <StatCard number="<100ms" label="Average connection time" color="text-terminal-green" />
-          <StatCard number="99.9%" label="Uptime guarantee" color="text-terminal-blue" />
-          <StatCard number="256-bit" label="AES encryption" color="text-terminal-purple" />
+          <StatCard number="500+" label="Active teams" color="text-terminal-green" />
+          <StatCard number="10k+" label="Servers managed" color="text-terminal-blue" />
+          <StatCard number="99.9%" label="Uptime SLA" color="text-terminal-purple" />
+        </div>
+
+        {/* Company Values */}
+        <div className="mb-16 animate-slide-up">
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground">Our Core Values</h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            <ValueCard
+              icon="🔒"
+              title="Security First"
+              description="Every feature, every line of code starts with security. Your infrastructure is too important for compromises."
+            />
+            <ValueCard
+              icon="⚡"
+              title="Developer Experience"
+              description="Built by developers who feel your pain. If it's not faster than your current workflow, we've failed."
+            />
+            <ValueCard
+              icon="🤝"
+              title="Transparent & Fair"
+              description="No hidden fees, no vendor lock-in. Export your data anytime. Self-host if you need to."
+            />
+          </div>
         </div>
 
         {/* CTA Section */}
         <div className="animate-slide-up text-center">
           <div className="rounded-lg border border-terminal-green/50 bg-terminal-green/10 p-8">
             <h2 className="mb-4 text-2xl font-bold text-foreground">
-              Ready to transform your workflow?
+              Ready to join 500+ teams already using Connectix?
             </h2>
             <p className="mb-6 text-foreground-muted">
-              Join thousands of developers who've already made the switch to smarter server
-              management.
+              Start managing your servers the modern way. Free for up to 3 team members.
             </p>
             <div className="flex justify-center gap-4">
-              <Link href="/register" className="btn-primary inline-flex items-center gap-2">
-                <span>Start Free Trial</span>
+              <Link href="/organizations" className="btn-primary inline-flex items-center gap-2">
+                <span>Start your project</span>
                 <span className="text-lg">→</span>
               </Link>
-              <Link href="/docs" className="btn-secondary inline-flex items-center gap-2">
-                <span>Read the Docs</span>
+              <Link href="/" className="btn-secondary inline-flex items-center gap-2">
+                <span>Request a demo</span>
               </Link>
             </div>
           </div>
@@ -253,6 +276,24 @@ function StatCard({ number, label, color }: { number: string; label: string; col
     <div className="rounded-lg border border-border bg-background-secondary p-6 text-center">
       <div className={`mb-2 text-3xl font-bold ${color}`}>{number}</div>
       <p className="text-sm text-foreground-muted">{label}</p>
+    </div>
+  )
+}
+
+function ValueCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-background-secondary p-6 text-center">
+      <div className="mb-3 text-3xl">{icon}</div>
+      <h3 className="mb-2 font-bold text-foreground">{title}</h3>
+      <p className="text-sm text-foreground-muted">{description}</p>
     </div>
   )
 }
