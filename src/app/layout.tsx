@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import { AuthProvider } from '@/components/auth/AuthProvider'
+import AuthInitializer from '@/components/auth/AuthInitializer'
 import './globals.css'
 
 const inter = Inter({
@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <AuthProvider>
+        <AuthInitializer>
           <div className="flex min-h-screen flex-col bg-background">
             {/* Terminal-style gradient background */}
             <div className="pointer-events-none fixed inset-0 bg-gradient-to-tr from-terminal-green/5 via-transparent to-terminal-purple/5" />
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <Footer />
           </div>
-        </AuthProvider>
+        </AuthInitializer>
       </body>
     </html>
   )

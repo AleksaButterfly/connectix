@@ -3,51 +3,23 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { useRouter } from 'next/navigation'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { createClient } from '@/lib/supabase/client'
-import { useState } from 'react'
+import RouteGuard from '@/components/auth/RouteGuard'
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute>
+    <RouteGuard requireAuth requireVerified>
       <DashboardContent />
-    </ProtectedRoute>
+    </RouteGuard>
   )
 }
 
 function DashboardContent() {
-  const { user, setUser } = useAuthStore()
+  const { user } = useAuthStore()
   const router = useRouter()
-  const [isSigningOut, setIsSigningOut] = useState(false)
 
   const handleSignOut = async () => {
-    if (isSigningOut) return // Prevent double clicks
-
-    try {
-      setIsSigningOut(true)
-
-      // Force clear the session using Supabase client directly
-      const supabase = createClient()
-      const { error } = await supabase.auth.signOut()
-
-      if (error) {
-        console.error('Sign out error:', error)
-        // Force clear anyway
-        await supabase.auth.signOut({ scope: 'local' })
-      }
-
-      // Clear user from store
-      setUser(null)
-
-      // Navigate to login
-      router.push('/login')
-    } catch (error) {
-      console.error('Sign out error:', error)
-      // Even if there's an error, try to navigate to login
-      router.push('/login')
-    } finally {
-      setIsSigningOut(false)
-    }
+    await authService.signOut()
+    router.push('/login')
   }
 
   return (
@@ -89,12 +61,8 @@ function DashboardContent() {
                 <li>• Server monitoring</li>
               </ul>
 
-              <button
-                onClick={handleSignOut}
-                disabled={isSigningOut}
-                className="btn-secondary mt-8 disabled:opacity-50"
-              >
-                {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              <button onClick={handleSignOut} className="btn-secondary mt-8">
+                Sign Out
               </button>
             </div>
           </div>
