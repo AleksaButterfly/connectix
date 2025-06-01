@@ -17,7 +17,7 @@ export default function OrganizationLayout({ children }: { children: React.React
   const params = useParams()
   const pathname = usePathname()
   const orgId = params.id as string
-  const [isCollapsed, setIsCollapsed] = useState(true) // Changed to true by default
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [organization, setOrganization] = useState<Organization | null>(null)
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function OrganizationLayout({ children }: { children: React.React
       label: 'Projects',
       href: `/dashboard/organizations/${orgId}`,
       icon: (
-        <svg className="h-5 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -53,7 +53,7 @@ export default function OrganizationLayout({ children }: { children: React.React
       label: 'Team',
       href: `/dashboard/organizations/${orgId}/team`,
       icon: (
-        <svg className="h-5 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -68,7 +68,7 @@ export default function OrganizationLayout({ children }: { children: React.React
       label: 'Settings',
       href: `/dashboard/organizations/${orgId}/settings`,
       icon: (
-        <svg className="h-5 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -89,40 +89,49 @@ export default function OrganizationLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-full">
-      {/* Sidebar Container - Fixed width */}
-      <div className="relative w-16 flex-shrink-0">
+      {/* Sidebar Container - Fixed width for collapsed state */}
+      <div className="relative w-[56px] flex-shrink-0">
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
-          className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-all duration-300 ease-in-out ${
-            isCollapsed ? 'w-16' : 'w-64'
+          className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
+            isCollapsed ? 'w-[56px]' : 'w-64'
           }`}
           onMouseEnter={() => setIsCollapsed(false)}
           onMouseLeave={() => setIsCollapsed(true)}
         >
           <div className="flex h-full flex-col">
             {/* Navigation */}
-            <nav className="flex-1 p-2">
+            <nav className="flex-1 px-3 py-3">
               <ul className="space-y-2">
                 {sidebarItems.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`flex items-center rounded-lg px-3 py-2 text-sm transition-all ${
+                      className={`group relative flex h-8 items-center rounded-lg transition-colors ${
                         item.active
-                          ? 'bg-terminal-green/10 text-terminal-green'
-                          : 'text-foreground-muted hover:bg-background-tertiary hover:text-foreground'
+                          ? 'text-terminal-green'
+                          : 'text-foreground-muted hover:text-foreground'
                       }`}
                     >
-                      <div className="flex h-5 w-6 shrink-0 items-center justify-center">
-                        {item.icon}
-                      </div>
-                      <span
-                        className={`ml-3 whitespace-nowrap transition-opacity duration-300 ${
-                          isCollapsed ? 'opacity-0' : 'opacity-100'
+                      {/* Icon container - Always 32x32px, centered */}
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+                          item.active
+                            ? 'bg-terminal-green/10 group-hover:bg-terminal-green/20'
+                            : 'hover:bg-background-tertiary'
                         }`}
                       >
-                        {item.label}
-                      </span>
+                        {item.icon}
+                      </div>
+
+                      {/* Label container with fixed positioning to prevent layout shift */}
+                      <div
+                        className={`absolute left-9 flex h-8 items-center transition-opacity duration-300 ${
+                          isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'
+                        }`}
+                      >
+                        <span className="whitespace-nowrap pl-2 pr-4 text-sm">{item.label}</span>
+                      </div>
                     </Link>
                   </li>
                 ))}
@@ -130,13 +139,14 @@ export default function OrganizationLayout({ children }: { children: React.React
             </nav>
 
             {/* Bottom Action */}
-            <div className="border-t border-border p-2">
+            <div className="border-t border-border px-3 py-3">
               <Link
                 href="/dashboard/organizations"
-                className="flex items-center rounded-lg px-3 py-2 text-sm text-foreground-muted transition-all hover:bg-background-tertiary hover:text-foreground"
+                className="group relative flex h-8 items-center rounded-lg text-foreground-muted transition-colors hover:text-foreground"
               >
-                <div className="flex h-5 w-6 shrink-0 items-center justify-center">
-                  <svg className="h-5 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* Icon container - Always 32x32px, centered */}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-background-tertiary">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -145,13 +155,15 @@ export default function OrganizationLayout({ children }: { children: React.React
                     />
                   </svg>
                 </div>
-                <span
-                  className={`ml-3 whitespace-nowrap transition-opacity duration-300 ${
-                    isCollapsed ? 'opacity-0' : 'opacity-100'
+
+                {/* Label container with fixed positioning */}
+                <div
+                  className={`absolute left-8 flex h-8 items-center transition-opacity duration-300 ${
+                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'
                   }`}
                 >
-                  All Organizations
-                </span>
+                  <span className="whitespace-nowrap pl-2 pr-4 text-sm">All Organizations</span>
+                </div>
               </Link>
             </div>
           </div>

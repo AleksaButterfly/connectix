@@ -80,7 +80,7 @@ export default function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center justify-between px-6">
+      <div className="flex h-16 items-center justify-between px-3">
         {/* Logo and Breadcrumbs */}
         <div className="flex items-center">
           <nav className="flex items-center space-x-2 text-sm">

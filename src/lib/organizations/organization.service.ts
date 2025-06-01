@@ -62,4 +62,54 @@ export const organizationService = {
 
     return data
   },
+
+  async updateOrganization(
+    id: string,
+    updates: { name?: string; slug?: string }
+  ): Promise<Organization> {
+    const supabase = createClient()
+
+    // If name is being updated, regenerate slug
+    if (updates.name && !updates.slug) {
+      updates.slug = updates.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()
+    }
+
+    const { data, error } = await supabase
+      .from('organizations')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async deleteOrganization(id: string): Promise<void> {
+    const supabase = createClient()
+    const { error } = await supabase.from('organizations').delete().eq('id', id)
+
+    if (error) throw error
+  },
+
+  async isOrganizationOwner(organizationId: string): Promise<boolean> {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('owner_id')
+      .eq('id', organizationId)
+      .single()
+
+    return org?.owner_id === user.id
+  },
 }

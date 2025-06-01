@@ -3,31 +3,51 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { organizationService } from '@/lib/organizations/organization.service'
+import FormInput from '@/components/ui/FormInput'
+
+// Form validation schema
+const createOrganizationSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Organization name is required')
+    .max(100, 'Organization name is too long')
+    .trim(),
+})
+
+type CreateOrganizationFormData = z.infer<typeof createOrganizationSchema>
 
 export default function NewOrganizationPage() {
   const router = useRouter()
-  const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<CreateOrganizationFormData>({
+    resolver: zodResolver(createOrganizationSchema),
+    defaultValues: {
+      name: '',
+    },
+  })
 
-    if (!name.trim()) {
-      setError('Organization name is required')
-      return
-    }
-
+  const onSubmit = async (data: CreateOrganizationFormData) => {
     setIsLoading(true)
-    setError('')
 
     try {
-      const org = await organizationService.createOrganization(name.trim())
+      const org = await organizationService.createOrganization(data.name)
       // Redirect to the new organization page using ID
       router.push(`/dashboard/organizations/${org.id}`)
     } catch (err: any) {
-      setError(err.message || 'Failed to create organization')
+      console.error('Failed to create organization:', err)
+      setError('root', {
+        message: err.message || 'Failed to create organization',
+      })
       setIsLoading(false)
     }
   }
@@ -63,25 +83,25 @@ export default function NewOrganizationPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {errors.root && (
+            <div className="mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500">
+              {errors.root.message}
+            </div>
+          )}
+
           <div className="mb-6">
-            <label htmlFor="name" className="mb-2 block text-sm font-medium text-foreground">
-              Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+            <FormInput
+              label="Name"
               placeholder="Organization name"
-              className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder-foreground-muted transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-terminal-green"
+              error={errors.name?.message}
               disabled={isLoading}
               autoFocus
+              {...register('name')}
             />
             <p className="mt-2 text-sm text-foreground-muted">
               You can rename your organization later
             </p>
-            {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
           </div>
 
           <div className="flex justify-end gap-4">
@@ -94,7 +114,7 @@ export default function NewOrganizationPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="btn-primary inline-flex items-center gap-2"
+              className="btn-primary inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <>

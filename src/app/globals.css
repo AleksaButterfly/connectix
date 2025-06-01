@@ -8,18 +8,18 @@
   }
 
   body {
-    @apply bg-background min-h-screen font-mono text-sm;
+    @apply min-h-screen bg-background font-mono text-sm;
   }
 }
 
 @layer components {
   /* Terminal window styling */
   .terminal-window {
-    @apply bg-background-secondary overflow-hidden rounded-lg border border-[#27272a];
+    @apply overflow-hidden rounded-lg border border-[#27272a] bg-background-secondary;
   }
 
   .terminal-header {
-    @apply bg-background-tertiary flex items-center gap-2 border-b border-[#27272a] px-4 py-2;
+    @apply flex items-center gap-2 border-b border-[#27272a] bg-background-tertiary px-4 py-2;
   }
 
   .terminal-dot {
@@ -28,10 +28,41 @@
 
   /* Button variants */
   .btn-primary {
-    @apply bg-terminal-green text-background hover:bg-terminal-green/90 rounded px-4 py-2 font-medium;
+    @apply rounded bg-terminal-green px-4 py-2 font-medium text-background hover:bg-terminal-green/90;
   }
 
   .btn-secondary {
-    @apply bg-background-tertiary text-foreground hover:bg-background-secondary rounded border border-[#27272a] px-4 py-2 font-medium;
+    @apply rounded border border-[#27272a] bg-background-tertiary px-4 py-2 font-medium text-foreground hover:bg-background-secondary;
   }
+}
+
+@keyframes slide-in-from-top-5 {
+  from {
+    transform: translateY(-1.25rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-duration: 300ms;
+  animation-fill-mode: both;
+}
+
+.slide-in-from-top-5 {
+  animation-name: slide-in-from-top-5;
+}
+
+.fade-in {
+  animation-name: fade-in;
 }
