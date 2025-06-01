@@ -94,7 +94,7 @@ export default function UserMenu({ user }: UserMenuProps) {
               <button
                 onClick={() => {
                   setIsOpen(false)
-                  router.push('/account')
+                  router.push('/account/settings')
                 }}
                 className="flex w-full items-center px-4 py-2 text-sm text-foreground transition-colors hover:bg-background-secondary"
               >

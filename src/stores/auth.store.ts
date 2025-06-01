@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 
 interface AuthState {
   user: User | null
@@ -11,11 +12,12 @@ interface AuthState {
   setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   clearAuth: () => void
+  refreshUser: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isLoading: true,
       isAuthenticated: false,
@@ -35,6 +37,31 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isLoading: false,
         }),
+
+      refreshUser: async () => {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
+        if (user) {
+          // Fetch updated profile data
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+
+          // Update the user in the store
+          get().setUser({
+            ...user,
+            user_metadata: {
+              ...user.user_metadata,
+              username: profile?.username,
+            },
+          } as User)
+        }
+      },
     }),
     {
       name: 'auth-storage',

@@ -101,37 +101,31 @@ export default function OrganizationLayout({ children }: { children: React.React
         >
           <div className="flex h-full flex-col">
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-3">
-              <ul className="space-y-2">
+            <nav className="flex-1 py-3">
+              <ul className="space-y-2 px-2">
                 {sidebarItems.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className={`group relative flex h-8 items-center rounded-lg transition-colors ${
+                      className={`group relative flex h-10 items-center rounded-lg transition-colors duration-200 ${
                         item.active
-                          ? 'text-terminal-green'
-                          : 'text-foreground-muted hover:text-foreground'
+                          ? 'bg-terminal-green/10 text-terminal-green'
+                          : 'text-foreground-muted hover:bg-background-tertiary hover:text-foreground'
                       }`}
                     >
-                      {/* Icon container - Always 32x32px, centered */}
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-                          item.active
-                            ? 'bg-terminal-green/10 group-hover:bg-terminal-green/20'
-                            : 'hover:bg-background-tertiary'
-                        }`}
-                      >
-                        {item.icon}
+                      {/* Icon container - fixed width to prevent shifting */}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                        <div className="flex h-6 w-6 items-center justify-center">{item.icon}</div>
                       </div>
 
-                      {/* Label container with fixed positioning to prevent layout shift */}
-                      <div
-                        className={`absolute left-9 flex h-8 items-center transition-opacity duration-300 ${
+                      {/* Label - animated */}
+                      <span
+                        className={`absolute left-10 whitespace-nowrap text-sm transition-opacity duration-300 ${
                           isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'
                         }`}
                       >
-                        <span className="whitespace-nowrap pl-2 pr-4 text-sm">{item.label}</span>
-                      </div>
+                        {item.label}
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -139,32 +133,41 @@ export default function OrganizationLayout({ children }: { children: React.React
             </nav>
 
             {/* Bottom Action */}
-            <div className="border-t border-border px-3 py-3">
-              <Link
-                href="/dashboard/organizations"
-                className="group relative flex h-8 items-center rounded-lg text-foreground-muted transition-colors hover:text-foreground"
-              >
-                {/* Icon container - Always 32x32px, centered */}
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-background-tertiary">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 17l-5-5m0 0l5-5m-5 5h12"
-                    />
-                  </svg>
-                </div>
-
-                {/* Label container with fixed positioning */}
-                <div
-                  className={`absolute left-8 flex h-8 items-center transition-opacity duration-300 ${
-                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'
-                  }`}
+            <div className="border-t border-border py-3">
+              <div className="px-2">
+                <Link
+                  href="/dashboard/organizations"
+                  className="group relative flex h-10 items-center rounded-lg text-foreground-muted transition-colors duration-200 hover:bg-background-tertiary hover:text-foreground"
                 >
-                  <span className="whitespace-nowrap pl-2 pr-4 text-sm">All Organizations</span>
-                </div>
-              </Link>
+                  {/* Icon container - fixed width to prevent shifting */}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+                    <div className="flex h-6 w-6 items-center justify-center">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 17l-5-5m0 0l5-5m-5 5h12"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Label - animated */}
+                  <span
+                    className={`absolute left-10 whitespace-nowrap text-sm transition-opacity duration-300 ${
+                      isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100'
+                    }`}
+                  >
+                    All Organizations
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </aside>

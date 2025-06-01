@@ -106,7 +106,7 @@ export default function Header() {
                       Dashboard
                     </Link>
                     <Link
-                      href="/account"
+                      href="/account/settings"
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >

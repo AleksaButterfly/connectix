@@ -7,18 +7,53 @@ import UserMenu from './UserMenu'
 import { useEffect, useState } from 'react'
 import { organizationService } from '@/lib/organizations/organization.service'
 
+// Define organization pages that should show the org name
+const ORGANIZATION_PAGES = [
+  '/dashboard/organizations/[id]',
+  '/dashboard/organizations/[id]/team',
+  '/dashboard/organizations/[id]/settings',
+  '/dashboard/organizations/[id]/projects',
+  '/dashboard/organizations/[id]/projects/[projectId]',
+  // Add more organization-specific routes as needed
+]
+
+interface BreadcrumbItem {
+  label: string
+  href?: string
+  icon?: React.ReactNode
+}
+
 export default function DashboardHeader() {
   const { user } = useAuthStore()
   const pathname = usePathname()
   const [organizationName, setOrganizationName] = useState<string | null>(null)
+  const [isLoadingOrg, setIsLoadingOrg] = useState(false)
 
-  // Extract organization ID from pathname if viewing a specific org
+  // Extract organization ID from pathname
+  const getOrgIdFromPath = (path: string): string | null => {
+    const match = path.match(/\/dashboard\/organizations\/([a-f0-9-]{36})/)
+    return match ? match[1] : null
+  }
+
+  // Check if current path is an organization page
+  const isOrganizationPage = (path: string): boolean => {
+    const orgId = getOrgIdFromPath(path)
+    if (!orgId) return false
+
+    // Check if the path matches any of our organization page patterns
+    return ORGANIZATION_PAGES.some((pattern) => {
+      const regex = pattern.replace('[id]', orgId).replace('[projectId]', '[a-f0-9-]{36}')
+      return new RegExp(`^${regex}$`).test(path)
+    })
+  }
+
+  // Fetch organization name when on org pages
   useEffect(() => {
     const fetchOrgName = async () => {
-      // Match pattern like /dashboard/organizations/[uuid]
-      const orgMatch = pathname.match(/^\/dashboard\/organizations\/([a-f0-9-]{36})/)
-      if (orgMatch) {
-        const orgId = orgMatch[1]
+      const orgId = getOrgIdFromPath(pathname)
+
+      if (orgId && isOrganizationPage(pathname)) {
+        setIsLoadingOrg(true)
         try {
           const org = await organizationService.getOrganization(orgId)
           if (org) {
@@ -26,9 +61,13 @@ export default function DashboardHeader() {
           }
         } catch (error) {
           console.error('Failed to fetch organization:', error)
+          setOrganizationName(null)
+        } finally {
+          setIsLoadingOrg(false)
         }
       } else {
         setOrganizationName(null)
+        setIsLoadingOrg(false)
       }
     }
 
@@ -36,29 +75,32 @@ export default function DashboardHeader() {
   }, [pathname])
 
   // Build breadcrumb items based on current path
-  const getBreadcrumbs = () => {
-    const items: Array<{ label: string; href?: string; icon?: React.ReactNode }> = []
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
+    const items: BreadcrumbItem[] = []
 
     // Always start with logo/home
     items.push({
       label: 'C',
-      href: '/dashboard/organizations',
+      href: '/dashboard',
       icon: (
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green">
+        <Link
+          href="/dashboard/organizations"
+          className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green"
+        >
           <span className="text-sm font-bold text-background">C</span>
-        </div>
+        </Link>
       ),
     })
 
-    // Add path-specific breadcrumbs
+    // Simple breadcrumb logic
     if (pathname === '/dashboard/organizations') {
       items.push({ label: 'Organizations' })
     } else if (pathname === '/dashboard/organizations/new') {
       items.push({ label: 'New Organization' })
-    } else if (pathname.match(/^\/dashboard\/organizations\/[a-f0-9-]{36}$/)) {
-      // Viewing specific organization
+    } else if (isOrganizationPage(pathname)) {
+      // For any organization page, just show the org name
       items.push({
-        label: organizationName || 'Loading...',
+        label: isLoadingOrg ? 'Loading...' : organizationName || 'Organization',
         icon: (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -71,7 +113,6 @@ export default function DashboardHeader() {
         ),
       })
     }
-    // Add more patterns as needed for projects, settings, etc.
 
     return items
   }
@@ -83,12 +124,12 @@ export default function DashboardHeader() {
       <div className="flex h-16 items-center justify-between px-3">
         {/* Logo and Breadcrumbs */}
         <div className="flex items-center">
-          <nav className="flex items-center space-x-2 text-sm">
+          <nav className="flex items-center text-sm">
             {breadcrumbs.map((item, index) => (
               <div key={index} className="flex items-center">
                 {index > 0 && (
                   <svg
-                    className="mx-2 h-4 w-4 text-foreground-muted"
+                    className="mx-4 h-3.5 w-3.5 text-foreground-muted"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -102,20 +143,10 @@ export default function DashboardHeader() {
                   </svg>
                 )}
 
-                {item.href ? (
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-2 text-foreground-muted transition-colors hover:text-foreground"
-                  >
-                    {item.icon}
-                    {index > 0 && <span>{item.label}</span>}
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-2 text-foreground">
-                    {item.icon}
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-foreground">
+                  {item.icon}
+                  {(index > 0 || !item.icon) && <span className="font-medium">{item.label}</span>}
+                </div>
               </div>
             ))}
           </nav>
@@ -123,7 +154,7 @@ export default function DashboardHeader() {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
-          {/* Future: Add notifications, etc. */}
+          {/* Future: Add notifications, help, etc. */}
 
           {/* User Menu */}
           <UserMenu user={user} />

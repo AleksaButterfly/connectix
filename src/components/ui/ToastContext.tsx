@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import Toast, { ToastProps } from '@/components/ui/Toast'
 
 interface ToastContextType {
@@ -16,6 +17,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Omit<ToastProps, 'onClose'>[]>([])
+  const pathname = usePathname()
 
   const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
     const id = Date.now().toString()
@@ -33,12 +35,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     info: (message: string) => addToast({ message, type: 'info' }),
   }
 
+  // Determine position classes based on route
+  const isDashboard = pathname.startsWith('/dashboard')
+  const positionClasses = isDashboard
+    ? 'top-[4.75rem] right-3' // 76px top, 12px right
+    : 'top-[6.375rem] right-6' // 102px top, 24px right
+
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
 
-      {/* Toast Container - positioned 76px from top (64px header + 12px gap) */}
-      <div className="pointer-events-none fixed right-3 top-[76px] z-50 flex flex-col items-end gap-2">
+      {/* Toast Container - dynamic positioning */}
+      <div
+        className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${positionClasses}`}
+      >
         {toasts.map((toast) => (
           <Toast key={toast.id} {...toast} onClose={removeToast} />
         ))}
