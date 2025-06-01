@@ -33,21 +33,36 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   const getInitials = (email: string) => {
     const name = email.split('@')[0]
-    const parts = name.split(/[._-]/)
-    if (parts.length > 1) {
-      return (parts[0][0] + parts[1][0]).toUpperCase()
-    }
-    return name.slice(0, 2).toUpperCase()
+    return name[0].toUpperCase()
+  }
+
+  // Get avatar color based on username/email
+  const getAvatarColor = (identifier: string) => {
+    const colors = [
+      'bg-blue-500',
+      'bg-green-500',
+      'bg-yellow-500',
+      'bg-purple-500',
+      'bg-pink-500',
+      'bg-indigo-500',
+    ]
+    const index = identifier.charCodeAt(0) % colors.length
+    return colors[index]
   }
 
   if (!user) return null
+
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User'
+  const avatarColor = getAvatarColor(username)
 
   return (
     <div className="relative" ref={menuRef}>
       {/* Avatar Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-secondary text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary focus:outline-none focus:ring-2 focus:ring-terminal-green focus:ring-offset-2 focus:ring-offset-background"
+        className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-terminal-green focus:ring-offset-2 focus:ring-offset-background ${
+          user.user_metadata?.avatar_url ? '' : avatarColor
+        }`}
       >
         {user.user_metadata?.avatar_url ? (
           <img
@@ -64,29 +79,12 @@ export default function UserMenu({ user }: UserMenuProps) {
       {isOpen && (
         <div className="animate-in fade-in slide-in-from-top-2 absolute right-0 mt-2 w-64 origin-top-right duration-200">
           <div className="overflow-hidden rounded-lg border border-border bg-background shadow-lg">
-            {/* User Info - UPDATED SECTION */}
+            {/* User Info */}
             <div className="border-b border-border px-4 py-3">
-              <p className="text-sm font-medium text-foreground">
-                {user.user_metadata?.username || user.email?.split('@')[0]}
-              </p>
-              {/* Option 1: Truncate with ellipsis */}
+              <p className="text-sm font-medium text-foreground">{username}</p>
               <p className="mt-1 truncate text-xs text-foreground-muted" title={user.email}>
                 {user.email}
               </p>
-
-              {/* Option 2: Break into two lines
-              <p className="mt-1 break-all text-xs text-foreground-muted">
-                {user.email}
-              </p>
-              */}
-
-              {/* Option 3: Smart truncation - show start and end
-              <p className="mt-1 text-xs text-foreground-muted" title={user.email}>
-                {user.email && user.email.length > 30 
-                  ? `${user.email.slice(0, 15)}...${user.email.slice(-12)}`
-                  : user.email}
-              </p>
-              */}
             </div>
 
             {/* Menu Items */}
@@ -146,29 +144,6 @@ export default function UserMenu({ user }: UserMenuProps) {
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Alternative: Separate component with custom tooltip for better UX
-function EmailWithTooltip({ email }: { email: string }) {
-  const [showTooltip, setShowTooltip] = useState(false)
-  const shouldTruncate = email.length > 25
-
-  return (
-    <div className="relative">
-      <p
-        className="mt-1 truncate text-xs text-foreground-muted"
-        onMouseEnter={() => shouldTruncate && setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        {email}
-      </p>
-      {showTooltip && (
-        <div className="absolute left-0 top-full z-50 mt-1 rounded bg-background-tertiary px-2 py-1 text-xs text-foreground shadow-lg">
-          {email}
         </div>
       )}
     </div>
