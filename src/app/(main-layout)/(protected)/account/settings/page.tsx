@@ -357,8 +357,8 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen py-16">
-      <div className="container mx-auto max-w-4xl px-4">
+    <div className="relative min-h-[calc(100vh-10rem)] px-4 py-16">
+      <div className="mx-auto w-full max-w-4xl">
         {/* Page Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-foreground">Account Settings</h1>
