@@ -38,7 +38,7 @@ export default function Header() {
               <div className="hidden items-center gap-4 md:flex">
                 {isAuthenticated ? (
                   <>
-                    <Link href="/dashboard/organizations" className="btn-primary text-sm">
+                    <Link href="/dashboard" className="btn-primary text-sm">
                       Dashboard
                     </Link>
                     <UserMenu user={user} />
@@ -48,7 +48,7 @@ export default function Header() {
                     <Link href="/login" className="btn-secondary text-sm">
                       Sign in
                     </Link>
-                    <Link href="/register" className="btn-primary text-sm">
+                    <Link href="/dashboard" className="btn-primary text-sm">
                       Start your project →
                     </Link>
                   </>
