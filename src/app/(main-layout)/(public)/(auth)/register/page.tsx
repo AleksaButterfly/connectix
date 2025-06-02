@@ -8,7 +8,7 @@ import { z } from 'zod'
 import FormInput from '@/components/ui/FormInput'
 import Checkbox from '@/components/ui/Checkbox'
 import { authService } from '@/lib/auth/auth.service'
-import AuthGuard from '@/components/auth/AuthGuard'
+import AuthRoute from '@/components/auth/AuthRoute'
 
 const signUpSchema = z
   .object({
@@ -32,9 +32,9 @@ type SignUpFormData = z.infer<typeof signUpSchema>
 
 export default function RegisterPage() {
   return (
-    <AuthGuard>
+    <AuthRoute>
       <RegisterContent />
-    </AuthGuard>
+    </AuthRoute>
   )
 }
 
@@ -354,8 +354,11 @@ function RegisterContent() {
                 <p className="mb-6 text-sm text-foreground-muted">
                   Check your email to verify your account
                 </p>
-                <Link href="/login" className="btn-primary inline-flex items-center gap-2">
-                  Continue to Login →
+                <Link
+                  href="/dashboard/organizations"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Continue to Dashboard →
                 </Link>
               </div>
             )}

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/ToastContext'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/auth.store'
+import { authService } from '@/lib/auth/auth.service'
 
 // Form validation schemas
 const accountSettingsSchema = z.object({
@@ -213,6 +214,7 @@ export default function AccountSettingsPage() {
       }
 
       const supabase = createClient()
+      const changes: string[] = []
 
       // Update profile
       const { error: profileError } = await supabase
@@ -222,6 +224,10 @@ export default function AccountSettingsPage() {
 
       if (profileError) throw profileError
 
+      if (data.username !== originalValues.username) {
+        changes.push('username')
+      }
+
       // Update email if changed and allowed
       if (canEditEmail && data.email !== originalValues.email) {
         const { error: emailError } = await supabase.auth.updateUser({
@@ -229,7 +235,22 @@ export default function AccountSettingsPage() {
         })
         if (emailError) throw emailError
 
+        changes.push('email')
+
+        // Log email update asynchronously
+        authService.logUserAction('user.email_updated', 'user', user?.id || null, {
+          old_email: originalValues.email,
+          new_email: data.email,
+        })
+
         toast.info('Check your new email for a confirmation link')
+      }
+
+      // Log profile update asynchronously if any changes were made
+      if (changes.length > 0) {
+        authService.logUserAction('user.profile_updated', 'user', user?.id || null, {
+          changed_fields: changes,
+        })
       }
 
       setOriginalValues(data)
@@ -255,7 +276,8 @@ export default function AccountSettingsPage() {
       onConfirm: async () => {
         try {
           // TODO: Implement account deletion
-          // This should call a server-side function to properly delete all user data
+          // When implemented, add audit log:
+          // await authService.logUserAction('user.account_deleted', 'user', user?.id || null)
           toast.error('Account deletion is not yet implemented')
         } catch (error: any) {
           console.error('Failed to delete account:', error)
@@ -287,10 +309,8 @@ export default function AccountSettingsPage() {
       setIsUpdatingPassword(true)
       const supabase = createClient()
 
-      // Update password
-      const { error } = await supabase.auth.updateUser({
-        password: data.newPassword,
-      })
+      // Update password using the AuthService method which includes logging
+      const { error } = await authService.updatePassword(data.newPassword)
 
       if (error) throw error
 
@@ -337,7 +357,7 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-16">
+    <div className="min-h-screen py-16">
       <div className="container mx-auto max-w-4xl px-4">
         {/* Page Header */}
         <div className="mb-8 text-center">

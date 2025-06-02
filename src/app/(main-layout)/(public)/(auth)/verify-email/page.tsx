@@ -5,13 +5,13 @@ import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import RouteGuard from '@/components/auth/RouteGuard'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 export default function VerifyEmailPage() {
   return (
-    <RouteGuard requireAuth>
+    <ProtectedRoute>
       <VerifyEmailContent />
-    </RouteGuard>
+    </ProtectedRoute>
   )
 }
 
@@ -32,7 +32,7 @@ function VerifyEmailContent() {
       } = await supabase.auth.getUser()
 
       if (currentUser?.email_confirmed_at) {
-        router.push('/dashboard')
+        router.push('/')
       }
     }
 
@@ -94,7 +94,7 @@ function VerifyEmailContent() {
           <div className="mb-4 inline-block">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-terminal-green border-t-transparent"></div>
           </div>
-          <p className="text-sm text-foreground-muted">Redirecting to dashboard...</p>
+          <p className="text-sm text-foreground-muted">Redirecting...</p>
         </div>
       </div>
     )

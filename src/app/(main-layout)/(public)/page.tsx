@@ -1,17 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { useAuthStore } from '@/stores/auth.store'
+import { useState } from 'react'
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuthStore()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   return (
     <div className="relative min-h-[calc(100vh-10rem)] px-4 py-16">
       <div className="mx-auto w-full max-w-4xl">

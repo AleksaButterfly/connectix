@@ -10,6 +10,7 @@ import FormInput from '@/components/ui/FormInput'
 import { createClient } from '@/lib/supabase/client'
 import { authService } from '@/lib/auth/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const resetPasswordSchema = z
   .object({
@@ -30,7 +31,11 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
 export default function ResetPasswordPage() {
-  return <ResetPasswordContent />
+  return (
+    <ProtectedRoute>
+      <ResetPasswordContent />
+    </ProtectedRoute>
+  )
 }
 
 function ResetPasswordContent() {

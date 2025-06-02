@@ -35,8 +35,12 @@ export class AuthService {
 
       if (error) throw error
 
-      // The profile will be created by the database trigger
-      // No need to manually create it here
+      // Log successful signup asynchronously (fire and forget)
+      if (data.user) {
+        this.logAction('user.signup', 'user', data.user.id, data.user.id).catch((err) =>
+          console.error('Background audit log failed:', err)
+        )
+      }
 
       return { data, error: null }
     } catch (error: any) {
@@ -73,8 +77,12 @@ export class AuthService {
 
       if (error) throw error
 
-      // Log successful login
-      await this.logAction('user.login', 'auth', data.user?.id || '')
+      // Log successful login asynchronously (fire and forget)
+      if (data.user) {
+        this.logAction('user.login', 'user', data.user.id, data.user.id).catch((err) =>
+          console.error('Background audit log failed:', err)
+        )
+      }
 
       return { data, error: null }
     } catch (error) {
@@ -84,18 +92,7 @@ export class AuthService {
 
   async signOut() {
     try {
-      // Get current user before signing out for logging
-      const {
-        data: { user },
-      } = await this.supabase.auth.getUser()
-
       const { error } = await this.supabase.auth.signOut()
-
-      if (!error && user) {
-        // Log successful logout
-        await this.logAction('user.logout', 'auth', user.id)
-      }
-
       return { error }
     } catch (error) {
       return { error }
@@ -107,11 +104,6 @@ export class AuthService {
       const { data, error } = await this.supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       })
-
-      if (!error) {
-        // Log password reset request
-        await this.logAction('user.password_reset_requested', 'auth', email)
-      }
 
       return { data, error }
     } catch (error) {
@@ -130,9 +122,13 @@ export class AuthService {
         password: newPassword,
       })
 
-      if (!error && user) {
-        // Log successful password update
-        await this.logAction('user.password_updated', 'auth', user.id)
+      if (error) throw error
+
+      // Log successful password update asynchronously (fire and forget)
+      if (user) {
+        this.logAction('user.password_updated', 'user', user.id, user.id).catch((err) =>
+          console.error('Background audit log failed:', err)
+        )
       }
 
       return { data, error }
@@ -151,10 +147,8 @@ export class AuthService {
         },
       })
 
-      if (!error) {
-        // Log OAuth attempt
-        await this.logAction(`user.oauth_${provider}_initiated`, 'auth', '')
-      }
+      // Note: We can't log the user_id here because OAuth redirect happens before we have the user
+      // You would need to log this in the callback after the user is authenticated
 
       return { data, error }
     } catch (error) {
@@ -213,41 +207,107 @@ export class AuthService {
   async exchangeCodeForSession(url: string) {
     try {
       const { data, error } = await this.supabase.auth.exchangeCodeForSession(url)
+
+      // Log OAuth login after successful exchange
+      if (!error && data.user) {
+        const provider = new URLSearchParams(url).get('provider')
+        if (provider) {
+          await this.logAction(`user.login`, 'user', data.user.id, data.user.id, {
+            provider: provider,
+          })
+        }
+      }
+
       return { data, error }
     } catch (error) {
       return { data: null, error }
     }
   }
 
-  // Security: Log all auth actions
-  private async logAction(action: string, resourceType: string, resourceId: string) {
+  // Public method for logging actions from other parts of the app
+  async logUserAction(
+    action: string,
+    resourceType: string,
+    resourceId: string | null,
+    additionalMetadata?: Record<string, any>
+  ) {
     try {
+      const {
+        data: { user },
+      } = await this.supabase.auth.getUser()
+      if (!user) {
+        console.warn('Cannot log action - no authenticated user')
+        return
+      }
+
+      await this.logAction(action, resourceType, resourceId, user.id, additionalMetadata)
+    } catch (error) {
+      console.error('Failed to log user action:', error)
+    }
+  }
+
+  // Security: Log all auth actions
+  private async logAction(
+    action: string,
+    resourceType: string,
+    resourceId: string | null,
+    userId: string,
+    additionalMetadata?: Record<string, any>
+  ) {
+    try {
+      // Skip if we don't have a user ID
+      if (!userId) {
+        console.warn('Cannot log action without user ID')
+        return
+      }
+
       // Get IP address if possible (in production, this would come from request headers)
-      let ipAddress = ''
+      let ipAddress = 'unknown'
       try {
+        // Note: In production, IP should come from server-side headers, not client-side API
         const response = await fetch('https://api.ipify.org?format=json')
         const data = await response.json()
         ipAddress = data.ip
       } catch {
         // Fallback if IP service fails
-        ipAddress = 'unknown'
       }
 
-      await this.supabase.from('audit_logs').insert({
+      const insertData = {
+        user_id: userId,
         action,
         resource_type: resourceType,
         resource_id: resourceId,
         ip_address: ipAddress,
         user_agent: navigator.userAgent,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          origin: window.location.origin,
-        },
-      })
+      }
+
+      console.log('Attempting to insert audit log:', insertData)
+
+      const { data, error } = await this.supabase.from('audit_logs').insert(insertData).select()
+
+      if (error) {
+        console.error('Failed to create audit log:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          insertData,
+        })
+      } else {
+        console.log('Audit log created successfully:', data)
+      }
     } catch (error) {
       console.error('Audit log error:', error)
       // Don't throw - logging failures shouldn't break auth flow
     }
+  }
+
+  // Method to log OAuth completion (call this from your auth callback page)
+  async logOAuthCompletion(provider: 'github' | 'google', userId: string) {
+    await this.logAction(`user.oauth_${provider}_completed`, 'user', userId, userId, {
+      provider,
+    })
   }
 }
 

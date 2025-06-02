@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { useSearchParams } from 'next/navigation'
 import FormInput from '@/components/ui/FormInput'
 import { authService } from '@/lib/auth/auth.service'
-import AuthGuard from '@/components/auth/AuthGuard'
+import AuthRoute from '@/components/auth/AuthRoute'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -18,9 +18,9 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthGuard>
+    <AuthRoute>
       <ForgotPasswordContent />
-    </AuthGuard>
+    </AuthRoute>
   )
 }
 

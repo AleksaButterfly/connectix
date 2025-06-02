@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import FormInput from '@/components/ui/FormInput'
 import Checkbox from '@/components/ui/Checkbox'
 import { authService } from '@/lib/auth/auth.service'
-import AuthGuard from '@/components/auth/AuthGuard'
+import AuthRoute from '@/components/auth/AuthRoute'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,9 +20,9 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   return (
-    <AuthGuard>
+    <AuthRoute>
       <LoginContent />
-    </AuthGuard>
+    </AuthRoute>
   )
 }
 
@@ -54,7 +54,13 @@ function LoginContent() {
         return
       }
 
-      // Success - redirect to intended destination
+      // Success - refresh the router to update server-side session
+      router.refresh()
+
+      // Small delay to ensure cookies are set
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // Then redirect to intended destination
       router.push(from)
     } catch (error) {
       setError('root', { message: 'An unexpected error occurred. Please try again.' })
