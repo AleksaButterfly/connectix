@@ -2,38 +2,50 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { organizationService } from '@/lib/organizations/organization.service'
+import { projectService } from '@/lib/projects/project.service'
 import type { Organization } from '@/types/organization'
+import type { ProjectWithDetails } from '@/types/project'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function OrganizationProjectsPage() {
+  const intl = useIntl()
   const params = useParams()
   const router = useRouter()
   const orgId = params.id as string
   const [organization, setOrganization] = useState<Organization | null>(null)
-  const [projects, setProjects] = useState([])
+  const [projects, setProjects] = useState<ProjectWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        const org = await organizationService.getOrganization(orgId)
-        if (!org) {
-          router.push('/dashboard/organizations')
-          return
-        }
-        setOrganization(org)
-        // TODO: Fetch projects when project service is ready
-        setProjects([])
-      } catch (error) {
-        console.error('Failed to fetch organization:', error)
-        router.push('/dashboard/organizations')
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchData()
-  }, [orgId, router])
+  }, [orgId])
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+
+      // Fetch organization details
+      const org = await organizationService.getOrganization(orgId)
+      if (!org) {
+        router.push('/dashboard/organizations')
+        return
+      }
+      setOrganization(org)
+
+      // Fetch projects
+      const projectsList = await projectService.getOrganizationProjects(orgId)
+      setProjects(projectsList)
+    } catch (err: any) {
+      console.error('Failed to fetch data:', err)
+      setError(err.message || intl.formatMessage({ id: 'projects.error.loadFailed' }))
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleNewProject = () => {
     router.push(`/dashboard/organizations/${orgId}/projects/new`)
@@ -62,7 +74,24 @@ export default function OrganizationProjectsPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Loading projects...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="projects.loading" />
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-6xl px-6 py-8">
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="text-center">
+            <p className="mb-4 text-red-500">{error}</p>
+            <button onClick={fetchData} className="btn-secondary">
+              <FormattedMessage id="common.tryAgain" />
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -72,9 +101,11 @@ export default function OrganizationProjectsPage() {
     <div className="container mx-auto max-w-6xl px-6 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Projects</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          <FormattedMessage id="projects.title" />
+        </h1>
         <p className="mt-2 text-foreground-muted">
-          Manage your SSH connections and server configurations
+          <FormattedMessage id="projects.subtitle" />
         </p>
       </div>
 
@@ -83,10 +114,11 @@ export default function OrganizationProjectsPage() {
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-background-secondary/50 p-8 text-center">
           <div className="mx-auto max-w-sm">
             <div className="mb-4 text-5xl">📁</div>
-            <h3 className="mb-2 text-lg font-semibold text-foreground">No projects yet</h3>
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <FormattedMessage id="projects.empty.title" />
+            </h3>
             <p className="mb-6 text-sm text-foreground-muted">
-              Create your first project to start organizing your SSH connections and server
-              configurations.
+              <FormattedMessage id="projects.empty.description" />
             </p>
             <button
               onClick={handleNewProject}
@@ -100,14 +132,14 @@ export default function OrganizationProjectsPage() {
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
-              New Project
+              <FormattedMessage id="projects.newProject" />
             </button>
           </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Project cards will go here */}
-          {projects.map((project: any) => (
+          {/* Project cards */}
+          {projects.map((project) => (
             <ProjectCard key={project.id} project={project} orgId={orgId} />
           ))}
 
@@ -132,7 +164,9 @@ export default function OrganizationProjectsPage() {
                   />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-foreground">New Project</span>
+              <span className="text-sm font-medium text-foreground">
+                <FormattedMessage id="projects.newProject" />
+              </span>
             </div>
           </button>
         </div>
@@ -141,8 +175,10 @@ export default function OrganizationProjectsPage() {
   )
 }
 
-function ProjectCard({ project, orgId }: { project: any; orgId: string }) {
-  const createdDate = new Date(project.created_at).toLocaleDateString('en-US', {
+function ProjectCard({ project, orgId }: { project: ProjectWithDetails; orgId: string }) {
+  const intl = useIntl()
+
+  const createdDate = new Date(project.created_at).toLocaleDateString(intl.locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -151,32 +187,24 @@ function ProjectCard({ project, orgId }: { project: any; orgId: string }) {
   return (
     <Link
       href={`/dashboard/organizations/${orgId}/projects/${project.id}`}
-      className="group relative overflow-hidden rounded-lg border border-border bg-background-secondary p-6 transition-all hover:border-terminal-green/50 hover:shadow-lg"
+      className="group relative flex h-[190px] justify-between overflow-hidden rounded-lg border border-border bg-background-secondary p-6 transition-all hover:border-terminal-green/50 hover:shadow-lg"
     >
-      <div className="mb-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-terminal-green/10 text-terminal-green">
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-            />
-          </svg>
+      <div>
+        <h3 className="mb-2 font-semibold text-foreground transition-colors group-hover:text-terminal-green">
+          {project.name}
+        </h3>
+
+        <div className="text-xs text-foreground-subtle">
+          <span>
+            <FormattedMessage id="projects.createdDate" values={{ date: createdDate }} />
+          </span>
         </div>
       </div>
 
-      <h3 className="mb-1 font-semibold text-foreground transition-colors group-hover:text-terminal-green">
-        {project.name}
-      </h3>
-      <p className="mb-4 line-clamp-2 text-sm text-foreground-muted">
-        {project.description || 'No description'}
-      </p>
-
-      <div className="flex items-center gap-2 text-xs text-foreground-subtle">
-        <span>{project.serversCount || 0} servers</span>
-        <span>•</span>
-        <span>Created {createdDate}</span>
+      <div className="text-foreground-muted transition-colors group-hover:text-terminal-green">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </Link>
   )

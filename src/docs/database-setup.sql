@@ -49,6 +49,9 @@ DROP FUNCTION IF EXISTS public.generate_slug(input_text TEXT) CASCADE;
 DROP FUNCTION IF EXISTS public.is_organization_member(UUID, UUID) CASCADE;
 DROP FUNCTION IF EXISTS public.is_organization_owner(UUID, UUID) CASCADE;
 DROP FUNCTION IF EXISTS public.is_organization_admin(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.is_project_member(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_user_organizations() CASCADE;
+DROP FUNCTION IF EXISTS public.get_organization_projects(UUID) CASCADE;
 
 -- Drop existing tables
 DROP TABLE IF EXISTS public.projects CASCADE;
@@ -123,6 +126,7 @@ CREATE TABLE public.projects (
   name TEXT NOT NULL,
   slug TEXT NOT NULL,
   description TEXT,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(organization_id, slug)
@@ -137,6 +141,7 @@ CREATE INDEX idx_organization_members_organization_id ON public.organization_mem
 CREATE INDEX idx_organization_members_role ON public.organization_members(role);
 CREATE INDEX idx_projects_organization_id ON public.projects(organization_id);
 CREATE INDEX idx_projects_slug ON public.projects(slug);
+CREATE INDEX idx_projects_created_by ON public.projects(created_by);
 
 -- =====================================================
 -- SECTION 4: CREATE HELPER FUNCTIONS
@@ -260,6 +265,98 @@ BEGIN
   ) INTO is_admin;
   
   RETURN is_admin;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to check if user can access a project
+CREATE OR REPLACE FUNCTION public.is_project_member(project_id UUID, check_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  org_id UUID;
+  is_member BOOLEAN;
+BEGIN
+  -- Get the organization ID for this project
+  SELECT organization_id INTO org_id
+  FROM public.projects
+  WHERE id = project_id;
+  
+  -- Check if user is a member of the organization
+  IF org_id IS NOT NULL THEN
+    RETURN public.is_organization_member(org_id, check_user_id);
+  END IF;
+  
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get user's organizations with member count and project count
+CREATE OR REPLACE FUNCTION public.get_user_organizations()
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  slug TEXT,
+  owner_id UUID,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  members_count BIGINT,
+  projects_count BIGINT,
+  user_role TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    o.id,
+    o.name,
+    o.slug,
+    o.owner_id,
+    o.created_at,
+    o.updated_at,
+    COUNT(DISTINCT om.user_id) as members_count,
+    COUNT(DISTINCT p.id) as projects_count,
+    MAX(CASE 
+      WHEN o.owner_id = auth.uid() THEN 'owner'
+      ELSE om2.role 
+    END) as user_role
+  FROM public.organizations o
+  LEFT JOIN public.organization_members om ON om.organization_id = o.id
+  LEFT JOIN public.projects p ON p.organization_id = o.id
+  LEFT JOIN public.organization_members om2 ON om2.organization_id = o.id AND om2.user_id = auth.uid()
+  WHERE o.owner_id = auth.uid() OR om2.user_id = auth.uid()
+  GROUP BY o.id
+  ORDER BY o.created_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to get organization's projects
+CREATE OR REPLACE FUNCTION public.get_organization_projects(org_id UUID)
+RETURNS TABLE (
+  id UUID,
+  organization_id UUID,
+  name TEXT,
+  slug TEXT,
+  description TEXT,
+  created_by UUID,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  created_by_username TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.id,
+    p.organization_id,
+    p.name,
+    p.slug,
+    p.description,
+    p.created_by,
+    p.created_at,
+    p.updated_at,
+    pr.username as created_by_username
+  FROM public.projects p
+  LEFT JOIN public.profiles pr ON pr.id = p.created_by
+  WHERE p.organization_id = org_id
+    AND public.is_organization_member(org_id, auth.uid())
+  ORDER BY p.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -406,6 +503,7 @@ CREATE POLICY "Admins can create projects"
   FOR INSERT 
   WITH CHECK (
     public.is_organization_admin(organization_id, auth.uid())
+    AND auth.uid() = created_by
   );
 
 CREATE POLICY "Admins can update projects" 
@@ -437,7 +535,10 @@ GRANT ALL ON public.projects TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_organization_member(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_organization_owner(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_organization_admin(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_project_member(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_slug(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_user_organizations() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_organization_projects(UUID) TO authenticated;
 
 -- Grant sequence permissions
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
@@ -481,21 +582,11 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 -- VALUES ('org-uuid', 'user-uuid', 'member');
 
 -- Create a project
--- INSERT INTO projects (organization_id, name, slug, description)
--- VALUES ('org-uuid', 'Main Website', 'main-website', 'Production servers');
+-- INSERT INTO projects (organization_id, name, slug, description, created_by)
+-- VALUES ('org-uuid', 'Main Website', 'main-website', 'Production servers', auth.uid());
 
 -- Get user's organizations with counts
--- SELECT 
---   o.*,
---   COUNT(DISTINCT om.user_id) as member_count,
---   COUNT(DISTINCT p.id) as project_count
--- FROM organizations o
--- LEFT JOIN organization_members om ON om.organization_id = o.id
--- LEFT JOIN projects p ON p.organization_id = o.id
--- WHERE o.owner_id = auth.uid() OR o.id IN (
---   SELECT organization_id 
---   FROM organization_members 
---   WHERE user_id = auth.uid()
--- )
--- GROUP BY o.id
--- ORDER BY o.created_at DESC;
+-- SELECT * FROM public.get_user_organizations();
+
+-- Get organization's projects
+-- SELECT * FROM public.get_organization_projects('org-uuid');

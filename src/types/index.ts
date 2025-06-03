@@ -88,3 +88,8 @@ export interface ContextMenuItem {
   destructive?: boolean
   disabled?: boolean
 }
+
+// Export database and domain types
+export * from './database'
+export * from './organization'
+export * from './project'

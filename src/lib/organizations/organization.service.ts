@@ -1,25 +1,30 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Organization, OrganizationWithDetails } from '@/types/organization'
+import type { Database } from '@/types/database'
 
 export const organizationService = {
   async getOrganizations(): Promise<OrganizationWithDetails[]> {
     const supabase = createClient()
 
-    // Get organizations without any joins to avoid policy recursion
-    const { data: organizations, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Use the new database function to get organizations with counts
+    const { data, error } = await supabase.rpc('get_user_organizations')
 
     if (error) throw error
-    if (!organizations) return []
+    if (!data) return []
 
-    // For now, return organizations with default counts to avoid the policy issue
-    return organizations.map((org) => ({
-      ...org,
-      membersCount: 1, // Default to 1 (the owner)
-      projectsCount: 0, // Default to 0
-    }))
+    // Map the function results to our OrganizationWithDetails type
+    return data.map(
+      (org: Database['public']['Functions']['get_user_organizations']['Returns'][0]) => ({
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        owner_id: org.owner_id,
+        created_at: org.created_at,
+        updated_at: org.updated_at,
+        membersCount: Number(org.members_count),
+        projectsCount: Number(org.projects_count),
+      })
+    )
   },
 
   async createOrganization(name: string): Promise<Organization> {
@@ -104,12 +109,28 @@ export const organizationService = {
     } = await supabase.auth.getUser()
     if (!user) return false
 
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('owner_id')
-      .eq('id', organizationId)
-      .single()
+    const { data, error } = await supabase.rpc('is_organization_owner', {
+      org_id: organizationId,
+      check_user_id: user.id,
+    })
 
-    return org?.owner_id === user.id
+    if (error) return false
+    return data || false
+  },
+
+  async isOrganizationAdmin(organizationId: string): Promise<boolean> {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data, error } = await supabase.rpc('is_organization_admin', {
+      org_id: organizationId,
+      check_user_id: user.id,
+    })
+
+    if (error) return false
+    return data || false
   },
 }

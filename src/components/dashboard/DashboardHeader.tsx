@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import UserMenu from '../layout/UserMenu'
 import { useEffect, useState } from 'react'
 import { organizationService } from '@/lib/organizations/organization.service'
+import { projectService } from '@/lib/projects/project.service'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 // Define organization pages that should show the org name
@@ -13,8 +14,9 @@ const ORGANIZATION_PAGES = [
   '/dashboard/organizations/[id]',
   '/dashboard/organizations/[id]/team',
   '/dashboard/organizations/[id]/settings',
-  '/dashboard/organizations/[id]/projects',
+  '/dashboard/organizations/[id]/projects/new',
   '/dashboard/organizations/[id]/projects/[projectId]',
+  '/dashboard/organizations/[id]/projects/[projectId]/settings',
 ]
 
 interface BreadcrumbItem {
@@ -29,11 +31,19 @@ export default function DashboardHeader() {
   const { user } = useAuthStore()
   const pathname = usePathname()
   const [organizationName, setOrganizationName] = useState<string | null>(null)
+  const [projectName, setProjectName] = useState<string | null>(null)
   const [isLoadingOrg, setIsLoadingOrg] = useState(false)
+  const [isLoadingProject, setIsLoadingProject] = useState(false)
 
   // Extract organization ID from pathname
   const getOrgIdFromPath = (path: string): string | null => {
     const match = path.match(/\/dashboard\/organizations\/([a-f0-9-]{36})/)
+    return match ? match[1] : null
+  }
+
+  // Extract project ID from pathname
+  const getProjectIdFromPath = (path: string): string | null => {
+    const match = path.match(/\/projects\/([a-f0-9-]{36})/)
     return match ? match[1] : null
   }
 
@@ -45,14 +55,29 @@ export default function DashboardHeader() {
     // Check if the path matches any of our organization page patterns
     return ORGANIZATION_PAGES.some((pattern) => {
       const regex = pattern.replace('[id]', orgId).replace('[projectId]', '[a-f0-9-]{36}')
-      return new RegExp(`^${regex}$`).test(path)
+      return new RegExp(`^${regex}($|/)`).test(path)
     })
   }
 
-  // Fetch organization name when on org pages
+  // Check if current path is a project page
+  const isProjectPage = (path: string): boolean => {
+    return path.includes('/projects/') && getProjectIdFromPath(path) !== null
+  }
+
+  // Check if current path is new project page
+  const isNewProjectPage = (path: string): boolean => {
+    return path.endsWith('/projects/new')
+  }
+
+  // Fetch organization and project names when needed
   useEffect(() => {
-    const fetchOrgName = async () => {
+    const fetchData = async () => {
       const orgId = getOrgIdFromPath(pathname)
+      const projectId = getProjectIdFromPath(pathname)
+
+      // Reset states
+      setOrganizationName(null)
+      setProjectName(null)
 
       if (orgId && isOrganizationPage(pathname)) {
         setIsLoadingOrg(true)
@@ -63,17 +88,28 @@ export default function DashboardHeader() {
           }
         } catch (error) {
           console.error('Failed to fetch organization:', error)
-          setOrganizationName(null)
         } finally {
           setIsLoadingOrg(false)
         }
-      } else {
-        setOrganizationName(null)
-        setIsLoadingOrg(false)
+
+        // If it's a project page, fetch project details too
+        if (projectId && isProjectPage(pathname)) {
+          setIsLoadingProject(true)
+          try {
+            const project = await projectService.getProject(projectId)
+            if (project) {
+              setProjectName(project.name)
+            }
+          } catch (error) {
+            console.error('Failed to fetch project:', error)
+          } finally {
+            setIsLoadingProject(false)
+          }
+        }
       }
     }
 
-    fetchOrgName()
+    fetchData()
   }, [pathname])
 
   // Build breadcrumb items based on current path
@@ -106,7 +142,7 @@ export default function DashboardHeader() {
         labelId: 'dashboard.breadcrumb.newOrganization',
       })
     } else if (isOrganizationPage(pathname)) {
-      // For any organization page, just show the org name
+      // Add organization breadcrumb
       items.push({
         label: isLoadingOrg
           ? intl.formatMessage({ id: 'common.loading' })
@@ -122,6 +158,30 @@ export default function DashboardHeader() {
           </svg>
         ),
       })
+
+      // Add project-specific breadcrumbs
+      if (isNewProjectPage(pathname)) {
+        items.push({
+          label: intl.formatMessage({ id: 'dashboard.breadcrumb.newProject' }),
+          labelId: 'dashboard.breadcrumb.newProject',
+        })
+      } else if (isProjectPage(pathname)) {
+        items.push({
+          label: isLoadingProject
+            ? intl.formatMessage({ id: 'common.loading' })
+            : projectName || intl.formatMessage({ id: 'dashboard.breadcrumb.project' }),
+          icon: (
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+              />
+            </svg>
+          ),
+        })
+      }
     }
 
     return items
