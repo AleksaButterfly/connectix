@@ -13,6 +13,7 @@ interface TeamMember {
   email: string
   role: 'owner' | 'admin' | 'member'
   mfaEnabled: boolean
+  avatarUrl?: string | null
 }
 
 export default function OrganizationTeamPage() {
@@ -62,6 +63,7 @@ export default function OrganizationTeamPage() {
             email: user.email || '',
             role: 'owner', // For now, current user is always the owner
             mfaEnabled: profile?.two_factor_enabled || false,
+            avatarUrl: user.user_metadata?.avatar_url || null,
           })
         }
       } catch (error) {
@@ -75,7 +77,7 @@ export default function OrganizationTeamPage() {
     fetchData()
   }, [orgId, router, intl])
 
-  // Get avatar initials
+  // Get avatar initials (fallback when no avatar URL)
   const getInitials = (username: string) => {
     return username
       .split(' ')
@@ -85,7 +87,7 @@ export default function OrganizationTeamPage() {
       .slice(0, 2)
   }
 
-  // Get avatar color based on username
+  // Get avatar color based on username (fallback when no avatar URL)
   const getAvatarColor = (username: string) => {
     const colors = [
       'bg-blue-500',
@@ -208,11 +210,19 @@ export default function OrganizationTeamPage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full ${getAvatarColor(currentUser.username)} font-medium text-white`}
-                    >
-                      {getInitials(currentUser.username)}
-                    </div>
+                    {currentUser.avatarUrl ? (
+                      <img
+                        src={currentUser.avatarUrl}
+                        alt={currentUser.username}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full ${getAvatarColor(currentUser.username)} font-medium text-white`}
+                      >
+                        {getInitials(currentUser.username)}
+                      </div>
+                    )}
                     {/* User Info */}
                     <div>
                       <div className="flex items-center gap-2">
@@ -272,8 +282,13 @@ export default function OrganizationTeamPage() {
             <FormattedMessage
               id="organization.team.userCount"
               values={{
-                count: 1,
-                user: intl.formatMessage({ id: 'common.user' }),
+                count: searchQuery === '' ? 1 : filteredMembers.length,
+                user: intl.formatMessage({
+                  id:
+                    (searchQuery === '' ? 1 : filteredMembers.length) === 1
+                      ? 'common.user'
+                      : 'common.users',
+                }),
               }}
             />
           </p>
