@@ -5,17 +5,10 @@ import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function VerifyEmailPage() {
-  return (
-    <ProtectedRoute>
-      <VerifyEmailContent />
-    </ProtectedRoute>
-  )
-}
-
-function VerifyEmailContent() {
+  const intl = useIntl()
   const { user } = useAuthStore()
   const router = useRouter()
   const [isResending, setIsResending] = useState(false)
@@ -72,7 +65,9 @@ function VerifyEmailContent() {
       setTimeout(() => setResendSuccess(false), 5000)
     } catch (error: any) {
       console.error('Error resending email:', error)
-      setResendError(error.message || 'Failed to resend email. Please try again.')
+      setResendError(
+        error.message || intl.formatMessage({ id: 'auth.verifyEmail.error.resendFailed' })
+      )
 
       // Clear error message after 5 seconds
       setTimeout(() => setResendError(''), 5000)
@@ -94,7 +89,9 @@ function VerifyEmailContent() {
           <div className="mb-4 inline-block">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-terminal-green border-t-transparent"></div>
           </div>
-          <p className="text-sm text-foreground-muted">Redirecting...</p>
+          <p className="text-sm text-foreground-muted">
+            <FormattedMessage id="auth.verifyEmail.redirecting" />
+          </p>
         </div>
       </div>
     )
@@ -118,9 +115,11 @@ function VerifyEmailContent() {
           <div className="p-8">
             <div className="text-center">
               <div className="mb-4 text-4xl">📧</div>
-              <h1 className="mb-2 text-2xl font-bold text-foreground">Verify your email</h1>
+              <h1 className="mb-2 text-2xl font-bold text-foreground">
+                <FormattedMessage id="auth.verifyEmail.title" />
+              </h1>
               <p className="mb-6 text-sm text-foreground-muted">
-                Please verify your email to continue:
+                <FormattedMessage id="auth.verifyEmail.subtitle" />
               </p>
               <p className="mb-6 font-mono text-terminal-green">{user?.email}</p>
 
@@ -129,17 +128,25 @@ function VerifyEmailContent() {
                   <span className="text-foreground-muted">$</span> mail status --check
                 </p>
                 <div className="ml-4 space-y-1 font-mono text-xs text-foreground-muted">
-                  <p>[!] Email verification required</p>
-                  <p>[→] Click button below to send verification email</p>
-                  <p>[→] Check your inbox and click the link</p>
-                  <p>[→] Page will auto-redirect when verified</p>
+                  <p>
+                    [!] <FormattedMessage id="auth.verifyEmail.status.required" />
+                  </p>
+                  <p>
+                    [→] <FormattedMessage id="auth.verifyEmail.status.clickButton" />
+                  </p>
+                  <p>
+                    [→] <FormattedMessage id="auth.verifyEmail.status.checkInbox" />
+                  </p>
+                  <p>
+                    [→] <FormattedMessage id="auth.verifyEmail.status.autoRedirect" />
+                  </p>
                 </div>
               </div>
 
               {resendSuccess && (
                 <div className="mb-4 rounded-lg border border-terminal-green/50 bg-terminal-green/10 p-3">
                   <p className="text-sm text-terminal-green">
-                    Verification email sent successfully!
+                    <FormattedMessage id="auth.verifyEmail.success" />
                   </p>
                 </div>
               )}
@@ -158,23 +165,31 @@ function VerifyEmailContent() {
                 >
                   {isResending ? (
                     <span className="flex items-center justify-center gap-2">
-                      <span className="animate-pulse">Sending</span>
+                      <span className="animate-pulse">
+                        <FormattedMessage id="auth.verifyEmail.sending" />
+                      </span>
                       <span className="animate-terminal-blink">_</span>
                     </span>
                   ) : timeLeft > 0 ? (
-                    `Resend in ${timeLeft}s`
+                    <FormattedMessage
+                      id="auth.verifyEmail.resendIn"
+                      values={{ seconds: timeLeft }}
+                    />
                   ) : (
-                    'Send verification email'
+                    <FormattedMessage id="auth.verifyEmail.sendButton" />
                   )}
                 </button>
 
                 <button onClick={handleSignOut} className="btn-secondary w-full">
-                  Sign out and try different email
+                  <FormattedMessage id="auth.verifyEmail.signOut" />
                 </button>
               </div>
 
               <p className="mt-6 text-xs text-foreground-subtle">
-                Having trouble? Contact support@connectix.dev
+                <FormattedMessage
+                  id="auth.verifyEmail.support"
+                  values={{ email: 'support@connectix.dev' }}
+                />
               </p>
             </div>
           </div>

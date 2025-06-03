@@ -1,6 +1,11 @@
+'use client'
+
 import Link from 'next/link'
+import { FormattedMessage } from '@/lib/i18n'
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
     <footer className="w-full px-6 pb-6">
       <div className="mx-auto max-w-4xl rounded-lg border border-border bg-background-secondary">
@@ -18,20 +23,22 @@ export default function Footer() {
                 </span>
               </Link>
               <p className="mt-3 text-xs text-foreground-subtle">
-                Secure SSH file manager for developers
+                <FormattedMessage id="footer.tagline" />
               </p>
             </div>
 
             {/* Product Column */}
             <div>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Product</h3>
+              <h3 className="mb-3 text-sm font-medium text-foreground">
+                <FormattedMessage id="footer.product.title" />
+              </h3>
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link
                     href="/features"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Features
+                    <FormattedMessage id="footer.product.features" />
                   </Link>
                 </li>
                 <li>
@@ -39,7 +46,7 @@ export default function Footer() {
                     href="/pricing"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Pricing
+                    <FormattedMessage id="footer.product.pricing" />
                   </Link>
                 </li>
                 <li>
@@ -47,7 +54,7 @@ export default function Footer() {
                     href="/changelog"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Changelog
+                    <FormattedMessage id="footer.product.changelog" />
                   </Link>
                 </li>
                 <li>
@@ -55,7 +62,7 @@ export default function Footer() {
                     href="/roadmap"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Roadmap
+                    <FormattedMessage id="footer.product.roadmap" />
                   </Link>
                 </li>
               </ul>
@@ -63,14 +70,16 @@ export default function Footer() {
 
             {/* Resources Column */}
             <div>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Resources</h3>
+              <h3 className="mb-3 text-sm font-medium text-foreground">
+                <FormattedMessage id="footer.resources.title" />
+              </h3>
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link
                     href="/docs"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Documentation
+                    <FormattedMessage id="footer.resources.documentation" />
                   </Link>
                 </li>
                 <li>
@@ -78,7 +87,7 @@ export default function Footer() {
                     href="/api"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    API Reference
+                    <FormattedMessage id="footer.resources.api" />
                   </Link>
                 </li>
                 <li>
@@ -86,7 +95,7 @@ export default function Footer() {
                     href="/security"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Security
+                    <FormattedMessage id="footer.resources.security" />
                   </Link>
                 </li>
                 <li>
@@ -94,7 +103,7 @@ export default function Footer() {
                     href="/status"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    System Status
+                    <FormattedMessage id="footer.resources.status" />
                   </Link>
                 </li>
               </ul>
@@ -102,14 +111,16 @@ export default function Footer() {
 
             {/* Company Column */}
             <div>
-              <h3 className="mb-3 text-sm font-medium text-foreground">Company</h3>
+              <h3 className="mb-3 text-sm font-medium text-foreground">
+                <FormattedMessage id="footer.company.title" />
+              </h3>
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link
                     href="/about"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    About
+                    <FormattedMessage id="footer.company.about" />
                   </Link>
                 </li>
                 <li>
@@ -117,7 +128,7 @@ export default function Footer() {
                     href="/blog"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Blog
+                    <FormattedMessage id="footer.company.blog" />
                   </Link>
                 </li>
                 <li>
@@ -125,7 +136,7 @@ export default function Footer() {
                     href="/privacy"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Privacy Policy
+                    <FormattedMessage id="footer.company.privacy" />
                   </Link>
                 </li>
                 <li>
@@ -133,7 +144,7 @@ export default function Footer() {
                     href="/terms"
                     className="text-foreground-muted transition-colors hover:text-terminal-green"
                   >
-                    Terms of Service
+                    <FormattedMessage id="footer.company.terms" />
                   </Link>
                 </li>
               </ul>
@@ -144,11 +155,17 @@ export default function Footer() {
           <div className="mt-8 border-t border-border pt-6">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
               <p className="text-xs text-foreground-subtle">
-                © 2025 Connectix. All rights reserved.
+                <FormattedMessage
+                  id="footer.copyright"
+                  values={{ year: currentYear, company: 'Connectix' }}
+                />
               </p>
               <div className="flex items-center text-xs text-foreground-subtle">
                 <span className="text-terminal-green">●</span>
-                <span>&nbsp;All systems operational | v1.0.0</span>
+                <span>
+                  &nbsp;
+                  <FormattedMessage id="footer.status" values={{ version: 'v1.0.0' }} />
+                </span>
               </div>
             </div>
           </div>

@@ -11,8 +11,10 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function NotFound() {
+  const intl = useIntl()
   const pathname = usePathname() || '/404'
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function NotFound() {
                   {/* Error Output */}
                   <div className="ml-4 space-y-2">
                     <p className="text-terminal-red">
-                      bash: cd: {pathname}: No such file or directory
+                      <FormattedMessage id="notFound.terminal.error" values={{ pathname }} />
                     </p>
                   </div>
 
@@ -76,10 +78,15 @@ export default function NotFound() {
                     <span className="text-foreground">connectix --status</span>
                   </div>
                   <div className="ml-4 space-y-2">
-                    <p className="text-terminal-yellow">[WARNING] Page not found</p>
-                    <p className="text-foreground-muted">Error Code: 404</p>
+                    <p className="text-terminal-yellow">
+                      [<FormattedMessage id="notFound.terminal.warning" />]{' '}
+                      <FormattedMessage id="notFound.terminal.pageNotFound" />
+                    </p>
                     <p className="text-foreground-muted">
-                      The requested resource could not be located.
+                      <FormattedMessage id="notFound.terminal.errorCode" />: 404
+                    </p>
+                    <p className="text-foreground-muted">
+                      <FormattedMessage id="notFound.terminal.errorDescription" />
                     </p>
                   </div>
 
@@ -89,31 +96,61 @@ export default function NotFound() {
                     <span className="text-foreground">connectix --help</span>
                   </div>
                   <div className="ml-4 space-y-2">
-                    <p className="text-foreground">Available commands:</p>
+                    <p className="text-foreground">
+                      <FormattedMessage id="notFound.terminal.availableCommands" />:
+                    </p>
                     <ul className="ml-4 space-y-1 text-foreground-muted">
                       <li>
-                        <span className="text-terminal-blue">→</span> Return to{' '}
-                        <Link href="/" className="text-terminal-blue hover:underline">
-                          home directory
-                        </Link>
+                        <span className="text-terminal-blue">→</span>{' '}
+                        <FormattedMessage
+                          id="notFound.terminal.returnTo"
+                          values={{
+                            link: (
+                              <Link href="/" className="text-terminal-blue hover:underline">
+                                <FormattedMessage id="notFound.terminal.homeDirectory" />
+                              </Link>
+                            ),
+                          }}
+                        />
                       </li>
                       <li>
-                        <span className="text-terminal-purple">→</span> Check{' '}
-                        <Link href="/status" className="text-terminal-purple hover:underline">
-                          system status
-                        </Link>
+                        <span className="text-terminal-purple">→</span>{' '}
+                        <FormattedMessage
+                          id="notFound.terminal.check"
+                          values={{
+                            link: (
+                              <Link href="/status" className="text-terminal-purple hover:underline">
+                                <FormattedMessage id="notFound.terminal.systemStatus" />
+                              </Link>
+                            ),
+                          }}
+                        />
                       </li>
                       <li>
-                        <span className="text-terminal-orange">→</span> View{' '}
-                        <Link href="/docs" className="text-terminal-orange hover:underline">
-                          documentation
-                        </Link>
+                        <span className="text-terminal-orange">→</span>{' '}
+                        <FormattedMessage
+                          id="notFound.terminal.view"
+                          values={{
+                            link: (
+                              <Link href="/docs" className="text-terminal-orange hover:underline">
+                                <FormattedMessage id="notFound.terminal.documentation" />
+                              </Link>
+                            ),
+                          }}
+                        />
                       </li>
                       <li>
-                        <span className="text-terminal-pink">→</span> Contact{' '}
-                        <Link href="/about" className="text-terminal-pink hover:underline">
-                          support team
-                        </Link>
+                        <span className="text-terminal-pink">→</span>{' '}
+                        <FormattedMessage
+                          id="notFound.terminal.contact"
+                          values={{
+                            link: (
+                              <Link href="/about" className="text-terminal-pink hover:underline">
+                                <FormattedMessage id="notFound.terminal.supportTeam" />
+                              </Link>
+                            ),
+                          }}
+                        />
                       </li>
                     </ul>
                   </div>
@@ -131,13 +168,17 @@ export default function NotFound() {
             {/* Action Buttons */}
             <div className="mt-6 flex animate-slide-up justify-center gap-4">
               <Link href="/" className="btn-primary inline-flex items-center gap-2">
-                <span>← Go Home</span>
+                <span>
+                  ← <FormattedMessage id="notFound.buttons.goHome" />
+                </span>
               </Link>
               <button
                 onClick={() => window.history.back()}
                 className="btn-secondary inline-flex items-center gap-2"
               >
-                <span>Go Back</span>
+                <span>
+                  <FormattedMessage id="notFound.buttons.goBack" />
+                </span>
               </button>
             </div>
           </div>

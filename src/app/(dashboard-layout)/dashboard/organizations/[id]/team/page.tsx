@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { organizationService } from '@/lib/organizations/organization.service'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/types/organization'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface TeamMember {
   id: string
@@ -15,6 +16,7 @@ interface TeamMember {
 }
 
 export default function OrganizationTeamPage() {
+  const intl = useIntl()
   const params = useParams()
   const router = useRouter()
   const orgId = params.id as string
@@ -53,7 +55,10 @@ export default function OrganizationTeamPage() {
 
           setCurrentUser({
             id: user.id,
-            username: profile?.username || user.email?.split('@')[0] || 'Unknown',
+            username:
+              profile?.username ||
+              user.email?.split('@')[0] ||
+              intl.formatMessage({ id: 'common.unknown' }),
             email: user.email || '',
             role: 'owner', // For now, current user is always the owner
             mfaEnabled: profile?.two_factor_enabled || false,
@@ -68,7 +73,7 @@ export default function OrganizationTeamPage() {
     }
 
     fetchData()
-  }, [orgId, router])
+  }, [orgId, router, intl])
 
   // Get avatar initials
   const getInitials = (username: string) => {
@@ -117,7 +122,9 @@ export default function OrganizationTeamPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Loading team...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="organization.team.loading" />
+          </p>
         </div>
       </div>
     )
@@ -132,7 +139,9 @@ export default function OrganizationTeamPage() {
     <div className="container mx-auto max-w-6xl px-6 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Team</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          <FormattedMessage id="organization.team.title" />
+        </h1>
       </div>
 
       {/* Actions Bar */}
@@ -154,7 +163,7 @@ export default function OrganizationTeamPage() {
           </svg>
           <input
             type="text"
-            placeholder="Filter members"
+            placeholder={intl.formatMessage({ id: 'organization.team.filterPlaceholder' })}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg border border-border bg-background-secondary py-2 pl-10 pr-4 text-sm text-foreground placeholder-foreground-muted focus:border-terminal-green focus:outline-none"
@@ -164,13 +173,13 @@ export default function OrganizationTeamPage() {
         {/* Action Buttons */}
         <div className="flex items-center gap-3">
           <button disabled className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">
-            Invite
+            <FormattedMessage id="organization.team.invite" />
           </button>
           <button
             disabled
             className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Leave team
+            <FormattedMessage id="organization.team.leaveTeam" />
           </button>
         </div>
       </div>
@@ -181,13 +190,15 @@ export default function OrganizationTeamPage() {
           <thead>
             <tr className="border-b border-border">
               <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
-                User
+                <FormattedMessage id="organization.team.table.user" />
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
-                Enabled MFA
+                <FormattedMessage id="organization.team.table.mfa" />
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
-                <div className="flex items-center gap-2">Role</div>
+                <div className="flex items-center gap-2">
+                  <FormattedMessage id="organization.team.table.role" />
+                </div>
               </th>
             </tr>
           </thead>
@@ -207,7 +218,7 @@ export default function OrganizationTeamPage() {
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-foreground">{currentUser.username}</p>
                         <span className="rounded-full bg-background-tertiary px-2 py-0.5 text-xs text-foreground-muted">
-                          You
+                          <FormattedMessage id="organization.team.you" />
                         </span>
                       </div>
                       <p className="text-sm text-foreground-muted">{currentUser.email}</p>
@@ -247,7 +258,7 @@ export default function OrganizationTeamPage() {
                 </td>
                 <td className="px-6 py-4">
                   <span className="inline-flex items-center rounded-lg bg-terminal-green/10 px-2.5 py-1 text-sm font-medium text-terminal-green">
-                    Owner
+                    <FormattedMessage id="organization.team.role.owner" />
                   </span>
                 </td>
               </tr>
@@ -257,7 +268,15 @@ export default function OrganizationTeamPage() {
 
         {/* Table Footer */}
         <div className="border-t border-border px-6 py-3">
-          <p className="text-sm text-foreground-muted">1 user</p>
+          <p className="text-sm text-foreground-muted">
+            <FormattedMessage
+              id="organization.team.userCount"
+              values={{
+                count: 1,
+                user: intl.formatMessage({ id: 'common.user' }),
+              }}
+            />
+          </p>
         </div>
       </div>
     </div>

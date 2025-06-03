@@ -8,37 +8,10 @@ import { z } from 'zod'
 import FormInput from '@/components/ui/FormInput'
 import Checkbox from '@/components/ui/Checkbox'
 import { authService } from '@/lib/auth/auth.service'
-import AuthRoute from '@/components/auth/AuthRoute'
-
-const signUpSchema = z
-  .object({
-    email: z.string().email('Invalid email address'),
-    username: z.string().min(3, 'Username must be at least 3 characters'),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  })
-
-type SignUpFormData = z.infer<typeof signUpSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function RegisterPage() {
-  return (
-    <AuthRoute>
-      <RegisterContent />
-    </AuthRoute>
-  )
-}
-
-function RegisterContent() {
+  const intl = useIntl()
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -53,6 +26,26 @@ function RegisterContent() {
     number: false,
     special: false,
   })
+
+  const signUpSchema = z
+    .object({
+      email: z.string().email(intl.formatMessage({ id: 'validation.email.invalid' })),
+      username: z.string().min(3, intl.formatMessage({ id: 'validation.username.minLength' })),
+      password: z
+        .string()
+        .min(8, intl.formatMessage({ id: 'validation.password.minLength' }))
+        .regex(/[A-Z]/, intl.formatMessage({ id: 'validation.password.uppercase' }))
+        .regex(/[a-z]/, intl.formatMessage({ id: 'validation.password.lowercase' }))
+        .regex(/[0-9]/, intl.formatMessage({ id: 'validation.password.number' }))
+        .regex(/[^A-Za-z0-9]/, intl.formatMessage({ id: 'validation.password.special' })),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: intl.formatMessage({ id: 'validation.password.mismatch' }),
+      path: ['confirmPassword'],
+    })
+
+  type SignUpFormData = z.infer<typeof signUpSchema>
 
   const {
     register,
@@ -86,9 +79,13 @@ function RegisterContent() {
       if (error) {
         // Handle specific error types
         if (error.message.includes('already registered')) {
-          setError('email', { message: 'This email is already registered' })
+          setError('email', {
+            message: intl.formatMessage({ id: 'auth.register.error.emailTaken' }),
+          })
         } else if (error.message.includes('username')) {
-          setError('username', { message: 'This username is already taken' })
+          setError('username', {
+            message: intl.formatMessage({ id: 'auth.register.error.usernameTaken' }),
+          })
         } else {
           setError('root', { message: error.message })
         }
@@ -99,8 +96,28 @@ function RegisterContent() {
       // Success - show confirmation
       setShowSuccess(true)
     } catch (error) {
-      setError('root', { message: 'An unexpected error occurred. Please try again.' })
+      setError('root', { message: intl.formatMessage({ id: 'auth.register.error.unexpected' }) })
       setIsLoading(false)
+    }
+  }
+
+  const getPasswordStrengthText = () => {
+    const score = Object.values(passwordRequirements).filter(Boolean).length
+    switch (score) {
+      case 0:
+        return intl.formatMessage({ id: 'auth.register.password.strength.veryWeak' })
+      case 1:
+        return intl.formatMessage({ id: 'auth.register.password.strength.weak' })
+      case 2:
+        return intl.formatMessage({ id: 'auth.register.password.strength.fair' })
+      case 3:
+        return intl.formatMessage({ id: 'auth.register.password.strength.good' })
+      case 4:
+        return intl.formatMessage({ id: 'auth.register.password.strength.strong' })
+      case 5:
+        return `🔐 ${intl.formatMessage({ id: 'auth.register.password.strength.maximum' })}`
+      default:
+        return ''
     }
   }
 
@@ -128,7 +145,7 @@ function RegisterContent() {
                     <span className="text-terminal-green">$</span> create-account
                   </h1>
                   <p className="mt-2 text-sm text-foreground-muted">
-                    Join thousands of developers managing servers smarter
+                    <FormattedMessage id="auth.register.subtitle" />
                   </p>
                 </div>
 
@@ -140,7 +157,7 @@ function RegisterContent() {
                   )}
 
                   <FormInput
-                    label="Email Address"
+                    label={intl.formatMessage({ id: 'auth.register.emailLabel' })}
                     type="email"
                     placeholder="dev@example.com"
                     error={errors.email?.message}
@@ -148,16 +165,16 @@ function RegisterContent() {
                   />
 
                   <FormInput
-                    label="Username"
+                    label={intl.formatMessage({ id: 'auth.register.usernameLabel' })}
                     placeholder="johndoe"
                     error={errors.username?.message}
-                    hint="This will be your unique identifier"
+                    hint={intl.formatMessage({ id: 'auth.register.usernameHint' })}
                     {...register('username')}
                   />
 
                   <div>
                     <FormInput
-                      label="Password"
+                      label={intl.formatMessage({ id: 'auth.register.passwordLabel' })}
                       type="password"
                       placeholder="••••••••"
                       error={errors.password?.message}
@@ -169,28 +186,28 @@ function RegisterContent() {
                     {/* Password Requirements */}
                     <div className="mt-3 space-y-2 rounded-lg border border-border bg-background-tertiary p-3">
                       <p className="mb-2 text-xs font-medium text-foreground">
-                        Password must contain:
+                        <FormattedMessage id="auth.register.password.requirements" />
                       </p>
                       <div className="grid grid-cols-1 gap-1.5">
                         <PasswordRequirement
                           met={passwordRequirements.length}
-                          text="At least 8 characters"
+                          text={intl.formatMessage({ id: 'auth.register.password.req.length' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.uppercase}
-                          text="One uppercase letter (A-Z)"
+                          text={intl.formatMessage({ id: 'auth.register.password.req.uppercase' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.lowercase}
-                          text="One lowercase letter (a-z)"
+                          text={intl.formatMessage({ id: 'auth.register.password.req.lowercase' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.number}
-                          text="One number (0-9)"
+                          text={intl.formatMessage({ id: 'auth.register.password.req.number' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.special}
-                          text="One special character (!@#$%)"
+                          text={intl.formatMessage({ id: 'auth.register.password.req.special' })}
                         />
                       </div>
                     </div>
@@ -213,18 +230,7 @@ function RegisterContent() {
                           ))}
                         </div>
                         <p className="mt-1 text-right text-xs text-foreground-subtle">
-                          {Object.values(passwordRequirements).filter(Boolean).length === 0 &&
-                            'Very Weak'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 1 &&
-                            'Weak'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 2 &&
-                            'Fair'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 3 &&
-                            'Good'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 4 &&
-                            'Strong'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 5 &&
-                            '🔐 Maximum Security'}
+                          {getPasswordStrengthText()}
                         </p>
                       </div>
                     )}
@@ -232,7 +238,7 @@ function RegisterContent() {
 
                   <div>
                     <FormInput
-                      label="Confirm Password"
+                      label={intl.formatMessage({ id: 'auth.register.confirmPasswordLabel' })}
                       type="password"
                       placeholder="••••••••"
                       error={errors.confirmPassword?.message}
@@ -245,9 +251,13 @@ function RegisterContent() {
                     {confirmPassword && (
                       <div className="mt-1 text-xs">
                         {passwordsMatch ? (
-                          <span className="text-terminal-green">✓ Passwords match</span>
+                          <span className="text-terminal-green">
+                            ✓ <FormattedMessage id="auth.register.password.match" />
+                          </span>
                         ) : (
-                          <span className="text-terminal-red">✗ Passwords don't match</span>
+                          <span className="text-terminal-red">
+                            ✗ <FormattedMessage id="auth.register.password.noMatch" />
+                          </span>
                         )}
                       </div>
                     )}
@@ -260,14 +270,21 @@ function RegisterContent() {
                       onChange={(e) => setAcceptTerms(e.target.checked)}
                     />
                     <label htmlFor="terms" className="cursor-pointer text-xs text-foreground-muted">
-                      I agree to the{' '}
-                      <Link href="/terms" className="text-terminal-green hover:underline">
-                        Terms of Service
-                      </Link>{' '}
-                      and{' '}
-                      <Link href="/privacy" className="text-terminal-green hover:underline">
-                        Privacy Policy
-                      </Link>
+                      <FormattedMessage
+                        id="auth.register.terms"
+                        values={{
+                          terms: (
+                            <Link href="/terms" className="text-terminal-green hover:underline">
+                              <FormattedMessage id="auth.register.termsLink" />
+                            </Link>
+                          ),
+                          privacy: (
+                            <Link href="/privacy" className="text-terminal-green hover:underline">
+                              <FormattedMessage id="auth.register.privacyLink" />
+                            </Link>
+                          ),
+                        }}
+                      />
                     </label>
                   </div>
 
@@ -278,11 +295,15 @@ function RegisterContent() {
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <span className="animate-pulse">Creating account</span>
+                        <span className="animate-pulse">
+                          <FormattedMessage id="auth.register.creatingAccount" />
+                        </span>
                         <span className="animate-terminal-blink">_</span>
                       </span>
                     ) : (
-                      'Create Account →'
+                      <>
+                        <FormattedMessage id="auth.register.createAccount" /> →
+                      </>
                     )}
                   </button>
                 </form>
@@ -294,7 +315,7 @@ function RegisterContent() {
                     </div>
                     <div className="relative flex justify-center text-xs">
                       <span className="bg-background-secondary px-2 text-foreground-subtle">
-                        OR
+                        <FormattedMessage id="common.or" />
                       </span>
                     </div>
                   </div>
@@ -308,7 +329,7 @@ function RegisterContent() {
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
-                      Continue with GitHub
+                      <FormattedMessage id="auth.register.continueWithGitHub" />
                     </button>
                     <button
                       onClick={() => authService.signInWithProvider('google')}
@@ -333,15 +354,15 @@ function RegisterContent() {
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                       </svg>
-                      Continue with Google
+                      <FormattedMessage id="auth.register.continueWithGoogle" />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-6 text-center text-sm text-foreground-muted">
-                  Already have an account?{' '}
+                  <FormattedMessage id="auth.register.haveAccount" />{' '}
                   <Link href="/login" className="text-terminal-green hover:underline">
-                    Sign in
+                    <FormattedMessage id="auth.register.signIn" />
                   </Link>
                 </div>
               </>
@@ -349,16 +370,16 @@ function RegisterContent() {
               <div className="animate-slide-up text-center">
                 <div className="mb-4 text-4xl">🎉</div>
                 <h2 className="mb-2 text-xl font-bold text-terminal-green">
-                  Account created successfully!
+                  <FormattedMessage id="auth.register.success.title" />
                 </h2>
                 <p className="mb-6 text-sm text-foreground-muted">
-                  Check your email to verify your account
+                  <FormattedMessage id="auth.register.success.subtitle" />
                 </p>
                 <Link
                   href="/dashboard/organizations"
                   className="btn-primary inline-flex items-center gap-2"
                 >
-                  Continue to Dashboard →
+                  <FormattedMessage id="auth.register.success.continue" /> →
                 </Link>
               </div>
             )}

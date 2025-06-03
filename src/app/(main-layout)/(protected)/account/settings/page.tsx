@@ -12,41 +12,10 @@ import { useConfirmation } from '@/hooks/useConfirmation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
-
-// Form validation schemas
-const accountSettingsSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username is too long')
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      'Username can only contain letters, numbers, underscores, and hyphens'
-    ),
-  email: z.string().email('Invalid email address'),
-})
-
-const passwordUpdateSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  })
-
-type AccountSettingsFormData = z.infer<typeof accountSettingsSchema>
-type PasswordUpdateFormData = z.infer<typeof passwordUpdateSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function AccountSettingsPage() {
+  const intl = useIntl()
   const router = useRouter()
   const { user, refreshUser } = useAuthStore()
   const { toast } = useToast()
@@ -58,7 +27,7 @@ export default function AccountSettingsPage() {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [identities, setIdentities] = useState<any[]>([])
-  const [originalValues, setOriginalValues] = useState<AccountSettingsFormData>({
+  const [originalValues, setOriginalValues] = useState<{ username: string; email: string }>({
     username: '',
     email: '',
   })
@@ -73,6 +42,38 @@ export default function AccountSettingsPage() {
     number: false,
     special: false,
   })
+
+  // Form validation schemas
+  const accountSettingsSchema = z.object({
+    username: z
+      .string()
+      .min(3, intl.formatMessage({ id: 'validation.username.minLength' }))
+      .max(50, intl.formatMessage({ id: 'validation.username.maxLength' }))
+      .regex(/^[a-zA-Z0-9_-]+$/, intl.formatMessage({ id: 'validation.username.invalid' })),
+    email: z.string().email(intl.formatMessage({ id: 'validation.email.invalid' })),
+  })
+
+  const passwordUpdateSchema = z
+    .object({
+      currentPassword: z
+        .string()
+        .min(1, intl.formatMessage({ id: 'validation.password.currentRequired' })),
+      newPassword: z
+        .string()
+        .min(8, intl.formatMessage({ id: 'validation.password.minLength' }))
+        .regex(/[A-Z]/, intl.formatMessage({ id: 'validation.password.uppercase' }))
+        .regex(/[a-z]/, intl.formatMessage({ id: 'validation.password.lowercase' }))
+        .regex(/[0-9]/, intl.formatMessage({ id: 'validation.password.number' }))
+        .regex(/[^A-Za-z0-9]/, intl.formatMessage({ id: 'validation.password.special' })),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: intl.formatMessage({ id: 'validation.password.mismatch' }),
+      path: ['confirmPassword'],
+    })
+
+  type AccountSettingsFormData = z.infer<typeof accountSettingsSchema>
+  type PasswordUpdateFormData = z.infer<typeof passwordUpdateSchema>
 
   const {
     register,
@@ -133,6 +134,26 @@ export default function AccountSettingsPage() {
     })
   }
 
+  const getPasswordStrengthText = () => {
+    const score = Object.values(passwordRequirements).filter(Boolean).length
+    switch (score) {
+      case 0:
+        return intl.formatMessage({ id: 'account.settings.password.strength.veryWeak' })
+      case 1:
+        return intl.formatMessage({ id: 'account.settings.password.strength.weak' })
+      case 2:
+        return intl.formatMessage({ id: 'account.settings.password.strength.fair' })
+      case 3:
+        return intl.formatMessage({ id: 'account.settings.password.strength.good' })
+      case 4:
+        return intl.formatMessage({ id: 'account.settings.password.strength.strong' })
+      case 5:
+        return `🔐 ${intl.formatMessage({ id: 'account.settings.password.strength.maximum' })}`
+      default:
+        return ''
+    }
+  }
+
   const allRequirementsMet = Object.values(passwordRequirements).every((req) => req)
   const passwordsMatch = password && confirmPassword && password === confirmPassword
 
@@ -180,7 +201,7 @@ export default function AccountSettingsPage() {
       reset(formData)
     } catch (error) {
       console.error('Failed to fetch user data:', error)
-      toast.error('Failed to load account settings')
+      toast.error(intl.formatMessage({ id: 'account.settings.error.loadFailed' }))
     } finally {
       setIsLoading(false)
     }
@@ -207,7 +228,7 @@ export default function AccountSettingsPage() {
       if (data.username !== originalValues.username) {
         const isAvailable = await checkUsernameAvailability(data.username)
         if (!isAvailable) {
-          setError('username', { message: 'This username is already taken' })
+          setError('username', { message: intl.formatMessage({ id: 'validation.username.taken' }) })
           setIsSaving(false)
           return
         }
@@ -243,7 +264,7 @@ export default function AccountSettingsPage() {
           new_email: data.email,
         })
 
-        toast.info('Check your new email for a confirmation link')
+        toast.info(intl.formatMessage({ id: 'account.settings.emailConfirmation' }))
       }
 
       // Log profile update asynchronously if any changes were made
@@ -256,10 +277,10 @@ export default function AccountSettingsPage() {
       setOriginalValues(data)
       reset(data)
       await refreshUser()
-      toast.success('Account settings updated successfully')
+      toast.success(intl.formatMessage({ id: 'account.settings.saveSuccess' }))
     } catch (error: any) {
       console.error('Failed to update account:', error)
-      toast.error(error.message || 'Failed to update account settings')
+      toast.error(error.message || intl.formatMessage({ id: 'account.settings.saveError' }))
     } finally {
       setIsSaving(false)
     }
@@ -267,21 +288,20 @@ export default function AccountSettingsPage() {
 
   const handleDeleteAccount = () => {
     confirm({
-      title: 'Delete Account',
-      message:
-        'Are you sure you want to delete your account? This will permanently delete all your data including organizations, projects, and access. This action cannot be undone.',
-      confirmText: 'Delete Account',
-      cancelText: 'Cancel',
+      title: intl.formatMessage({ id: 'account.settings.delete.title' }),
+      message: intl.formatMessage({ id: 'account.settings.delete.message' }),
+      confirmText: intl.formatMessage({ id: 'account.settings.delete.confirmButton' }),
+      cancelText: intl.formatMessage({ id: 'common.cancel' }),
       variant: 'danger',
       onConfirm: async () => {
         try {
           // TODO: Implement account deletion
           // When implemented, add audit log:
           // await authService.logUserAction('user.account_deleted', 'user', user?.id || null)
-          toast.error('Account deletion is not yet implemented')
+          toast.error(intl.formatMessage({ id: 'account.settings.delete.notImplemented' }))
         } catch (error: any) {
           console.error('Failed to delete account:', error)
-          toast.error(error.message || 'Failed to delete account')
+          toast.error(error.message || intl.formatMessage({ id: 'account.settings.delete.error' }))
         }
       },
     })
@@ -316,11 +336,12 @@ export default function AccountSettingsPage() {
 
       // Reset form
       handlePasswordCancel()
-      toast.success('Password updated successfully')
+      toast.success(intl.formatMessage({ id: 'account.settings.password.updateSuccess' }))
     } catch (error: any) {
       console.error('Failed to update password:', error)
       setPasswordError('root', {
-        message: error.message || 'Failed to update password. Please check your current password.',
+        message:
+          error.message || intl.formatMessage({ id: 'account.settings.password.updateError' }),
       })
     } finally {
       setIsUpdatingPassword(false)
@@ -350,7 +371,9 @@ export default function AccountSettingsPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Loading account settings...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="account.settings.loading" />
+          </p>
         </div>
       </div>
     )
@@ -361,8 +384,12 @@ export default function AccountSettingsPage() {
       <div className="mx-auto w-full max-w-4xl">
         {/* Page Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground">Account Settings</h1>
-          <p className="mt-2 text-foreground-muted">Manage your personal account settings</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            <FormattedMessage id="account.settings.title" />
+          </h1>
+          <p className="mt-2 text-foreground-muted">
+            <FormattedMessage id="account.settings.subtitle" />
+          </p>
         </div>
 
         {/* Navigation Tabs */}
@@ -371,13 +398,13 @@ export default function AccountSettingsPage() {
             href="/account/settings"
             className="border-b-2 border-terminal-green pb-3 text-sm font-medium text-foreground"
           >
-            Account Settings
+            <FormattedMessage id="account.settings.tabs.settings" />
           </Link>
           <Link
             href="/account/audit"
             className="pb-3 text-sm font-medium text-foreground-muted transition-colors hover:text-foreground"
           >
-            Audit Logs
+            <FormattedMessage id="account.settings.tabs.audit" />
           </Link>
         </div>
 
@@ -385,21 +412,23 @@ export default function AccountSettingsPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-6 rounded-lg border border-border bg-background-secondary">
             <div className="border-b border-border px-6 py-4">
-              <h2 className="text-lg font-semibold text-foreground">Account Information</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                <FormattedMessage id="account.settings.accountInfo.title" />
+              </h2>
             </div>
 
             <div className="space-y-6 p-6">
               <FormInput
-                label="Username"
+                label={intl.formatMessage({ id: 'account.settings.usernameLabel' })}
                 placeholder="johndoe"
                 error={errors.username?.message}
-                hint="This is your unique identifier across the platform"
+                hint={intl.formatMessage({ id: 'account.settings.usernameHint' })}
                 {...register('username')}
               />
 
               <div>
                 <FormInput
-                  label="Email Address"
+                  label={intl.formatMessage({ id: 'account.settings.emailLabel' })}
                   type="email"
                   placeholder="john@example.com"
                   error={errors.email?.message}
@@ -408,15 +437,15 @@ export default function AccountSettingsPage() {
                 />
                 {!canEditEmail && hasOAuthProviders && (
                   <p className="mt-2 text-sm text-foreground-muted">
-                    You're signed in with{' '}
-                    {identities.find((id) => id.provider !== 'email')?.provider === 'github'
-                      ? 'GitHub'
-                      : 'Google'}
-                    . To change your email, update it in your{' '}
-                    {identities.find((id) => id.provider !== 'email')?.provider === 'github'
-                      ? 'GitHub'
-                      : 'Google'}{' '}
-                    account settings.
+                    <FormattedMessage
+                      id="account.settings.oauthEmail"
+                      values={{
+                        provider:
+                          identities.find((id) => id.provider !== 'email')?.provider === 'github'
+                            ? 'GitHub'
+                            : 'Google',
+                      }}
+                    />
                   </p>
                 )}
               </div>
@@ -424,7 +453,9 @@ export default function AccountSettingsPage() {
               {/* Connected Accounts - Only show for OAuth users */}
               {hasOAuthProviders && (
                 <div className="border-t border-border pt-6">
-                  <h3 className="mb-4 text-sm font-medium text-foreground">Connected Accounts</h3>
+                  <h3 className="mb-4 text-sm font-medium text-foreground">
+                    <FormattedMessage id="account.settings.connectedAccounts.title" />
+                  </h3>
                   <div className="space-y-3">
                     {identities
                       .filter((identity) => identity.provider !== 'email')
@@ -462,10 +493,14 @@ export default function AccountSettingsPage() {
                               <p className="text-sm font-medium capitalize text-foreground">
                                 {identity.provider}
                               </p>
-                              <p className="text-xs text-foreground-muted">Connected</p>
+                              <p className="text-xs text-foreground-muted">
+                                <FormattedMessage id="account.settings.connectedAccounts.connected" />
+                              </p>
                             </div>
                           </div>
-                          <span className="text-xs text-terminal-green">✓ Active</span>
+                          <span className="text-xs text-terminal-green">
+                            ✓ <FormattedMessage id="account.settings.connectedAccounts.active" />
+                          </span>
                         </div>
                       ))}
                   </div>
@@ -481,7 +516,7 @@ export default function AccountSettingsPage() {
                 disabled={!hasChanges}
                 className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-background-secondary"
               >
-                Cancel
+                <FormattedMessage id="common.cancel" />
               </button>
               <button
                 type="submit"
@@ -490,11 +525,13 @@ export default function AccountSettingsPage() {
               >
                 {isSaving ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="animate-pulse">Saving</span>
+                    <span className="animate-pulse">
+                      <FormattedMessage id="account.settings.saving" />
+                    </span>
                     <span className="animate-terminal-blink">_</span>
                   </span>
                 ) : (
-                  'Save Changes'
+                  <FormattedMessage id="account.settings.saveChanges" />
                 )}
               </button>
             </div>
@@ -506,7 +543,9 @@ export default function AccountSettingsPage() {
           <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className="mb-6">
             <div className="rounded-lg border border-border bg-background-secondary">
               <div className="border-b border-border px-6 py-4">
-                <h2 className="text-lg font-semibold text-foreground">Update Password</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  <FormattedMessage id="account.settings.password.title" />
+                </h2>
               </div>
 
               <div className="space-y-6 p-6">
@@ -517,7 +556,7 @@ export default function AccountSettingsPage() {
                 )}
 
                 <FormInput
-                  label="Current Password"
+                  label={intl.formatMessage({ id: 'account.settings.password.currentLabel' })}
                   type="password"
                   placeholder="••••••••"
                   error={passwordErrors.currentPassword?.message}
@@ -526,7 +565,7 @@ export default function AccountSettingsPage() {
 
                 <div>
                   <FormInput
-                    label="New Password"
+                    label={intl.formatMessage({ id: 'account.settings.password.newLabel' })}
                     type="password"
                     placeholder="••••••••"
                     error={passwordErrors.newPassword?.message}
@@ -539,28 +578,32 @@ export default function AccountSettingsPage() {
                   {password && (
                     <div className="mt-3 space-y-2 rounded-lg border border-border bg-background-tertiary p-3">
                       <p className="mb-2 text-xs font-medium text-foreground">
-                        Password must contain:
+                        <FormattedMessage id="account.settings.password.requirements" />
                       </p>
                       <div className="grid grid-cols-1 gap-1.5">
                         <PasswordRequirement
                           met={passwordRequirements.length}
-                          text="At least 8 characters"
+                          text={intl.formatMessage({ id: 'account.settings.password.req.length' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.uppercase}
-                          text="One uppercase letter (A-Z)"
+                          text={intl.formatMessage({
+                            id: 'account.settings.password.req.uppercase',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.lowercase}
-                          text="One lowercase letter (a-z)"
+                          text={intl.formatMessage({
+                            id: 'account.settings.password.req.lowercase',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.number}
-                          text="One number (0-9)"
+                          text={intl.formatMessage({ id: 'account.settings.password.req.number' })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.special}
-                          text="One special character (!@#$%)"
+                          text={intl.formatMessage({ id: 'account.settings.password.req.special' })}
                         />
                       </div>
                     </div>
@@ -584,15 +627,7 @@ export default function AccountSettingsPage() {
                         ))}
                       </div>
                       <p className="mt-1 text-right text-xs text-foreground-subtle">
-                        {Object.values(passwordRequirements).filter(Boolean).length === 0 &&
-                          'Very Weak'}
-                        {Object.values(passwordRequirements).filter(Boolean).length === 1 && 'Weak'}
-                        {Object.values(passwordRequirements).filter(Boolean).length === 2 && 'Fair'}
-                        {Object.values(passwordRequirements).filter(Boolean).length === 3 && 'Good'}
-                        {Object.values(passwordRequirements).filter(Boolean).length === 4 &&
-                          'Strong'}
-                        {Object.values(passwordRequirements).filter(Boolean).length === 5 &&
-                          '🔐 Maximum Security'}
+                        {getPasswordStrengthText()}
                       </p>
                     </div>
                   )}
@@ -600,7 +635,7 @@ export default function AccountSettingsPage() {
 
                 <div>
                   <FormInput
-                    label="Confirm New Password"
+                    label={intl.formatMessage({ id: 'account.settings.password.confirmLabel' })}
                     type="password"
                     placeholder="••••••••"
                     error={passwordErrors.confirmPassword?.message}
@@ -613,9 +648,13 @@ export default function AccountSettingsPage() {
                   {confirmPassword && (
                     <div className="mt-1 text-xs">
                       {passwordsMatch ? (
-                        <span className="text-terminal-green">✓ Passwords match</span>
+                        <span className="text-terminal-green">
+                          ✓ <FormattedMessage id="account.settings.password.match" />
+                        </span>
                       ) : (
-                        <span className="text-terminal-red">✗ Passwords don't match</span>
+                        <span className="text-terminal-red">
+                          ✗ <FormattedMessage id="account.settings.password.noMatch" />
+                        </span>
                       )}
                     </div>
                   )}
@@ -630,7 +669,7 @@ export default function AccountSettingsPage() {
                   disabled={!hasPasswordChanges}
                   className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-background-secondary"
                 >
-                  Cancel
+                  <FormattedMessage id="common.cancel" />
                 </button>
                 <button
                   type="submit"
@@ -639,11 +678,13 @@ export default function AccountSettingsPage() {
                 >
                   {isUpdatingPassword ? (
                     <span className="flex items-center justify-center gap-2">
-                      <span className="animate-pulse">Updating</span>
+                      <span className="animate-pulse">
+                        <FormattedMessage id="account.settings.password.updating" />
+                      </span>
                       <span className="animate-terminal-blink">_</span>
                     </span>
                   ) : (
-                    'Update Password'
+                    <FormattedMessage id="account.settings.password.updateButton" />
                   )}
                 </button>
               </div>
@@ -654,7 +695,9 @@ export default function AccountSettingsPage() {
         {/* Danger Zone */}
         <div className="rounded-lg border border-red-500/20 bg-background-secondary">
           <div className="px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">DANGER ZONE</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              <FormattedMessage id="account.settings.danger.title" />
+            </h2>
           </div>
 
           <div className="border-t border-red-500/20 p-6">
@@ -676,10 +719,11 @@ export default function AccountSettingsPage() {
               </div>
 
               <div className="flex-1">
-                <p className="mb-1 font-medium text-foreground">Delete your account</p>
+                <p className="mb-1 font-medium text-foreground">
+                  <FormattedMessage id="account.settings.danger.deleteTitle" />
+                </p>
                 <p className="mb-4 text-sm text-foreground-muted">
-                  Once you delete your account, there is no going back. All your data will be
-                  permanently removed.
+                  <FormattedMessage id="account.settings.danger.deleteDescription" />
                 </p>
 
                 <button
@@ -687,7 +731,7 @@ export default function AccountSettingsPage() {
                   onClick={handleDeleteAccount}
                   className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
                 >
-                  Delete Account
+                  <FormattedMessage id="account.settings.danger.deleteButton" />
                 </button>
               </div>
             </div>

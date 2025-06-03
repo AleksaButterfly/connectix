@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function AboutPage() {
+  const intl = useIntl()
   const [activeTab, setActiveTab] = useState<'mission' | 'security' | 'team'>('mission')
 
   return (
@@ -12,10 +14,11 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="mb-16 animate-fade-in text-center">
           <h1 className="mb-4 text-4xl font-bold text-foreground">
-            About <span className="text-terminal-green">Connectix</span>
+            <FormattedMessage id="about.hero.title" />{' '}
+            <span className="text-terminal-green">Connectix</span>
           </h1>
           <p className="text-lg text-foreground-muted">
-            The complete SSH management platform for modern development teams
+            <FormattedMessage id="about.hero.subtitle" />
           </p>
         </div>
 
@@ -30,26 +33,25 @@ export default function AboutPage() {
             <div className="ml-4 text-xs text-foreground-subtle">our-story.md</div>
           </div>
           <div className="p-6 font-mono text-sm">
-            <p className="mb-4 text-terminal-green"># The Problem</p>
+            <p className="mb-4 text-terminal-green">
+              # <FormattedMessage id="about.story.problem.title" />
+            </p>
             <p className="mb-6 text-foreground">
-              Every team faces the same challenges: Terminal apps, SFTP clients, and password
-              managers scattered across devices. SSH keys shared through Slack. No visibility into
-              who accessed what. Hours spent onboarding new developers. We knew there had to be a
-              better way.
+              <FormattedMessage id="about.story.problem.description" />
             </p>
 
-            <p className="mb-4 text-terminal-green"># Our Solution</p>
+            <p className="mb-4 text-terminal-green">
+              # <FormattedMessage id="about.story.solution.title" />
+            </p>
             <p className="mb-6 text-foreground">
-              Connectix unifies terminal access, file management, and team collaboration in one
-              secure, browser-based platform. With end-to-end encryption, granular permissions, and
-              complete audit trails, we've reimagined how teams manage server access.
+              <FormattedMessage id="about.story.solution.description" />
             </p>
 
-            <p className="mb-4 text-terminal-green"># Why We're Different</p>
+            <p className="mb-4 text-terminal-green">
+              # <FormattedMessage id="about.story.different.title" />
+            </p>
             <p className="text-foreground">
-              Built by developers, for developers. We've experienced the pain firsthand - that's why
-              Connectix focuses on what matters: security without sacrificing speed, collaboration
-              without compromising control, and simplicity without limiting power.
+              <FormattedMessage id="about.story.different.description" />
             </p>
           </div>
         </div>
@@ -65,7 +67,7 @@ export default function AboutPage() {
                   : 'text-foreground-muted hover:text-foreground'
               }`}
             >
-              Our Mission
+              <FormattedMessage id="about.tabs.mission" />
             </button>
             <button
               onClick={() => setActiveTab('security')}
@@ -75,7 +77,7 @@ export default function AboutPage() {
                   : 'text-foreground-muted hover:text-foreground'
               }`}
             >
-              Security First
+              <FormattedMessage id="about.tabs.security" />
             </button>
             <button
               onClick={() => setActiveTab('team')}
@@ -85,7 +87,7 @@ export default function AboutPage() {
                   : 'text-foreground-muted hover:text-foreground'
               }`}
             >
-              Built for Teams
+              <FormattedMessage id="about.tabs.team" />
             </button>
           </div>
 
@@ -93,30 +95,28 @@ export default function AboutPage() {
             {activeTab === 'mission' && (
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-foreground">
-                  Empowering 500+ Teams Worldwide
+                  <FormattedMessage id="about.mission.title" />
                 </h3>
                 <p className="text-foreground-muted">
-                  Our mission is simple: make server management so secure and intuitive that teams
-                  can focus on what they do best - building great products. No more juggling tools,
-                  no more security nightmares, just seamless collaboration.
+                  <FormattedMessage id="about.mission.description" />
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Replace multiple tools with one unified platform
+                      <FormattedMessage id="about.mission.point1" />
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Onboard developers in under 5 minutes, not hours
+                      <FormattedMessage id="about.mission.point2" />
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-terminal-green">→</span>
                     <span className="text-foreground-muted">
-                      Provide enterprise-grade security for teams of all sizes
+                      <FormattedMessage id="about.mission.point3" />
                     </span>
                   </li>
                 </ul>
@@ -125,32 +125,32 @@ export default function AboutPage() {
 
             {activeTab === 'security' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">Security is Our Foundation</h3>
+                <h3 className="text-lg font-bold text-foreground">
+                  <FormattedMessage id="about.security.title" />
+                </h3>
                 <p className="text-foreground-muted">
-                  Managing 10,000+ servers across 500+ teams means security isn't optional - it's
-                  everything. That's why we've built Connectix with zero-trust architecture from day
-                  one.
+                  <FormattedMessage id="about.security.description" />
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <SecurityFeature
                     icon="🔐"
-                    title="Zero-Knowledge Architecture"
-                    description="Your credentials never touch our servers in plain text"
+                    title={intl.formatMessage({ id: 'about.security.feature1.title' })}
+                    description={intl.formatMessage({ id: 'about.security.feature1.description' })}
                   />
                   <SecurityFeature
                     icon="🛡️"
-                    title="SOC2 Type II Compliant"
-                    description="Audited and certified for enterprise use"
+                    title={intl.formatMessage({ id: 'about.security.feature2.title' })}
+                    description={intl.formatMessage({ id: 'about.security.feature2.description' })}
                   />
                   <SecurityFeature
                     icon="📝"
-                    title="Complete Audit Trail"
-                    description="Every command, file change, and access logged"
+                    title={intl.formatMessage({ id: 'about.security.feature3.title' })}
+                    description={intl.formatMessage({ id: 'about.security.feature3.description' })}
                   />
                   <SecurityFeature
                     icon="🔑"
-                    title="Advanced Authentication"
-                    description="SSO, 2FA, hardware keys, and biometric support"
+                    title={intl.formatMessage({ id: 'about.security.feature4.title' })}
+                    description={intl.formatMessage({ id: 'about.security.feature4.description' })}
                   />
                 </div>
               </div>
@@ -158,28 +158,28 @@ export default function AboutPage() {
 
             {activeTab === 'team' && (
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">Collaboration at Scale</h3>
+                <h3 className="text-lg font-bold text-foreground">
+                  <FormattedMessage id="about.team.title" />
+                </h3>
                 <p className="text-foreground-muted">
-                  From startups to enterprises, development teams to agencies - Connectix adapts to
-                  how you work, not the other way around. Real-time collaboration meets granular
-                  control.
+                  <FormattedMessage id="about.team.description" />
                 </p>
                 <div className="space-y-3">
                   <TeamFeature
-                    title="Role-Based Access Control"
-                    description="Define permissions by folder, command, or time. Perfect for contractors and junior developers."
+                    title={intl.formatMessage({ id: 'about.team.feature1.title' })}
+                    description={intl.formatMessage({ id: 'about.team.feature1.description' })}
                   />
                   <TeamFeature
-                    title="Real-Time Activity Monitoring"
-                    description="See who's accessing what in real-time. Get alerts for sensitive operations."
+                    title={intl.formatMessage({ id: 'about.team.feature2.title' })}
+                    description={intl.formatMessage({ id: 'about.team.feature2.description' })}
                   />
                   <TeamFeature
-                    title="Project-Based Organization"
-                    description="Separate clients, environments, and teams. Switch contexts instantly."
+                    title={intl.formatMessage({ id: 'about.team.feature3.title' })}
+                    description={intl.formatMessage({ id: 'about.team.feature3.description' })}
                   />
                   <TeamFeature
-                    title="5-Minute Onboarding"
-                    description="Add team members and they're productive immediately. Revoke access just as fast."
+                    title={intl.formatMessage({ id: 'about.team.feature4.title' })}
+                    description={intl.formatMessage({ id: 'about.team.feature4.description' })}
                   />
                 </div>
               </div>
@@ -189,29 +189,43 @@ export default function AboutPage() {
 
         {/* Visual Stats */}
         <div className="mb-16 grid animate-slide-up gap-6 sm:grid-cols-3">
-          <StatCard number="500+" label="Active teams" color="text-terminal-green" />
-          <StatCard number="10k+" label="Servers managed" color="text-terminal-blue" />
-          <StatCard number="99.9%" label="Uptime SLA" color="text-terminal-purple" />
+          <StatCard
+            number={intl.formatMessage({ id: 'about.stats.teams.value' })}
+            label={intl.formatMessage({ id: 'about.stats.teams.label' })}
+            color="text-terminal-green"
+          />
+          <StatCard
+            number={intl.formatMessage({ id: 'about.stats.servers.value' })}
+            label={intl.formatMessage({ id: 'about.stats.servers.label' })}
+            color="text-terminal-blue"
+          />
+          <StatCard
+            number={intl.formatMessage({ id: 'about.stats.uptime.value' })}
+            label={intl.formatMessage({ id: 'about.stats.uptime.label' })}
+            color="text-terminal-purple"
+          />
         </div>
 
         {/* Company Values */}
         <div className="mb-16 animate-slide-up">
-          <h2 className="mb-8 text-center text-2xl font-bold text-foreground">Our Core Values</h2>
+          <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
+            <FormattedMessage id="about.values.title" />
+          </h2>
           <div className="grid gap-6 md:grid-cols-3">
             <ValueCard
               icon="🔒"
-              title="Security First"
-              description="Every feature, every line of code starts with security. Your infrastructure is too important for compromises."
+              title={intl.formatMessage({ id: 'about.values.security.title' })}
+              description={intl.formatMessage({ id: 'about.values.security.description' })}
             />
             <ValueCard
               icon="⚡"
-              title="Developer Experience"
-              description="Built by developers who feel your pain. If it's not faster than your current workflow, we've failed."
+              title={intl.formatMessage({ id: 'about.values.experience.title' })}
+              description={intl.formatMessage({ id: 'about.values.experience.description' })}
             />
             <ValueCard
               icon="🤝"
-              title="Transparent & Fair"
-              description="No hidden fees, no vendor lock-in. Export your data anytime. Self-host if you need to."
+              title={intl.formatMessage({ id: 'about.values.transparent.title' })}
+              description={intl.formatMessage({ id: 'about.values.transparent.description' })}
             />
           </div>
         </div>
@@ -220,21 +234,25 @@ export default function AboutPage() {
         <div className="animate-slide-up text-center">
           <div className="rounded-lg border border-terminal-green/50 bg-terminal-green/10 p-8">
             <h2 className="mb-4 text-2xl font-bold text-foreground">
-              Ready to join 500+ teams already using Connectix?
+              <FormattedMessage id="about.cta.title" />
             </h2>
             <p className="mb-6 text-foreground-muted">
-              Start managing your servers the modern way. Free for up to 3 team members.
+              <FormattedMessage id="about.cta.subtitle" />
             </p>
             <div className="flex justify-center gap-4">
               <Link
                 href="/dashboard/organizations"
                 className="btn-primary inline-flex items-center gap-2"
               >
-                <span>Start your project</span>
+                <span>
+                  <FormattedMessage id="about.cta.button.start" />
+                </span>
                 <span className="text-lg">→</span>
               </Link>
               <Link href="/" className="btn-secondary inline-flex items-center gap-2">
-                <span>Request a demo</span>
+                <span>
+                  <FormattedMessage id="about.cta.button.demo" />
+                </span>
               </Link>
             </div>
           </div>

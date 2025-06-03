@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { organizationService } from '@/lib/organizations/organization.service'
 import type { OrganizationWithDetails } from '@/types/organization'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function OrganizationsPage() {
+  const intl = useIntl()
   const router = useRouter()
   const [organizations, setOrganizations] = useState<OrganizationWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -22,14 +24,10 @@ export default function OrganizationsPage() {
       const orgs = await organizationService.getOrganizations()
       setOrganizations(orgs)
     } catch (err: any) {
-      setError(err.message || 'Failed to load organizations')
+      setError(err.message || intl.formatMessage({ id: 'organizations.error.loadFailed' }))
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleNewOrganization = () => {
-    router.push('/dashboard/organizations/new')
   }
 
   if (isLoading) {
@@ -56,7 +54,9 @@ export default function OrganizationsPage() {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            <p className="text-foreground-muted">Loading organizations...</p>
+            <p className="text-foreground-muted">
+              <FormattedMessage id="organizations.loading" />
+            </p>
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function OrganizationsPage() {
           <div className="text-center">
             <p className="mb-4 text-red-500">{error}</p>
             <button onClick={loadOrganizations} className="btn-secondary">
-              Try again
+              <FormattedMessage id="common.tryAgain" />
             </button>
           </div>
         </div>
@@ -82,9 +82,11 @@ export default function OrganizationsPage() {
     <div className="container mx-auto max-w-6xl px-6 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Your Organizations</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          <FormattedMessage id="organizations.title" />
+        </h1>
         <p className="mt-2 text-foreground-muted">
-          Manage your organizations and collaborate with your team
+          <FormattedMessage id="organizations.subtitle" />
         </p>
       </div>
 
@@ -93,13 +95,14 @@ export default function OrganizationsPage() {
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-background-secondary/50 p-8 text-center">
           <div className="mx-auto max-w-sm">
             <div className="mb-4 text-5xl">🏢</div>
-            <h3 className="mb-2 text-lg font-semibold text-foreground">No organizations yet</h3>
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              <FormattedMessage id="organizations.empty.title" />
+            </h3>
             <p className="mb-6 text-sm text-foreground-muted">
-              Create your first organization to start managing your SSH connections and
-              collaborating with your team.
+              <FormattedMessage id="organizations.empty.description" />
             </p>
-            <button
-              onClick={handleNewOrganization}
+            <Link
+              href="/dashboard/organizations/new"
               className="btn-primary inline-flex items-center gap-2"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,8 +113,8 @@ export default function OrganizationsPage() {
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
-              New Organization
-            </button>
+              <FormattedMessage id="organizations.newOrganization" />
+            </Link>
           </div>
         </div>
       ) : (
@@ -122,8 +125,8 @@ export default function OrganizationsPage() {
           ))}
 
           {/* New Organization Card */}
-          <button
-            onClick={handleNewOrganization}
+          <Link
+            href="/dashboard/organizations/new"
             className="group relative overflow-hidden rounded-lg border border-dashed border-border bg-background-secondary/50 p-6 text-left transition-all hover:border-terminal-green/50 hover:bg-background-secondary"
           >
             <div className="flex h-full flex-col items-center justify-center text-center">
@@ -142,9 +145,11 @@ export default function OrganizationsPage() {
                   />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-foreground">New Organization</span>
+              <span className="text-sm font-medium text-foreground">
+                <FormattedMessage id="organizations.newOrganization" />
+              </span>
             </div>
-          </button>
+          </Link>
         </div>
       )}
     </div>
@@ -152,7 +157,9 @@ export default function OrganizationsPage() {
 }
 
 function OrganizationCard({ organization }: { organization: OrganizationWithDetails }) {
-  const createdDate = new Date(organization.created_at).toLocaleDateString('en-US', {
+  const intl = useIntl()
+
+  const createdDate = new Date(organization.created_at).toLocaleDateString(intl.locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -168,7 +175,7 @@ function OrganizationCard({ organization }: { organization: OrganizationWithDeta
           <span className="text-xl font-bold">{organization.name[0].toUpperCase()}</span>
         </div>
         <span className="rounded-full bg-background-tertiary px-2 py-1 text-xs text-foreground-muted">
-          Free
+          <FormattedMessage id="organizations.plan.free" />
         </span>
       </div>
 
@@ -176,15 +183,33 @@ function OrganizationCard({ organization }: { organization: OrganizationWithDeta
         {organization.name}
       </h3>
       <p className="mb-4 text-sm text-foreground-muted">
-        {organization.projectsCount} {organization.projectsCount === 1 ? 'project' : 'projects'}
+        <FormattedMessage
+          id="organizations.projectCount"
+          values={{
+            count: organization.projectsCount,
+            projects: intl.formatMessage({
+              id: organization.projectsCount === 1 ? 'common.project' : 'common.projects',
+            }),
+          }}
+        />
       </p>
 
       <div className="flex items-center gap-2 text-xs text-foreground-subtle">
         <span>
-          {organization.membersCount} {organization.membersCount === 1 ? 'member' : 'members'}
+          <FormattedMessage
+            id="organizations.memberCount"
+            values={{
+              count: organization.membersCount,
+              members: intl.formatMessage({
+                id: organization.membersCount === 1 ? 'common.member' : 'common.members',
+              }),
+            }}
+          />
         </span>
         <span>•</span>
-        <span>Created {createdDate}</span>
+        <span>
+          <FormattedMessage id="organizations.createdDate" values={{ date: createdDate }} />
+        </span>
       </div>
     </Link>
   )

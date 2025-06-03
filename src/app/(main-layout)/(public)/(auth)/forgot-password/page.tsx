@@ -8,26 +8,19 @@ import { z } from 'zod'
 import { useSearchParams } from 'next/navigation'
 import FormInput from '@/components/ui/FormInput'
 import { authService } from '@/lib/auth/auth.service'
-import AuthRoute from '@/components/auth/AuthRoute'
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-})
-
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function ForgotPasswordPage() {
-  return (
-    <AuthRoute>
-      <ForgotPasswordContent />
-    </AuthRoute>
-  )
-}
-
-function ForgotPasswordContent() {
+  const intl = useIntl()
   const [isLoading, setIsLoading] = useState(false)
   const [isEmailSent, setIsEmailSent] = useState(false)
   const searchParams = useSearchParams()
+
+  const forgotPasswordSchema = z.object({
+    email: z.string().email(intl.formatMessage({ id: 'validation.email.valid' })),
+  })
+
+  type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 
   const {
     register,
@@ -43,15 +36,14 @@ function ForgotPasswordContent() {
     const error = searchParams.get('error')
     if (error === 'expired') {
       setError('root', {
-        message:
-          'Your password reset link has expired or already been used. Please request a new one.',
+        message: intl.formatMessage({ id: 'auth.forgotPassword.error.expired' }),
       })
     } else if (error === 'invalid_token') {
       setError('root', {
-        message: 'Invalid reset link. Please request a new one.',
+        message: intl.formatMessage({ id: 'auth.forgotPassword.error.invalidToken' }),
       })
     }
-  }, [searchParams, setError])
+  }, [searchParams, setError, intl])
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true)
@@ -68,7 +60,9 @@ function ForgotPasswordContent() {
 
       setIsEmailSent(true)
     } catch (error) {
-      setError('root', { message: 'An unexpected error occurred. Please try again.' })
+      setError('root', {
+        message: intl.formatMessage({ id: 'auth.forgotPassword.error.unexpected' }),
+      })
       setIsLoading(false)
     }
   }
@@ -96,7 +90,7 @@ function ForgotPasswordContent() {
                     <span className="text-terminal-green">$</span> reset-password
                   </h1>
                   <p className="mt-2 text-sm text-foreground-muted">
-                    No worries, we'll send you reset instructions
+                    <FormattedMessage id="auth.forgotPassword.subtitle" />
                   </p>
                 </div>
 
@@ -108,11 +102,11 @@ function ForgotPasswordContent() {
                   )}
 
                   <FormInput
-                    label="Email Address"
+                    label={intl.formatMessage({ id: 'auth.forgotPassword.emailLabel' })}
                     type="email"
                     placeholder="dev@example.com"
                     error={errors.email?.message}
-                    hint="Enter the email associated with your account"
+                    hint={intl.formatMessage({ id: 'auth.forgotPassword.emailHint' })}
                     {...register('email')}
                   />
 
@@ -123,17 +117,21 @@ function ForgotPasswordContent() {
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <span className="animate-pulse">Sending email</span>
+                        <span className="animate-pulse">
+                          <FormattedMessage id="auth.forgotPassword.sendingEmail" />
+                        </span>
                         <span className="animate-terminal-blink">_</span>
                       </span>
                     ) : (
-                      'Send Reset Link →'
+                      <>
+                        <FormattedMessage id="auth.forgotPassword.sendResetLink" /> →
+                      </>
                     )}
                   </button>
 
                   <div className="text-center">
                     <Link href="/login" className="text-sm text-terminal-green hover:underline">
-                      ← Back to login
+                      ← <FormattedMessage id="auth.forgotPassword.backToLogin" />
                     </Link>
                   </div>
                 </form>
@@ -141,19 +139,21 @@ function ForgotPasswordContent() {
             ) : (
               <div className="animate-slide-up text-center">
                 <div className="mb-4 text-4xl">📧</div>
-                <h2 className="mb-2 text-xl font-bold text-terminal-green">Check your email</h2>
+                <h2 className="mb-2 text-xl font-bold text-terminal-green">
+                  <FormattedMessage id="auth.forgotPassword.success.title" />
+                </h2>
                 <p className="mb-4 text-sm text-foreground-muted">
-                  We've sent password reset instructions to your email address
+                  <FormattedMessage id="auth.forgotPassword.success.subtitle" />
                 </p>
                 <div className="space-y-2 rounded-lg border border-border bg-background-tertiary p-4 text-left">
                   <p className="font-mono text-xs text-foreground">
                     <span className="text-terminal-green">$</span> mail status
                   </p>
                   <p className="ml-4 font-mono text-xs text-foreground-muted">
-                    [✓] Email sent successfully
+                    [✓] <FormattedMessage id="auth.forgotPassword.success.emailSent" />
                   </p>
                   <p className="ml-4 font-mono text-xs text-foreground-muted">
-                    [i] Check spam folder if not received
+                    [i] <FormattedMessage id="auth.forgotPassword.success.checkSpam" />
                   </p>
                 </div>
                 <div className="mt-6">
@@ -164,11 +164,11 @@ function ForgotPasswordContent() {
                     }}
                     className="btn-secondary mb-3 inline-flex items-center gap-2"
                   >
-                    ← Request Another Link
+                    ← <FormattedMessage id="auth.forgotPassword.requestAnother" />
                   </button>
                   <div>
                     <Link href="/login" className="text-sm text-terminal-green hover:underline">
-                      ← Back to login
+                      ← <FormattedMessage id="auth.forgotPassword.backToLogin" />
                     </Link>
                   </div>
                 </div>

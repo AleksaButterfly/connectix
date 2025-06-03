@@ -5,9 +5,11 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { useRouter } from 'next/navigation'
-import UserMenu from '@/components/dashboard/UserMenu' // Adjust the import path as needed
+import UserMenu from '@/components/layout/UserMenu'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function Header() {
+  const intl = useIntl()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { user, isAuthenticated } = useAuthStore()
   const router = useRouter()
@@ -39,17 +41,17 @@ export default function Header() {
                 {isAuthenticated ? (
                   <>
                     <Link href="/dashboard" className="btn-primary text-sm">
-                      Dashboard
+                      <FormattedMessage id="header.dashboard" />
                     </Link>
                     <UserMenu user={user} />
                   </>
                 ) : (
                   <>
                     <Link href="/login" className="btn-secondary text-sm">
-                      Sign in
+                      <FormattedMessage id="header.signIn" />
                     </Link>
                     <Link href="/dashboard" className="btn-primary text-sm">
-                      Start your project →
+                      <FormattedMessage id="header.startProject" /> →
                     </Link>
                   </>
                 )}
@@ -59,7 +61,7 @@ export default function Header() {
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="flex h-10 w-10 items-center justify-center rounded-md text-foreground-muted transition-colors hover:bg-background-tertiary hover:text-foreground md:hidden"
-                aria-label="Toggle menu"
+                aria-label={intl.formatMessage({ id: 'header.toggleMenu' })}
               >
                 {isMobileMenuOpen ? (
                   // X icon
@@ -103,14 +105,14 @@ export default function Header() {
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Dashboard
+                      <FormattedMessage id="header.dashboard" />
                     </Link>
                     <Link
                       href="/account/settings"
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Account Settings
+                      <FormattedMessage id="header.accountSettings" />
                     </Link>
                     <button
                       onClick={() => {
@@ -119,7 +121,7 @@ export default function Header() {
                       }}
                       className="btn-secondary mt-2 block w-full text-center text-sm"
                     >
-                      Sign Out
+                      <FormattedMessage id="header.signOut" />
                     </button>
                   </>
                 ) : (
@@ -129,14 +131,14 @@ export default function Header() {
                       className="block py-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      About Connectix
+                      <FormattedMessage id="header.aboutConnectix" />
                     </Link>
                     <Link
                       href="/login"
                       className="btn-primary mt-2 block w-full text-center text-sm"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      Sign in to Console →
+                      <FormattedMessage id="header.signInToConsole" /> →
                     </Link>
                   </>
                 )}

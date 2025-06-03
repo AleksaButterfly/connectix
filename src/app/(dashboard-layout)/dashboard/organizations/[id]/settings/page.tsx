@@ -10,20 +10,10 @@ import FormInput from '@/components/ui/FormInput'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { useToast } from '@/components/ui/ToastContext'
 import type { Organization } from '@/types/organization'
-
-// Form validation schema
-const organizationSettingsSchema = z.object({
-  name: z.string().min(1, 'Organization name is required').max(100, 'Name is too long'),
-  slug: z
-    .string()
-    .min(1, 'Organization slug is required')
-    .max(100, 'Slug is too long')
-    .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
-})
-
-type OrganizationSettingsFormData = z.infer<typeof organizationSettingsSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function OrganizationSettingsPage() {
+  const intl = useIntl()
   const params = useParams()
   const router = useRouter()
   const orgId = params.id as string
@@ -31,7 +21,7 @@ export default function OrganizationSettingsPage() {
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [originalValues, setOriginalValues] = useState<OrganizationSettingsFormData>({
+  const [originalValues, setOriginalValues] = useState<{ name: string; slug: string }>({
     name: '',
     slug: '',
   })
@@ -39,6 +29,21 @@ export default function OrganizationSettingsPage() {
 
   const { confirm, ConfirmationModal } = useConfirmation()
   const { toast } = useToast()
+
+  // Form validation schema
+  const organizationSettingsSchema = z.object({
+    name: z
+      .string()
+      .min(1, intl.formatMessage({ id: 'validation.organization.nameRequired' }))
+      .max(100, intl.formatMessage({ id: 'validation.organization.nameTooLong' })),
+    slug: z
+      .string()
+      .min(1, intl.formatMessage({ id: 'validation.organization.slugRequired' }))
+      .max(100, intl.formatMessage({ id: 'validation.organization.slugTooLong' }))
+      .regex(/^[a-z0-9-]+$/, intl.formatMessage({ id: 'validation.organization.slugInvalid' })),
+  })
+
+  type OrganizationSettingsFormData = z.infer<typeof organizationSettingsSchema>
 
   const {
     register,
@@ -132,10 +137,10 @@ export default function OrganizationSettingsPage() {
       reset(newFormData)
 
       // Show success toast
-      toast.success('Successfully saved settings')
+      toast.success(intl.formatMessage({ id: 'organization.settings.saveSuccess' }))
     } catch (error: any) {
       console.error('Failed to update organization:', error)
-      toast.error(error.message || 'Failed to update organization')
+      toast.error(error.message || intl.formatMessage({ id: 'organization.settings.saveError' }))
     } finally {
       setIsSaving(false)
     }
@@ -143,10 +148,13 @@ export default function OrganizationSettingsPage() {
 
   const handleDelete = () => {
     confirm({
-      title: 'Delete Organization',
-      message: `Are you sure you want to delete "${organization?.name}"? This will permanently delete all projects and data associated with this organization. This action cannot be undone.`,
-      confirmText: 'Delete Organization',
-      cancelText: 'Cancel',
+      title: intl.formatMessage({ id: 'organization.settings.delete.title' }),
+      message: intl.formatMessage(
+        { id: 'organization.settings.delete.message' },
+        { organizationName: organization?.name }
+      ),
+      confirmText: intl.formatMessage({ id: 'organization.settings.delete.confirmButton' }),
+      cancelText: intl.formatMessage({ id: 'common.cancel' }),
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -167,7 +175,7 @@ export default function OrganizationSettingsPage() {
     const slug = watch('slug')
     navigator.clipboard.writeText(slug)
     setIsCopied(true)
-    toast.success('Slug copied to clipboard')
+    toast.success(intl.formatMessage({ id: 'organization.settings.slugCopied' }))
     setTimeout(() => setIsCopied(false), 2000)
   }
 
@@ -194,7 +202,9 @@ export default function OrganizationSettingsPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Loading settings...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="organization.settings.loading" />
+          </p>
         </div>
       </div>
     )
@@ -204,22 +214,26 @@ export default function OrganizationSettingsPage() {
     <div className="container mx-auto max-w-4xl px-6 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Organization Settings</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          <FormattedMessage id="organization.settings.title" />
+        </h1>
       </div>
 
       {/* General Settings Box */}
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="mb-6 rounded-lg border border-border bg-background-secondary">
           <div className="border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">General settings</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              <FormattedMessage id="organization.settings.general.title" />
+            </h2>
           </div>
 
           <div className="space-y-6 p-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <FormInput
-                  label="Organization name"
-                  placeholder="My Organization"
+                  label={intl.formatMessage({ id: 'organization.settings.nameLabel' })}
+                  placeholder={intl.formatMessage({ id: 'organization.settings.namePlaceholder' })}
                   error={errors.name?.message}
                   {...register('name')}
                 />
@@ -227,11 +241,13 @@ export default function OrganizationSettingsPage() {
 
               <div>
                 <label className="mb-2 block text-sm text-foreground-muted">
-                  Organization slug
+                  <FormattedMessage id="organization.settings.slugLabel" />
                 </label>
                 <div className="flex items-center gap-2">
                   <FormInput
-                    placeholder="my-organization"
+                    placeholder={intl.formatMessage({
+                      id: 'organization.settings.slugPlaceholder',
+                    })}
                     error={errors.slug?.message}
                     className="flex-1"
                     {...register('slug')}
@@ -244,7 +260,11 @@ export default function OrganizationSettingsPage() {
                         ? 'border-terminal-green bg-terminal-green/10 text-terminal-green'
                         : 'border-border bg-background-tertiary text-foreground-muted hover:bg-background-secondary hover:text-foreground'
                     }`}
-                    title={isCopied ? 'Copied!' : 'Copy slug'}
+                    title={intl.formatMessage({
+                      id: isCopied
+                        ? 'organization.settings.copied'
+                        : 'organization.settings.copySlug',
+                    })}
                   >
                     {isCopied ? (
                       <svg
@@ -289,7 +309,7 @@ export default function OrganizationSettingsPage() {
               disabled={!hasChanges}
               className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-background-secondary"
             >
-              Cancel
+              <FormattedMessage id="common.cancel" />
             </button>
             <button
               type="submit"
@@ -298,11 +318,13 @@ export default function OrganizationSettingsPage() {
             >
               {isSaving ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-pulse">Saving</span>
+                  <span className="animate-pulse">
+                    <FormattedMessage id="organization.settings.saving" />
+                  </span>
                   <span className="animate-terminal-blink">_</span>
                 </span>
               ) : (
-                'Save'
+                <FormattedMessage id="common.save" />
               )}
             </button>
           </div>
@@ -312,7 +334,9 @@ export default function OrganizationSettingsPage() {
       {/* Danger Zone Box */}
       <div className="rounded-lg border border-red-500/20 bg-background-secondary">
         <div className="px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">DANGER ZONE</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="organization.settings.danger.title" />
+          </h2>
         </div>
 
         <div className="border-t border-red-500/20 p-6">
@@ -335,10 +359,10 @@ export default function OrganizationSettingsPage() {
 
             <div className="flex-1">
               <p className="mb-1 font-medium text-foreground">
-                Deleting this organization will also remove its projects
+                <FormattedMessage id="organization.settings.danger.warning" />
               </p>
               <p className="mb-4 text-sm text-foreground-muted">
-                Make sure you have made a backup of your projects if you want to keep your data
+                <FormattedMessage id="organization.settings.danger.description" />
               </p>
 
               <button
@@ -346,7 +370,7 @@ export default function OrganizationSettingsPage() {
                 onClick={handleDelete}
                 className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
               >
-                Delete organization
+                <FormattedMessage id="organization.settings.danger.deleteButton" />
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/lib/auth/auth.service'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { User } from '@supabase/supabase-js'
 
 interface UserMenuProps {
@@ -10,6 +11,7 @@ interface UserMenuProps {
 }
 
 export default function UserMenu({ user }: UserMenuProps) {
+  const intl = useIntl()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -52,7 +54,10 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   if (!user) return null
 
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User'
+  const username =
+    user.user_metadata?.username ||
+    user.email?.split('@')[0] ||
+    intl.formatMessage({ id: 'common.user' })
   const avatarColor = getAvatarColor(username)
 
   return (
@@ -63,11 +68,12 @@ export default function UserMenu({ user }: UserMenuProps) {
         className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-terminal-green focus:ring-offset-2 focus:ring-offset-background ${
           user.user_metadata?.avatar_url ? '' : avatarColor
         }`}
+        aria-label={intl.formatMessage({ id: 'userMenu.toggleMenu' })}
       >
         {user.user_metadata?.avatar_url ? (
           <img
             src={user.user_metadata.avatar_url}
-            alt={user.email || 'User'}
+            alt={user.email || intl.formatMessage({ id: 'userMenu.user' })}
             className="h-full w-full rounded-full object-cover"
           />
         ) : (
@@ -115,7 +121,7 @@ export default function UserMenu({ user }: UserMenuProps) {
                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                Account Settings
+                <FormattedMessage id="userMenu.accountSettings" />
               </button>
 
               <div className="my-1 border-t border-border" />
@@ -140,7 +146,7 @@ export default function UserMenu({ user }: UserMenuProps) {
                     d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                   />
                 </svg>
-                Sign Out
+                <FormattedMessage id="userMenu.signOut" />
               </button>
             </div>
           </div>

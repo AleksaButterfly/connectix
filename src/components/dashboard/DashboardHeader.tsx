@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
-import UserMenu from './UserMenu'
+import UserMenu from '../layout/UserMenu'
 import { useEffect, useState } from 'react'
 import { organizationService } from '@/lib/organizations/organization.service'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 // Define organization pages that should show the org name
 const ORGANIZATION_PAGES = [
@@ -14,16 +15,17 @@ const ORGANIZATION_PAGES = [
   '/dashboard/organizations/[id]/settings',
   '/dashboard/organizations/[id]/projects',
   '/dashboard/organizations/[id]/projects/[projectId]',
-  // Add more organization-specific routes as needed
 ]
 
 interface BreadcrumbItem {
   label: string
+  labelId?: string // For i18n translation keys
   href?: string
   icon?: React.ReactNode
 }
 
 export default function DashboardHeader() {
+  const intl = useIntl()
   const { user } = useAuthStore()
   const pathname = usePathname()
   const [organizationName, setOrganizationName] = useState<string | null>(null)
@@ -94,13 +96,21 @@ export default function DashboardHeader() {
 
     // Simple breadcrumb logic
     if (pathname === '/dashboard/organizations') {
-      items.push({ label: 'Organizations' })
+      items.push({
+        label: intl.formatMessage({ id: 'dashboard.breadcrumb.organizations' }),
+        labelId: 'dashboard.breadcrumb.organizations',
+      })
     } else if (pathname === '/dashboard/organizations/new') {
-      items.push({ label: 'New Organization' })
+      items.push({
+        label: intl.formatMessage({ id: 'dashboard.breadcrumb.newOrganization' }),
+        labelId: 'dashboard.breadcrumb.newOrganization',
+      })
     } else if (isOrganizationPage(pathname)) {
       // For any organization page, just show the org name
       items.push({
-        label: isLoadingOrg ? 'Loading...' : organizationName || 'Organization',
+        label: isLoadingOrg
+          ? intl.formatMessage({ id: 'common.loading' })
+          : organizationName || intl.formatMessage({ id: 'dashboard.breadcrumb.organization' }),
         icon: (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -145,7 +155,15 @@ export default function DashboardHeader() {
 
                 <div className="flex items-center gap-2 text-foreground">
                   {item.icon}
-                  {(index > 0 || !item.icon) && <span className="font-medium">{item.label}</span>}
+                  {(index > 0 || !item.icon) && (
+                    <span className="font-medium">
+                      {item.labelId ? (
+                        <FormattedMessage id={item.labelId} defaultMessage={item.label} />
+                      ) : (
+                        item.label
+                      )}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

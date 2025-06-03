@@ -8,21 +8,23 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { organizationService } from '@/lib/organizations/organization.service'
 import FormInput from '@/components/ui/FormInput'
-
-// Form validation schema
-const createOrganizationSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Organization name is required')
-    .max(100, 'Organization name is too long')
-    .trim(),
-})
-
-type CreateOrganizationFormData = z.infer<typeof createOrganizationSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function NewOrganizationPage() {
+  const intl = useIntl()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+
+  // Form validation schema
+  const createOrganizationSchema = z.object({
+    name: z
+      .string()
+      .min(1, intl.formatMessage({ id: 'validation.organization.nameRequired' }))
+      .max(100, intl.formatMessage({ id: 'validation.organization.nameTooLong' }))
+      .trim(),
+  })
+
+  type CreateOrganizationFormData = z.infer<typeof createOrganizationSchema>
 
   const {
     register,
@@ -46,7 +48,7 @@ export default function NewOrganizationPage() {
     } catch (err: any) {
       console.error('Failed to create organization:', err)
       setError('root', {
-        message: err.message || 'Failed to create organization',
+        message: err.message || intl.formatMessage({ id: 'organizations.new.error.createFailed' }),
       })
       setIsLoading(false)
     }
@@ -67,19 +69,23 @@ export default function NewOrganizationPage() {
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          Back to organizations
+          <FormattedMessage id="organizations.new.backToOrganizations" />
         </Link>
 
-        <h1 className="text-3xl font-bold text-foreground">New organization</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          <FormattedMessage id="organizations.new.title" />
+        </h1>
       </div>
 
       <div className="rounded-lg border border-border bg-background-secondary p-8">
         <div className="mb-6">
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Create a new organization</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="organizations.new.formTitle" />
+          </h2>
           <p className="text-sm text-foreground-muted">
-            This is your organization within Connectix.
+            <FormattedMessage id="organizations.new.formDescription" />
             <br />
-            For example, you can use the name of your company or department.
+            <FormattedMessage id="organizations.new.formExample" />
           </p>
         </div>
 
@@ -92,15 +98,15 @@ export default function NewOrganizationPage() {
 
           <div className="mb-6">
             <FormInput
-              label="Name"
-              placeholder="Organization name"
+              label={intl.formatMessage({ id: 'organizations.new.nameLabel' })}
+              placeholder={intl.formatMessage({ id: 'organizations.new.namePlaceholder' })}
               error={errors.name?.message}
               disabled={isLoading}
               autoFocus
               {...register('name')}
             />
             <p className="mt-2 text-sm text-foreground-muted">
-              You can rename your organization later
+              <FormattedMessage id="organizations.new.nameHint" />
             </p>
           </div>
 
@@ -109,7 +115,7 @@ export default function NewOrganizationPage() {
               href="/dashboard/organizations"
               className="px-4 py-2 text-sm font-medium text-foreground-muted transition-colors hover:text-foreground"
             >
-              Cancel
+              <FormattedMessage id="common.cancel" />
             </Link>
             <button
               type="submit"
@@ -133,10 +139,10 @@ export default function NewOrganizationPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Creating...
+                  <FormattedMessage id="organizations.new.creating" />
                 </>
               ) : (
-                'Create organization'
+                <FormattedMessage id="organizations.new.createButton" />
               )}
             </button>
           </div>

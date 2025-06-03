@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/auth.store'
 import { format } from 'date-fns'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface AuditLog {
   id: string
@@ -18,35 +19,8 @@ interface AuditLog {
   created_at: string
 }
 
-// Action mapping for better performance
-const ACTION_MAP: Record<string, string> = {
-  'user.signup': 'Account created',
-  'user.login': 'Logged into account',
-  'user.logout': 'Logged out',
-  'user.password_updated': 'Updated password',
-  'user.email_updated': 'Updated email',
-  'user.profile_updated': 'Updated profile',
-  'organization.created': 'Created organization',
-  'organization.updated': 'Updated organization',
-  'organization.deleted': 'Deleted organization',
-  'organization.member_added': 'Added organization member',
-  'organization.member_removed': 'Removed organization member',
-  'project.created': 'Created project',
-  'project.updated': 'Updated project',
-  'project.deleted': 'Deleted project',
-  'ssh_key.created': 'Added SSH key',
-  'ssh_key.deleted': 'Removed SSH key',
-}
-
-// Filter options
-const FILTER_OPTIONS = [
-  { value: 'all', label: 'All Types', icon: 'all  ' },
-  { value: 'user', label: 'Account', icon: 'user' },
-  { value: 'organization', label: 'Organizations', icon: 'organization' },
-  { value: 'project', label: 'Projects', icon: 'project' },
-]
-
 export default function AccountAuditLogsPage() {
+  const intl = useIntl()
   const router = useRouter()
   const { user } = useAuthStore()
   const datePickerRef = useRef<HTMLDivElement>(null)
@@ -64,10 +38,55 @@ export default function AccountAuditLogsPage() {
     end: new Date(),
   })
 
+  // Action mapping for better performance
+  const ACTION_MAP: Record<string, string> = useMemo(
+    () => ({
+      'user.signup': intl.formatMessage({ id: 'audit.action.userSignup' }),
+      'user.login': intl.formatMessage({ id: 'audit.action.userLogin' }),
+      'user.logout': intl.formatMessage({ id: 'audit.action.userLogout' }),
+      'user.password_updated': intl.formatMessage({ id: 'audit.action.passwordUpdated' }),
+      'user.email_updated': intl.formatMessage({ id: 'audit.action.emailUpdated' }),
+      'user.profile_updated': intl.formatMessage({ id: 'audit.action.profileUpdated' }),
+      'organization.created': intl.formatMessage({ id: 'audit.action.organizationCreated' }),
+      'organization.updated': intl.formatMessage({ id: 'audit.action.organizationUpdated' }),
+      'organization.deleted': intl.formatMessage({ id: 'audit.action.organizationDeleted' }),
+      'organization.member_added': intl.formatMessage({ id: 'audit.action.memberAdded' }),
+      'organization.member_removed': intl.formatMessage({ id: 'audit.action.memberRemoved' }),
+      'project.created': intl.formatMessage({ id: 'audit.action.projectCreated' }),
+      'project.updated': intl.formatMessage({ id: 'audit.action.projectUpdated' }),
+      'project.deleted': intl.formatMessage({ id: 'audit.action.projectDeleted' }),
+      'ssh_key.created': intl.formatMessage({ id: 'audit.action.sshKeyCreated' }),
+      'ssh_key.deleted': intl.formatMessage({ id: 'audit.action.sshKeyDeleted' }),
+    }),
+    [intl]
+  )
+
+  // Filter options
+  const FILTER_OPTIONS = useMemo(
+    () => [
+      { value: 'all', label: intl.formatMessage({ id: 'audit.filter.allTypes' }), icon: 'all' },
+      { value: 'user', label: intl.formatMessage({ id: 'audit.filter.account' }), icon: 'user' },
+      {
+        value: 'organization',
+        label: intl.formatMessage({ id: 'audit.filter.organizations' }),
+        icon: 'organization',
+      },
+      {
+        value: 'project',
+        label: intl.formatMessage({ id: 'audit.filter.projects' }),
+        icon: 'project',
+      },
+    ],
+    [intl]
+  )
+
   // Memoized getters
-  const getActionDisplay = useCallback((action: string): string => {
-    return ACTION_MAP[action] || action
-  }, [])
+  const getActionDisplay = useCallback(
+    (action: string): string => {
+      return ACTION_MAP[action] || action
+    },
+    [ACTION_MAP]
+  )
 
   const getResourceTypeIcon = useCallback((resourceType: string) => {
     switch (resourceType) {
@@ -204,11 +223,14 @@ export default function AccountAuditLogsPage() {
     }))
   }, [])
 
-  const presetDateRanges = [
-    { label: 'Last 7 days', days: 7 },
-    { label: 'Last 30 days', days: 30 },
-    { label: 'Last 90 days', days: 90 },
-  ]
+  const presetDateRanges = useMemo(
+    () => [
+      { label: intl.formatMessage({ id: 'audit.dateRange.last7Days' }), days: 7 },
+      { label: intl.formatMessage({ id: 'audit.dateRange.last30Days' }), days: 30 },
+      { label: intl.formatMessage({ id: 'audit.dateRange.last90Days' }), days: 90 },
+    ],
+    [intl]
+  )
 
   const applyPresetRange = useCallback((days: number) => {
     setDateRange({
@@ -225,8 +247,11 @@ export default function AccountAuditLogsPage() {
 
   // Get current filter label
   const currentFilterLabel = useMemo(() => {
-    return FILTER_OPTIONS.find((option) => option.value === filterType)?.label || 'All Types'
-  }, [filterType])
+    return (
+      FILTER_OPTIONS.find((option) => option.value === filterType)?.label ||
+      intl.formatMessage({ id: 'audit.filter.allTypes' })
+    )
+  }, [filterType, FILTER_OPTIONS, intl])
 
   if (isLoading && logs.length === 0) {
     return (
@@ -251,7 +276,9 @@ export default function AccountAuditLogsPage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Loading audit logs...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="audit.loading" />
+          </p>
         </div>
       </div>
     )
@@ -262,8 +289,12 @@ export default function AccountAuditLogsPage() {
       <div className="container mx-auto max-w-6xl px-4">
         {/* Page Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground">Account Settings</h1>
-          <p className="mt-2 text-foreground-muted">Manage your personal account settings</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            <FormattedMessage id="account.settings.title" />
+          </h1>
+          <p className="mt-2 text-foreground-muted">
+            <FormattedMessage id="account.settings.subtitle" />
+          </p>
         </div>
 
         {/* Navigation Tabs */}
@@ -272,13 +303,13 @@ export default function AccountAuditLogsPage() {
             href="/account/settings"
             className="pb-3 text-sm font-medium text-foreground-muted transition-colors hover:text-foreground"
           >
-            Account Settings
+            <FormattedMessage id="account.settings.tabs.settings" />
           </Link>
           <Link
             href="/account/audit"
             className="border-b-2 border-terminal-green pb-3 text-sm font-medium text-foreground"
           >
-            Audit Logs
+            <FormattedMessage id="account.settings.tabs.audit" />
           </Link>
         </div>
 
@@ -288,7 +319,9 @@ export default function AccountAuditLogsPage() {
             {/* Filters Bar */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-foreground-muted">Filter by</span>
+                <span className="text-sm text-foreground-muted">
+                  <FormattedMessage id="audit.filterBy" />
+                </span>
 
                 {/* Resource Type Filter - Custom Dropdown */}
                 <div className="relative" ref={filterPickerRef}>
@@ -382,7 +415,9 @@ export default function AccountAuditLogsPage() {
                   {showDatePicker && (
                     <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-border bg-background-secondary p-4 shadow-lg">
                       <div className="mb-4">
-                        <h4 className="mb-3 text-sm font-medium text-foreground">Quick Select</h4>
+                        <h4 className="mb-3 text-sm font-medium text-foreground">
+                          <FormattedMessage id="audit.dateRange.quickSelect" />
+                        </h4>
                         <div className="flex gap-2">
                           {presetDateRanges.map((preset) => (
                             <button
@@ -399,7 +434,7 @@ export default function AccountAuditLogsPage() {
                       <div className="space-y-3">
                         <div>
                           <label className="mb-1 block text-xs text-foreground-muted">
-                            Start Date
+                            <FormattedMessage id="audit.dateRange.startDate" />
                           </label>
                           <input
                             type="date"
@@ -411,7 +446,7 @@ export default function AccountAuditLogsPage() {
                         </div>
                         <div>
                           <label className="mb-1 block text-xs text-foreground-muted">
-                            End Date
+                            <FormattedMessage id="audit.dateRange.endDate" />
                           </label>
                           <input
                             type="date"
@@ -429,13 +464,13 @@ export default function AccountAuditLogsPage() {
                           onClick={() => setShowDatePicker(false)}
                           className="rounded-md px-3 py-1.5 text-sm text-foreground-muted hover:text-foreground"
                         >
-                          Cancel
+                          <FormattedMessage id="common.cancel" />
                         </button>
                         <button
                           onClick={() => setShowDatePicker(false)}
                           className="rounded-md bg-terminal-green px-3 py-1.5 text-sm text-black hover:bg-terminal-green/90"
                         >
-                          Apply
+                          <FormattedMessage id="common.apply" />
                         </button>
                       </div>
                     </div>
@@ -461,7 +496,11 @@ export default function AccountAuditLogsPage() {
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
                 </svg>
-                {isLoading ? 'Refreshing...' : 'Refresh'}
+                {isLoading ? (
+                  <FormattedMessage id="audit.refreshing" />
+                ) : (
+                  <FormattedMessage id="audit.refresh" />
+                )}
               </button>
             </div>
 
@@ -471,14 +510,14 @@ export default function AccountAuditLogsPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
-                      Action
+                      <FormattedMessage id="audit.table.action" />
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
-                      Target
+                      <FormattedMessage id="audit.table.target" />
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-medium text-foreground-muted">
                       <div className="flex items-center gap-1">
-                        Date
+                        <FormattedMessage id="audit.table.date" />
                         <svg
                           className="h-4 w-4"
                           fill="none"
@@ -503,7 +542,7 @@ export default function AccountAuditLogsPage() {
                   {logs.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-8 text-center text-foreground-muted">
-                        No audit logs found for the selected period
+                        <FormattedMessage id="audit.noLogs" />
                       </td>
                     </tr>
                   ) : (
@@ -539,7 +578,7 @@ export default function AccountAuditLogsPage() {
                             className="text-sm text-foreground-muted transition-colors hover:text-foreground"
                             onClick={() => setSelectedLog(log)}
                           >
-                            View details
+                            <FormattedMessage id="audit.viewDetails" />
                           </button>
                         </td>
                       </tr>
@@ -552,7 +591,10 @@ export default function AccountAuditLogsPage() {
               {logs.length > 0 && (
                 <div className="border-t border-border px-6 py-3">
                   <p className="text-sm text-foreground-muted">
-                    Showing {logs.length} of {logs.length} results
+                    <FormattedMessage
+                      id="audit.showingResults"
+                      values={{ shown: logs.length, total: logs.length }}
+                    />
                   </p>
                 </div>
               )}
@@ -579,7 +621,9 @@ export default function AccountAuditLogsPage() {
             {selectedLog && (
               <>
                 <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                  <h3 className="text-lg font-medium text-foreground">Audit Log Details</h3>
+                  <h3 className="text-lg font-medium text-foreground">
+                    <FormattedMessage id="audit.details.title" />
+                  </h3>
                   <button
                     onClick={() => setSelectedLog(null)}
                     className="rounded-md p-1 text-foreground-muted transition-colors hover:bg-background-tertiary hover:text-foreground"
@@ -599,7 +643,9 @@ export default function AccountAuditLogsPage() {
                   <div className="space-y-6 p-6">
                     {/* Action Details */}
                     <div>
-                      <h4 className="mb-3 text-sm font-medium text-foreground">Action</h4>
+                      <h4 className="mb-3 text-sm font-medium text-foreground">
+                        <FormattedMessage id="audit.details.action" />
+                      </h4>
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background-tertiary text-foreground-muted">
                           {getResourceTypeIcon(selectedLog.resource_type)}
@@ -615,7 +661,9 @@ export default function AccountAuditLogsPage() {
 
                     {/* Timestamp */}
                     <div>
-                      <h4 className="mb-2 text-sm font-medium text-foreground">Timestamp</h4>
+                      <h4 className="mb-2 text-sm font-medium text-foreground">
+                        <FormattedMessage id="audit.details.timestamp" />
+                      </h4>
                       <p className="text-sm text-foreground-muted">
                         {format(new Date(selectedLog.created_at), 'PPpp')}
                       </p>
@@ -623,15 +671,21 @@ export default function AccountAuditLogsPage() {
 
                     {/* Resource Details */}
                     <div>
-                      <h4 className="mb-2 text-sm font-medium text-foreground">Resource</h4>
+                      <h4 className="mb-2 text-sm font-medium text-foreground">
+                        <FormattedMessage id="audit.details.resource" />
+                      </h4>
                       <div className="space-y-1">
                         <p className="text-sm">
-                          <span className="text-foreground-muted">Type:</span>{' '}
+                          <span className="text-foreground-muted">
+                            <FormattedMessage id="audit.details.type" />:
+                          </span>{' '}
                           <span className="text-foreground">{selectedLog.resource_type}</span>
                         </p>
                         {selectedLog.resource_id && (
                           <p className="text-sm">
-                            <span className="text-foreground-muted">ID:</span>{' '}
+                            <span className="text-foreground-muted">
+                              <FormattedMessage id="audit.details.id" />:
+                            </span>{' '}
                             <span className="font-mono text-xs text-foreground">
                               {selectedLog.resource_id}
                             </span>
@@ -642,11 +696,15 @@ export default function AccountAuditLogsPage() {
 
                     {/* Session Details */}
                     <div>
-                      <h4 className="mb-2 text-sm font-medium text-foreground">Session Details</h4>
+                      <h4 className="mb-2 text-sm font-medium text-foreground">
+                        <FormattedMessage id="audit.details.sessionDetails" />
+                      </h4>
                       <div className="space-y-2">
                         {selectedLog.ip_address && (
                           <div>
-                            <p className="text-xs text-foreground-muted">IP Address</p>
+                            <p className="text-xs text-foreground-muted">
+                              <FormattedMessage id="audit.details.ipAddress" />
+                            </p>
                             <p className="font-mono text-sm text-foreground">
                               {selectedLog.ip_address}
                             </p>
@@ -654,7 +712,9 @@ export default function AccountAuditLogsPage() {
                         )}
                         {selectedLog.user_agent && (
                           <div>
-                            <p className="text-xs text-foreground-muted">User Agent</p>
+                            <p className="text-xs text-foreground-muted">
+                              <FormattedMessage id="audit.details.userAgent" />
+                            </p>
                             <p className="break-words text-sm text-foreground">
                               {selectedLog.user_agent}
                             </p>
@@ -665,7 +725,9 @@ export default function AccountAuditLogsPage() {
 
                     {/* Log ID */}
                     <div>
-                      <h4 className="mb-2 text-sm font-medium text-foreground">Log ID</h4>
+                      <h4 className="mb-2 text-sm font-medium text-foreground">
+                        <FormattedMessage id="audit.details.logId" />
+                      </h4>
                       <p className="font-mono text-xs text-foreground-muted">{selectedLog.id}</p>
                     </div>
                   </div>

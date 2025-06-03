@@ -2,33 +2,42 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function LandingPage() {
+  const intl = useIntl()
+
   return (
     <div className="relative min-h-[calc(100vh-10rem)] px-4 py-16">
       <div className="mx-auto w-full max-w-4xl">
         {/* Hero Section */}
         <div className="mb-8 animate-fade-in text-center">
           <h1 className="mb-4 text-4xl font-bold text-foreground md:text-5xl">
-            SSH Management <span className="text-terminal-green">Reimagined</span>
+            <FormattedMessage id="landing.hero.title" />{' '}
+            <span className="text-terminal-green">
+              <FormattedMessage id="landing.hero.titleHighlight" />
+            </span>
           </h1>
           <p className="mx-auto mb-2 max-w-2xl text-lg text-foreground-muted">
-            Secure terminal access, file management, and team collaboration. All your servers in one
-            powerful platform.
+            <FormattedMessage id="landing.hero.subtitle" />
           </p>
           <p className="mb-8 text-sm text-foreground-muted">
-            Start free • No credit card required • Set up in 2 minutes
+            <FormattedMessage id="landing.hero.tagline" />
           </p>
           <div className="flex justify-center gap-4">
             <Link
               href="/dashboard/organizations"
               className="btn-primary inline-flex items-center gap-2"
             >
-              <span>Start your project</span>
+              <span>
+                <FormattedMessage id="landing.hero.cta.start" />
+              </span>
               <span className="text-lg">→</span>
             </Link>
             <Link href="/" className="btn-secondary inline-flex items-center gap-2">
-              <span>Request a demo</span>
+              <span>
+                <FormattedMessage id="landing.hero.cta.demo" />
+              </span>
             </Link>
           </div>
         </div>
@@ -37,19 +46,27 @@ export default function LandingPage() {
         <div className="mb-12 flex flex-wrap justify-center gap-6 opacity-60">
           <div className="flex items-center gap-2 text-sm text-foreground-muted">
             <span>🔒</span>
-            <span>SOC2 Compliant</span>
+            <span>
+              <FormattedMessage id="landing.trust.soc2" />
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm text-foreground-muted">
             <span>🛡️</span>
-            <span>256-bit Encryption</span>
+            <span>
+              <FormattedMessage id="landing.trust.encryption" />
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm text-foreground-muted">
             <span>🔐</span>
-            <span>Zero-Knowledge Architecture</span>
+            <span>
+              <FormattedMessage id="landing.trust.zeroKnowledge" />
+            </span>
           </div>
           <div className="flex items-center gap-2 text-sm text-foreground-muted">
             <span>✓</span>
-            <span>GDPR Ready</span>
+            <span>
+              <FormattedMessage id="landing.trust.gdpr" />
+            </span>
           </div>
         </div>
 
@@ -62,7 +79,9 @@ export default function LandingPage() {
               <div className="terminal-dot bg-terminal-yellow" />
               <div className="terminal-dot bg-terminal-green" />
             </div>
-            <div className="ml-4 text-xs text-foreground-subtle">connectix@ssh-manager:~</div>
+            <div className="ml-4 text-xs text-foreground-subtle">
+              <FormattedMessage id="landing.terminal.header" />
+            </div>
           </div>
 
           {/* Terminal Content */}
@@ -70,49 +89,57 @@ export default function LandingPage() {
             {/* Welcome Message */}
             <div className="space-y-4 text-foreground">
               <p className="text-terminal-green">
-                <span className="text-foreground-muted">$</span> ./connectix --help
+                <span className="text-foreground-muted">$</span>{' '}
+                <FormattedMessage id="landing.terminal.helpCommand" />
               </p>
 
               <div className="ml-4 space-y-2">
-                <p>Connectix - Complete SSH Management Platform for Teams</p>
+                <p>
+                  <FormattedMessage id="landing.terminal.title" />
+                </p>
                 <p className="text-foreground-muted">
-                  Terminal, file manager, and team collaboration. All your servers, one secure
-                  platform.
+                  <FormattedMessage id="landing.terminal.subtitle" />
                 </p>
               </div>
 
               <div className="mt-6">
                 <p className="mb-2 text-terminal-green">
-                  <span className="text-foreground-muted">$</span> ./connectix --features
+                  <span className="text-foreground-muted">$</span>{' '}
+                  <FormattedMessage id="landing.terminal.featuresCommand" />
                 </p>
 
                 <ul className="ml-4 space-y-1 text-sm">
                   <li>
-                    <span className="text-terminal-blue">[+]</span> Integrated terminal & file
-                    browser
+                    <span className="text-terminal-blue">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.integrated" />
                   </li>
                   <li>
-                    <span className="text-terminal-purple">[+]</span> Team access control &
-                    permissions
+                    <span className="text-terminal-purple">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.teamAccess" />
                   </li>
                   <li>
-                    <span className="text-terminal-orange">[+]</span> Multi-project organization
+                    <span className="text-terminal-orange">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.multiProject" />
                   </li>
                   <li>
-                    <span className="text-terminal-pink">[+]</span> Real-time collaboration
+                    <span className="text-terminal-pink">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.collaboration" />
                   </li>
                   <li>
-                    <span className="text-terminal-yellow">[+]</span> Complete audit trail
+                    <span className="text-terminal-yellow">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.audit" />
                   </li>
                   <li>
-                    <span className="text-terminal-green">[+]</span> Secure credential management
+                    <span className="text-terminal-green">[+]</span>{' '}
+                    <FormattedMessage id="landing.terminal.features.credentials" />
                   </li>
                 </ul>
               </div>
 
               <div className="mt-8 flex items-center gap-4">
                 <p className="text-terminal-green">
-                  <span className="text-foreground-muted">$</span> ./connectix --start
+                  <span className="text-foreground-muted">$</span>{' '}
+                  <FormattedMessage id="landing.terminal.startCommand" />
                 </p>
                 <span className="terminal-cursor"></span>
               </div>
@@ -122,7 +149,10 @@ export default function LandingPage() {
             <div className="mt-8 border-t border-border pt-4">
               <p className="text-xs text-foreground-subtle">
                 <span className="text-terminal-green">●</span>
-                <span>&nbsp;System ready | Version 1.0.0 | Enterprise-grade security</span>
+                <span>
+                  &nbsp;
+                  <FormattedMessage id="landing.terminal.status" />
+                </span>
               </p>
             </div>
           </div>
@@ -132,18 +162,18 @@ export default function LandingPage() {
         <div className="mt-8 grid animate-slide-up gap-6 md:grid-cols-3">
           <FeatureCard
             icon="💻"
-            title="Integrated Terminal"
-            description="Full terminal access right in your browser. Run commands, edit files, manage services."
+            title={intl.formatMessage({ id: 'landing.features.terminal.title' })}
+            description={intl.formatMessage({ id: 'landing.features.terminal.description' })}
           />
           <FeatureCard
             icon="👥"
-            title="Team Collaboration"
-            description="Grant specific permissions by folder, server, or project. See who's doing what in real-time."
+            title={intl.formatMessage({ id: 'landing.features.team.title' })}
+            description={intl.formatMessage({ id: 'landing.features.team.description' })}
           />
           <FeatureCard
             icon="📁"
-            title="Project Organization"
-            description="Group servers by client, environment, or team. Switch contexts instantly."
+            title={intl.formatMessage({ id: 'landing.features.project.title' })}
+            description={intl.formatMessage({ id: 'landing.features.project.description' })}
           />
         </div>
 
@@ -151,20 +181,36 @@ export default function LandingPage() {
         <div className="mt-16 animate-slide-up text-center">
           <div className="mb-12 grid grid-cols-2 gap-8 md:grid-cols-4">
             <div>
-              <div className="text-3xl font-bold text-terminal-green">500+</div>
-              <p className="text-sm text-foreground-muted">Active Teams</p>
+              <div className="text-3xl font-bold text-terminal-green">
+                <FormattedMessage id="landing.stats.teams.value" />
+              </div>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="landing.stats.teams.label" />
+              </p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-terminal-blue">10k+</div>
-              <p className="text-sm text-foreground-muted">Servers Managed</p>
+              <div className="text-3xl font-bold text-terminal-blue">
+                <FormattedMessage id="landing.stats.servers.value" />
+              </div>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="landing.stats.servers.label" />
+              </p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-terminal-purple">99.9%</div>
-              <p className="text-sm text-foreground-muted">Uptime SLA</p>
+              <div className="text-3xl font-bold text-terminal-purple">
+                <FormattedMessage id="landing.stats.uptime.value" />
+              </div>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="landing.stats.uptime.label" />
+              </p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-terminal-orange">24/7</div>
-              <p className="text-sm text-foreground-muted">Support</p>
+              <div className="text-3xl font-bold text-terminal-orange">
+                <FormattedMessage id="landing.stats.support.value" />
+              </div>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="landing.stats.support.label" />
+              </p>
             </div>
           </div>
         </div>
@@ -172,29 +218,53 @@ export default function LandingPage() {
         {/* Why Connectix Section */}
         <div className="mt-16 animate-slide-up">
           <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
-            Stop juggling multiple tools
+            <FormattedMessage id="landing.comparison.title" />
           </h2>
 
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-6">
-              <h3 className="mb-4 font-bold text-red-400">❌ The Old Way</h3>
+              <h3 className="mb-4 font-bold text-red-400">
+                ❌ <FormattedMessage id="landing.comparison.old.title" />
+              </h3>
               <ul className="space-y-2 text-sm text-foreground-muted">
-                <li>• Terminal app + SFTP client + password manager</li>
-                <li>• SSH keys shared via Slack or email</li>
-                <li>• No audit trail or access history</li>
-                <li>• Manual onboarding taking hours</li>
-                <li>• Zero visibility into who's doing what</li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.old.item1" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.old.item2" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.old.item3" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.old.item4" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.old.item5" />
+                </li>
               </ul>
             </div>
 
             <div className="rounded-lg border border-terminal-green/20 bg-terminal-green/5 p-6">
-              <h3 className="mb-4 font-bold text-terminal-green">✓ The Connectix Way</h3>
+              <h3 className="mb-4 font-bold text-terminal-green">
+                ✓ <FormattedMessage id="landing.comparison.new.title" />
+              </h3>
               <ul className="space-y-2 text-sm text-foreground-muted">
-                <li>• Everything in one secure platform</li>
-                <li>• Credentials encrypted and never shared</li>
-                <li>• Complete audit trail with video replay</li>
-                <li>• Onboard new devs in under 5 minutes</li>
-                <li>• Real-time visibility and notifications</li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.new.item1" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.new.item2" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.new.item3" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.new.item4" />
+                </li>
+                <li>
+                  • <FormattedMessage id="landing.comparison.new.item5" />
+                </li>
               </ul>
             </div>
           </div>
@@ -203,44 +273,44 @@ export default function LandingPage() {
         {/* Detailed Features Section */}
         <div className="mt-16 animate-slide-up">
           <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
-            Everything your team needs, in one place
+            <FormattedMessage id="landing.detailedFeatures.title" />
           </h2>
 
           <div className="grid gap-6 md:grid-cols-2">
             <DetailedFeatureCard
-              title="Powerful Terminal"
+              title={intl.formatMessage({ id: 'landing.detailedFeatures.terminal.title' })}
               features={[
-                'Native terminal experience with xterm.js',
-                'Persistent sessions across devices',
-                'Command history and autocomplete',
-                'Multi-tab support',
+                intl.formatMessage({ id: 'landing.detailedFeatures.terminal.item1' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.terminal.item2' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.terminal.item3' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.terminal.item4' }),
               ]}
             />
             <DetailedFeatureCard
-              title="Smart File Management"
+              title={intl.formatMessage({ id: 'landing.detailedFeatures.files.title' })}
               features={[
-                'Visual file browser with drag & drop',
-                'Bulk operations and quick search',
-                'File preview and inline editing',
-                'Secure upload/download streaming',
+                intl.formatMessage({ id: 'landing.detailedFeatures.files.item1' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.files.item2' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.files.item3' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.files.item4' }),
               ]}
             />
             <DetailedFeatureCard
-              title="Team Access Control"
+              title={intl.formatMessage({ id: 'landing.detailedFeatures.access.title' })}
               features={[
-                'Role-based permissions (read/write/execute)',
-                'Folder-level access restrictions',
-                'Temporary access links',
-                'SSO and 2FA support',
+                intl.formatMessage({ id: 'landing.detailedFeatures.access.item1' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.access.item2' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.access.item3' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.access.item4' }),
               ]}
             />
             <DetailedFeatureCard
-              title="Complete Audit Trail"
+              title={intl.formatMessage({ id: 'landing.detailedFeatures.audit.title' })}
               features={[
-                'Track every command and file change',
-                'Real-time activity monitoring',
-                'Compliance-ready logging',
-                'Instant security alerts',
+                intl.formatMessage({ id: 'landing.detailedFeatures.audit.item1' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.audit.item2' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.audit.item3' }),
+                intl.formatMessage({ id: 'landing.detailedFeatures.audit.item4' }),
               ]}
             />
           </div>
@@ -249,48 +319,48 @@ export default function LandingPage() {
         {/* Use Cases */}
         <div className="mt-16 animate-slide-up">
           <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
-            Built for modern teams
+            <FormattedMessage id="landing.useCases.title" />
           </h2>
 
           <div className="grid gap-4">
             <UseCase
-              role="Development Teams"
-              description="Give developers the access they need without sharing root credentials"
+              role={intl.formatMessage({ id: 'landing.useCases.dev.role' })}
+              description={intl.formatMessage({ id: 'landing.useCases.dev.description' })}
               details={[
-                'Create read-only access for junior developers',
-                'Grant temporary elevated permissions for deployments',
-                'Separate staging and production environments',
-                'Track all changes with developer attribution',
+                intl.formatMessage({ id: 'landing.useCases.dev.detail1' }),
+                intl.formatMessage({ id: 'landing.useCases.dev.detail2' }),
+                intl.formatMessage({ id: 'landing.useCases.dev.detail3' }),
+                intl.formatMessage({ id: 'landing.useCases.dev.detail4' }),
               ]}
             />
             <UseCase
-              role="Agencies"
-              description="Manage multiple client servers with organized projects and clear boundaries"
+              role={intl.formatMessage({ id: 'landing.useCases.agencies.role' })}
+              description={intl.formatMessage({ id: 'landing.useCases.agencies.description' })}
               details={[
-                'Organize servers by client and project',
-                'Set up client-specific access for contractors',
-                'Generate audit reports for client compliance',
-                'Quick-switch between different client contexts',
+                intl.formatMessage({ id: 'landing.useCases.agencies.detail1' }),
+                intl.formatMessage({ id: 'landing.useCases.agencies.detail2' }),
+                intl.formatMessage({ id: 'landing.useCases.agencies.detail3' }),
+                intl.formatMessage({ id: 'landing.useCases.agencies.detail4' }),
               ]}
             />
             <UseCase
-              role="DevOps"
-              description="Streamline operations with audit trails and granular permissions"
+              role={intl.formatMessage({ id: 'landing.useCases.devops.role' })}
+              description={intl.formatMessage({ id: 'landing.useCases.devops.description' })}
               details={[
-                'Automate access provisioning with API',
-                'Set up approval workflows for sensitive operations',
-                'Monitor all infrastructure changes in real-time',
-                'Export logs for compliance and security audits',
+                intl.formatMessage({ id: 'landing.useCases.devops.detail1' }),
+                intl.formatMessage({ id: 'landing.useCases.devops.detail2' }),
+                intl.formatMessage({ id: 'landing.useCases.devops.detail3' }),
+                intl.formatMessage({ id: 'landing.useCases.devops.detail4' }),
               ]}
             />
             <UseCase
-              role="Startups"
-              description="Scale your team's server access without compromising security"
+              role={intl.formatMessage({ id: 'landing.useCases.startups.role' })}
+              description={intl.formatMessage({ id: 'landing.useCases.startups.description' })}
               details={[
-                'Onboard new developers in minutes',
-                'Revoke access instantly when team members leave',
-                'Start with simple permissions, add complexity as you grow',
-                'Keep infrastructure costs low with efficient resource sharing',
+                intl.formatMessage({ id: 'landing.useCases.startups.detail1' }),
+                intl.formatMessage({ id: 'landing.useCases.startups.detail2' }),
+                intl.formatMessage({ id: 'landing.useCases.startups.detail3' }),
+                intl.formatMessage({ id: 'landing.useCases.startups.detail4' }),
               ]}
             />
           </div>
@@ -299,32 +369,32 @@ export default function LandingPage() {
         {/* FAQ Section */}
         <div className="mt-16 animate-slide-up">
           <h2 className="mb-8 text-center text-2xl font-bold text-foreground">
-            Frequently asked questions
+            <FormattedMessage id="landing.faq.title" />
           </h2>
           <div className="space-y-4">
             <FAQItem
-              question="How secure is Connectix?"
-              answer="We use end-to-end encryption, zero-knowledge architecture, and are SOC2 compliant. Your credentials never touch our servers in plain text."
+              question={intl.formatMessage({ id: 'landing.faq.security.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.security.answer' })}
             />
             <FAQItem
-              question="Can I self-host Connectix?"
-              answer="Yes! Enterprise plans include self-hosting options for teams that need complete control over their infrastructure."
+              question={intl.formatMessage({ id: 'landing.faq.selfHost.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.selfHost.answer' })}
             />
             <FAQItem
-              question="How does pricing work?"
-              answer="Start free with up to 3 team members. Scale as you grow with transparent per-user pricing. No hidden fees."
+              question={intl.formatMessage({ id: 'landing.faq.pricing.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.pricing.answer' })}
             />
             <FAQItem
-              question="What if I need help migrating?"
-              answer="Our team provides white-glove migration support for all paid plans. We'll help you transition smoothly."
+              question={intl.formatMessage({ id: 'landing.faq.migration.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.migration.answer' })}
             />
             <FAQItem
-              question="Which operating systems do you support?"
-              answer="Connectix works in any modern browser. Your servers can run Linux, Unix, or any SSH-enabled system."
+              question={intl.formatMessage({ id: 'landing.faq.os.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.os.answer' })}
             />
             <FAQItem
-              question="Do you offer an API?"
-              answer="Yes! Our REST API lets you automate user provisioning, access management, and audit log exports."
+              question={intl.formatMessage({ id: 'landing.faq.api.question' })}
+              answer={intl.formatMessage({ id: 'landing.faq.api.answer' })}
             />
           </div>
         </div>
@@ -333,30 +403,40 @@ export default function LandingPage() {
         <div className="mt-20 animate-slide-up">
           <div className="rounded-lg border-2 border-terminal-green bg-terminal-green/10 p-12 text-center">
             <h2 className="mb-4 text-3xl font-bold text-foreground">
-              Ready to secure your servers?
+              <FormattedMessage id="landing.cta.title" />
             </h2>
             <p className="mb-8 text-lg text-foreground-muted">
-              Join 500+ teams already using Connectix. Get started in minutes.
+              <FormattedMessage id="landing.cta.subtitle" />
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
                 href="/dashboard/organizations"
                 className="btn-primary inline-flex items-center gap-2 px-8 py-4 text-lg"
               >
-                <span>Start Free Today</span>
+                <span>
+                  <FormattedMessage id="landing.cta.button.start" />
+                </span>
                 <span>→</span>
               </Link>
               <Link
                 href="/pricing"
                 className="btn-secondary inline-flex items-center gap-2 px-8 py-4 text-lg"
               >
-                <span>View Pricing</span>
+                <span>
+                  <FormattedMessage id="landing.cta.button.pricing" />
+                </span>
               </Link>
             </div>
             <div className="mt-6 text-sm text-foreground-muted">
-              <p>✓ Free for up to 3 team members</p>
-              <p>✓ No credit card required</p>
-              <p>✓ Cancel anytime</p>
+              <p>
+                ✓ <FormattedMessage id="landing.cta.benefit1" />
+              </p>
+              <p>
+                ✓ <FormattedMessage id="landing.cta.benefit2" />
+              </p>
+              <p>
+                ✓ <FormattedMessage id="landing.cta.benefit3" />
+              </p>
             </div>
           </div>
         </div>

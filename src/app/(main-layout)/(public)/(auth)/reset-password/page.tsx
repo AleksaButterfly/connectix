@@ -10,35 +10,10 @@ import FormInput from '@/components/ui/FormInput'
 import { createClient } from '@/lib/supabase/client'
 import { authService } from '@/lib/auth/auth.service'
 import { useAuthStore } from '@/stores/auth.store'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-
-const resetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  })
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function ResetPasswordPage() {
-  return (
-    <ProtectedRoute>
-      <ResetPasswordContent />
-    </ProtectedRoute>
-  )
-}
-
-function ResetPasswordContent() {
+  const intl = useIntl()
   const [isLoading, setIsLoading] = useState(false)
   const [isReset, setIsReset] = useState(false)
   const [isValidToken, setIsValidToken] = useState(false)
@@ -57,6 +32,24 @@ function ResetPasswordContent() {
     number: false,
     special: false,
   })
+
+  const resetPasswordSchema = z
+    .object({
+      password: z
+        .string()
+        .min(8, intl.formatMessage({ id: 'validation.password.minLength' }))
+        .regex(/[A-Z]/, intl.formatMessage({ id: 'validation.password.uppercase' }))
+        .regex(/[a-z]/, intl.formatMessage({ id: 'validation.password.lowercase' }))
+        .regex(/[0-9]/, intl.formatMessage({ id: 'validation.password.number' }))
+        .regex(/[^A-Za-z0-9]/, intl.formatMessage({ id: 'validation.password.special' })),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: intl.formatMessage({ id: 'validation.password.mismatch' }),
+      path: ['confirmPassword'],
+    })
+
+  type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
   useEffect(() => {
     // Check if user is logged in and how they authenticated
@@ -103,7 +96,9 @@ function ResetPasswordContent() {
       if (error) {
         console.error('Password update error:', error)
         setError('root', {
-          message: (error as { message?: string }).message || 'Failed to update password',
+          message:
+            (error as { message?: string }).message ||
+            intl.formatMessage({ id: 'auth.resetPassword.error.updateFailed' }),
         })
         setIsLoading(false)
         return
@@ -117,7 +112,8 @@ function ResetPasswordContent() {
     } catch (error: any) {
       console.error('Unexpected error:', error)
       setError('root', {
-        message: error?.message || 'An unexpected error occurred. Please try again.',
+        message:
+          error?.message || intl.formatMessage({ id: 'auth.resetPassword.error.unexpected' }),
       })
       setIsLoading(false)
     }
@@ -133,6 +129,26 @@ function ResetPasswordContent() {
       number: /[0-9]/.test(pwd),
       special: /[^A-Za-z0-9]/.test(pwd),
     })
+  }
+
+  const getPasswordStrengthText = () => {
+    const score = Object.values(passwordRequirements).filter(Boolean).length
+    switch (score) {
+      case 0:
+        return intl.formatMessage({ id: 'auth.resetPassword.password.strength.veryWeak' })
+      case 1:
+        return intl.formatMessage({ id: 'auth.resetPassword.password.strength.weak' })
+      case 2:
+        return intl.formatMessage({ id: 'auth.resetPassword.password.strength.fair' })
+      case 3:
+        return intl.formatMessage({ id: 'auth.resetPassword.password.strength.good' })
+      case 4:
+        return intl.formatMessage({ id: 'auth.resetPassword.password.strength.strong' })
+      case 5:
+        return `🔐 ${intl.formatMessage({ id: 'auth.resetPassword.password.strength.maximum' })}`
+      default:
+        return ''
+    }
   }
 
   const allRequirementsMet = Object.values(passwordRequirements).every((req) => req)
@@ -160,42 +176,50 @@ function ResetPasswordContent() {
                 <div className="mb-4 inline-block">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-terminal-green border-t-transparent"></div>
                 </div>
-                <p className="text-sm text-foreground-muted">Verifying reset link...</p>
+                <p className="text-sm text-foreground-muted">
+                  <FormattedMessage id="auth.resetPassword.verifying" />
+                </p>
               </div>
             ) : isOAuthUser ? (
               <div className="text-center">
                 <div className="mb-4 text-4xl">🔐</div>
                 <h2 className="mb-2 text-xl font-bold text-terminal-yellow">
-                  OAuth Account Detected
+                  <FormattedMessage id="auth.resetPassword.oauth.title" />
                 </h2>
                 <p className="mb-6 text-sm text-foreground-muted">
-                  You signed up using {user?.app_metadata.provider || 'a third-party provider'}.
-                  Password reset is not available for OAuth accounts.
+                  <FormattedMessage
+                    id="auth.resetPassword.oauth.message"
+                    values={{
+                      provider:
+                        user?.app_metadata.provider ||
+                        intl.formatMessage({ id: 'auth.resetPassword.oauth.thirdParty' }),
+                    }}
+                  />
                 </p>
                 <p className="mb-6 text-xs text-foreground-subtle">
-                  To change your authentication method, please contact support.
+                  <FormattedMessage id="auth.resetPassword.oauth.contact" />
                 </p>
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="btn-primary inline-flex items-center gap-2"
                 >
-                  Back to Dashboard →
+                  <FormattedMessage id="auth.resetPassword.backToDashboard" /> →
                 </button>
               </div>
             ) : !isValidToken ? (
               <div className="text-center">
                 <div className="mb-4 text-4xl">⚠️</div>
                 <h2 className="mb-2 text-xl font-bold text-terminal-red">
-                  Invalid or Expired Link
+                  <FormattedMessage id="auth.resetPassword.invalid.title" />
                 </h2>
                 <p className="mb-6 text-sm text-foreground-muted">
-                  This password reset link is invalid or has expired. Please request a new one.
+                  <FormattedMessage id="auth.resetPassword.invalid.message" />
                 </p>
                 <Link
                   href="/forgot-password"
                   className="btn-primary inline-flex items-center gap-2"
                 >
-                  Request New Link →
+                  <FormattedMessage id="auth.resetPassword.requestNewLink" /> →
                 </Link>
               </div>
             ) : !isReset ? (
@@ -205,7 +229,7 @@ function ResetPasswordContent() {
                     <span className="text-terminal-green">$</span> set-new-password
                   </h1>
                   <p className="mt-2 text-sm text-foreground-muted">
-                    Choose a strong password for your account
+                    <FormattedMessage id="auth.resetPassword.subtitle" />
                   </p>
                 </div>
 
@@ -218,7 +242,7 @@ function ResetPasswordContent() {
 
                   <div>
                     <FormInput
-                      label="New Password"
+                      label={intl.formatMessage({ id: 'auth.resetPassword.newPasswordLabel' })}
                       type="password"
                       placeholder="••••••••"
                       error={errors.password?.message}
@@ -230,28 +254,38 @@ function ResetPasswordContent() {
                     {/* Password Requirements */}
                     <div className="mt-3 space-y-2 rounded-lg border border-border bg-background-tertiary p-3">
                       <p className="mb-2 text-xs font-medium text-foreground">
-                        Password must contain:
+                        <FormattedMessage id="auth.resetPassword.password.requirements" />
                       </p>
                       <div className="grid grid-cols-1 gap-1.5">
                         <PasswordRequirement
                           met={passwordRequirements.length}
-                          text="At least 8 characters"
+                          text={intl.formatMessage({
+                            id: 'auth.resetPassword.password.req.length',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.uppercase}
-                          text="One uppercase letter (A-Z)"
+                          text={intl.formatMessage({
+                            id: 'auth.resetPassword.password.req.uppercase',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.lowercase}
-                          text="One lowercase letter (a-z)"
+                          text={intl.formatMessage({
+                            id: 'auth.resetPassword.password.req.lowercase',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.number}
-                          text="One number (0-9)"
+                          text={intl.formatMessage({
+                            id: 'auth.resetPassword.password.req.number',
+                          })}
                         />
                         <PasswordRequirement
                           met={passwordRequirements.special}
-                          text="One special character (!@#$%)"
+                          text={intl.formatMessage({
+                            id: 'auth.resetPassword.password.req.special',
+                          })}
                         />
                       </div>
                     </div>
@@ -274,25 +308,14 @@ function ResetPasswordContent() {
                           ))}
                         </div>
                         <p className="mt-1 text-right text-xs text-foreground-subtle">
-                          {Object.values(passwordRequirements).filter(Boolean).length === 0 &&
-                            'Very Weak'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 1 &&
-                            'Weak'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 2 &&
-                            'Fair'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 3 &&
-                            'Good'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 4 &&
-                            'Strong'}
-                          {Object.values(passwordRequirements).filter(Boolean).length === 5 &&
-                            '🔐 Maximum Security'}
+                          {getPasswordStrengthText()}
                         </p>
                       </div>
                     )}
                   </div>
 
                   <FormInput
-                    label="Confirm New Password"
+                    label={intl.formatMessage({ id: 'auth.resetPassword.confirmPasswordLabel' })}
                     type="password"
                     placeholder="••••••••"
                     error={errors.confirmPassword?.message}
@@ -305,9 +328,13 @@ function ResetPasswordContent() {
                   {confirmPassword && (
                     <div className="mt-1 text-xs">
                       {passwordsMatch ? (
-                        <span className="text-terminal-green">✓ Passwords match</span>
+                        <span className="text-terminal-green">
+                          ✓ <FormattedMessage id="auth.resetPassword.password.match" />
+                        </span>
                       ) : (
-                        <span className="text-terminal-red">✗ Passwords don't match</span>
+                        <span className="text-terminal-red">
+                          ✗ <FormattedMessage id="auth.resetPassword.password.noMatch" />
+                        </span>
                       )}
                     </div>
                   )}
@@ -319,11 +346,15 @@ function ResetPasswordContent() {
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <span className="animate-pulse">Updating password</span>
+                        <span className="animate-pulse">
+                          <FormattedMessage id="auth.resetPassword.updatingPassword" />
+                        </span>
                         <span className="animate-terminal-blink">_</span>
                       </span>
                     ) : (
-                      'Reset Password →'
+                      <>
+                        <FormattedMessage id="auth.resetPassword.resetButton" /> →
+                      </>
                     )}
                   </button>
 
@@ -335,7 +366,7 @@ function ResetPasswordContent() {
                         onClick={() => router.push('/dashboard')}
                         className="text-sm text-foreground-muted hover:text-foreground"
                       >
-                        Back to Dashboard
+                        <FormattedMessage id="auth.resetPassword.backToDashboard" />
                       </button>
                     </div>
                   )}
@@ -345,17 +376,16 @@ function ResetPasswordContent() {
               <div className="animate-slide-up text-center">
                 <div className="mb-4 text-4xl">✅</div>
                 <h2 className="mb-2 text-xl font-bold text-terminal-green">
-                  Password reset successful!
+                  <FormattedMessage id="auth.resetPassword.success.title" />
                 </h2>
                 <p className="mb-6 text-sm text-foreground-muted">
-                  Your password has been successfully updated. You can now continue to your
-                  dashboard.
+                  <FormattedMessage id="auth.resetPassword.success.message" />
                 </p>
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="btn-primary inline-flex items-center gap-2"
                 >
-                  Go to Dashboard →
+                  <FormattedMessage id="auth.resetPassword.goToDashboard" /> →
                 </button>
               </div>
             )}
