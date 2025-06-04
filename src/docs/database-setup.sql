@@ -1,70 +1,44 @@
 -- =====================================================
 -- COMPLETE DATABASE SCHEMA FOR CONNECTIX
 -- =====================================================
--- This script creates the complete database structure including:
--- - User profiles and audit logs
--- - Organizations with ID-based routing
--- - Organization members and projects
--- - All necessary functions, triggers, and RLS policies
--- 
--- Run this script to recreate the entire database from scratch
--- =====================================================
 
--- =====================================================
--- SECTION 1: CLEANUP - DROP EXISTING OBJECTS
--- =====================================================
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles CASCADE;
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles CASCADE;
-DROP POLICY IF EXISTS "Anyone can check usernames" ON public.profiles CASCADE;
-DROP POLICY IF EXISTS "Users can view own audit logs" ON public.audit_logs CASCADE;
-DROP POLICY IF EXISTS "Users can create audit logs" ON public.audit_logs CASCADE;
-DROP POLICY IF EXISTS "Users can view their organizations" ON public.organizations CASCADE;
-DROP POLICY IF EXISTS "Users can create organizations" ON public.organizations CASCADE;
-DROP POLICY IF EXISTS "Owners can update their organizations" ON public.organizations CASCADE;
-DROP POLICY IF EXISTS "Owners can delete their organizations" ON public.organizations CASCADE;
-DROP POLICY IF EXISTS "Members can view organization members" ON public.organization_members CASCADE;
-DROP POLICY IF EXISTS "Owners can add members" ON public.organization_members CASCADE;
-DROP POLICY IF EXISTS "Owners can update members" ON public.organization_members CASCADE;
-DROP POLICY IF EXISTS "Owners can remove members" ON public.organization_members CASCADE;
-DROP POLICY IF EXISTS "Members can view organization projects" ON public.projects CASCADE;
-DROP POLICY IF EXISTS "Admins can create projects" ON public.projects CASCADE;
-DROP POLICY IF EXISTS "Admins can update projects" ON public.projects CASCADE;
-DROP POLICY IF EXISTS "Admins can delete projects" ON public.projects CASCADE;
-
--- Drop existing triggers
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
-DROP TRIGGER IF EXISTS update_audit_logs_updated_at ON public.audit_logs;
-DROP TRIGGER IF EXISTS on_organization_created ON public.organizations;
-DROP TRIGGER IF EXISTS update_organizations_updated_at ON public.organizations;
-DROP TRIGGER IF EXISTS update_projects_updated_at ON public.projects;
-
--- Drop existing functions
-DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
-DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
-DROP FUNCTION IF EXISTS public.create_organization_with_owner() CASCADE;
-DROP FUNCTION IF EXISTS public.generate_slug(input_text TEXT) CASCADE;
-DROP FUNCTION IF EXISTS public.is_organization_member(UUID, UUID) CASCADE;
-DROP FUNCTION IF EXISTS public.is_organization_owner(UUID, UUID) CASCADE;
-DROP FUNCTION IF EXISTS public.is_organization_admin(UUID, UUID) CASCADE;
-DROP FUNCTION IF EXISTS public.is_project_member(UUID, UUID) CASCADE;
-DROP FUNCTION IF EXISTS public.get_user_organizations() CASCADE;
-DROP FUNCTION IF EXISTS public.get_organization_projects(UUID) CASCADE;
-
--- Drop existing tables
+-- Drop all tables (CASCADE drops everything related)
+DROP TABLE IF EXISTS public.connection_activity_logs CASCADE;
+DROP TABLE IF EXISTS public.connection_sessions CASCADE;
+DROP TABLE IF EXISTS public.connections CASCADE;
+DROP TABLE IF EXISTS public.encryption_keys CASCADE;
 DROP TABLE IF EXISTS public.projects CASCADE;
 DROP TABLE IF EXISTS public.organization_members CASCADE;
 DROP TABLE IF EXISTS public.organizations CASCADE;
 DROP TABLE IF EXISTS public.audit_logs CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
+-- Drop functions
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
+DROP FUNCTION IF EXISTS public.create_organization_with_owner() CASCADE;
+DROP FUNCTION IF EXISTS public.generate_slug(TEXT) CASCADE;
+DROP FUNCTION IF EXISTS public.is_organization_member(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.is_organization_owner(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.is_organization_admin(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.is_project_member(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_user_organizations() CASCADE;
+DROP FUNCTION IF EXISTS public.get_organization_projects(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.can_access_connection(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.can_manage_connection(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.cleanup_expired_sessions() CASCADE;
+DROP FUNCTION IF EXISTS public.log_connection_activity() CASCADE;
+DROP FUNCTION IF EXISTS public.get_encryption_key_id(UUID, UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.validate_connection_project() CASCADE;
+
+-- Drop trigger on auth.users (if exists)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 -- =====================================================
--- SECTION 2: CREATE PROFILES AND AUDIT LOGS
+-- CREATE TABLES
 -- =====================================================
 
--- Create profiles table
+-- Profiles
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -74,11 +48,10 @@ CREATE TABLE public.profiles (
   two_factor_enabled BOOLEAN DEFAULT FALSE
 );
 
--- Create indexes for profiles
 CREATE INDEX idx_profiles_email ON public.profiles(email);
 CREATE INDEX idx_profiles_username ON public.profiles(username);
 
--- Create audit logs table
+-- Audit logs
 CREATE TABLE public.audit_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -90,16 +63,11 @@ CREATE TABLE public.audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes for audit logs
 CREATE INDEX idx_audit_logs_user_id ON public.audit_logs(user_id);
 CREATE INDEX idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_resource ON public.audit_logs(resource_type, resource_id);
 
--- =====================================================
--- SECTION 3: CREATE ORGANIZATIONS AND RELATED TABLES
--- =====================================================
-
--- Create organizations table (slug is NOT UNIQUE for ID-based routing)
+-- Organizations
 CREATE TABLE public.organizations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -109,7 +77,11 @@ CREATE TABLE public.organizations (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create organization members table
+CREATE INDEX idx_organizations_owner_id ON public.organizations(owner_id);
+CREATE INDEX idx_organizations_slug ON public.organizations(slug);
+CREATE INDEX idx_organizations_name ON public.organizations(name);
+
+-- Organization members
 CREATE TABLE public.organization_members (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
@@ -119,7 +91,11 @@ CREATE TABLE public.organization_members (
   UNIQUE(organization_id, user_id)
 );
 
--- Create projects table
+CREATE INDEX idx_organization_members_user_id ON public.organization_members(user_id);
+CREATE INDEX idx_organization_members_organization_id ON public.organization_members(organization_id);
+CREATE INDEX idx_organization_members_role ON public.organization_members(role);
+
+-- Projects
 CREATE TABLE public.projects (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
@@ -132,22 +108,114 @@ CREATE TABLE public.projects (
   UNIQUE(organization_id, slug)
 );
 
--- Create indexes for organizations
-CREATE INDEX idx_organizations_owner_id ON public.organizations(owner_id);
-CREATE INDEX idx_organizations_slug ON public.organizations(slug);
-CREATE INDEX idx_organizations_name ON public.organizations(name);
-CREATE INDEX idx_organization_members_user_id ON public.organization_members(user_id);
-CREATE INDEX idx_organization_members_organization_id ON public.organization_members(organization_id);
-CREATE INDEX idx_organization_members_role ON public.organization_members(role);
 CREATE INDEX idx_projects_organization_id ON public.projects(organization_id);
 CREATE INDEX idx_projects_slug ON public.projects(slug);
 CREATE INDEX idx_projects_created_by ON public.projects(created_by);
 
+-- Encryption keys
+CREATE TABLE public.encryption_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+  key_version INTEGER NOT NULL DEFAULT 1,
+  encrypted_key TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  rotated_at TIMESTAMPTZ,
+  UNIQUE(organization_id, key_version)
+);
+
+CREATE INDEX idx_encryption_keys_organization_id ON public.encryption_keys(organization_id);
+CREATE INDEX idx_encryption_keys_active ON public.encryption_keys(is_active);
+
+-- Connections
+CREATE TABLE public.connections (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
+  project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+  host TEXT NOT NULL,
+  port INTEGER NOT NULL DEFAULT 22,
+  username TEXT NOT NULL,
+  auth_type TEXT NOT NULL CHECK (auth_type IN ('password', 'private_key', 'key_with_passphrase')),
+  encrypted_credentials TEXT NOT NULL,
+  encryption_key_id UUID REFERENCES public.encryption_keys(id) NOT NULL,
+  proxy_jump TEXT,
+  connection_timeout INTEGER DEFAULT 30,
+  keepalive_interval INTEGER DEFAULT 60,
+  strict_host_checking BOOLEAN DEFAULT TRUE,
+  custom_options JSONB,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  last_used_at TIMESTAMPTZ,
+  last_used_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  connection_test_status TEXT CHECK (connection_test_status IN ('untested', 'success', 'failed')),
+  last_test_at TIMESTAMPTZ,
+  last_test_error TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_connections_organization_id ON public.connections(organization_id);
+CREATE INDEX idx_connections_project_id ON public.connections(project_id);
+CREATE INDEX idx_connections_created_by ON public.connections(created_by);
+CREATE INDEX idx_connections_last_used ON public.connections(last_used_at DESC);
+
+-- Connection sessions
+CREATE TABLE public.connection_sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  connection_id UUID REFERENCES public.connections(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  session_token TEXT UNIQUE NOT NULL,
+  client_ip INET,
+  user_agent TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'idle', 'disconnected', 'terminated')),
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  last_activity_at TIMESTAMPTZ DEFAULT NOW(),
+  ended_at TIMESTAMPTZ,
+  termination_reason TEXT,
+  bytes_uploaded BIGINT DEFAULT 0,
+  bytes_downloaded BIGINT DEFAULT 0,
+  commands_executed INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_connection_sessions_connection_id ON public.connection_sessions(connection_id);
+CREATE INDEX idx_connection_sessions_user_id ON public.connection_sessions(user_id);
+CREATE INDEX idx_connection_sessions_status ON public.connection_sessions(status);
+CREATE INDEX idx_connection_sessions_token ON public.connection_sessions(session_token);
+
+-- Connection activity logs
+CREATE TABLE public.connection_activity_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  connection_id UUID REFERENCES public.connections(id) ON DELETE CASCADE NOT NULL,
+  session_id UUID REFERENCES public.connection_sessions(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  activity_type TEXT NOT NULL CHECK (activity_type IN (
+    'connection.created', 'connection.updated', 'connection.deleted',
+    'connection.tested', 'session.started', 'session.ended',
+    'file.read', 'file.write', 'file.delete', 'file.rename',
+    'directory.create', 'directory.delete', 'directory.list',
+    'command.execute', 'error.occurred'
+  )),
+  details JSONB,
+  ip_address INET,
+  duration_ms INTEGER,
+  bytes_affected BIGINT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_connection_activity_logs_connection_id ON public.connection_activity_logs(connection_id);
+CREATE INDEX idx_connection_activity_logs_session_id ON public.connection_activity_logs(session_id);
+CREATE INDEX idx_connection_activity_logs_user_id ON public.connection_activity_logs(user_id);
+CREATE INDEX idx_connection_activity_logs_created_at ON public.connection_activity_logs(created_at DESC);
+CREATE INDEX idx_connection_activity_logs_activity_type ON public.connection_activity_logs(activity_type);
+
 -- =====================================================
--- SECTION 4: CREATE HELPER FUNCTIONS
+-- CREATE FUNCTIONS
 -- =====================================================
 
--- Function to update the updated_at timestamp
+-- Update timestamp function
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -156,11 +224,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to handle new user registration
+-- Handle new user
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Create a profile for the new user
   INSERT INTO public.profiles (id, email, username)
   VALUES (
     NEW.id, 
@@ -171,7 +238,6 @@ BEGIN
     )
   );
   
-  -- Log the signup action
   INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id)
   VALUES (
     NEW.id,
@@ -184,7 +250,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to generate URL-friendly slug
+-- Generate slug
 CREATE OR REPLACE FUNCTION public.generate_slug(input_text TEXT)
 RETURNS TEXT AS $$
 BEGIN
@@ -200,15 +266,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to add creator as owner member
+-- Create organization with owner
 CREATE OR REPLACE FUNCTION public.create_organization_with_owner()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Add the organization creator as an owner member
   INSERT INTO public.organization_members (organization_id, user_id, role)
   VALUES (NEW.id, NEW.owner_id, 'owner');
   
-  -- Log the action
+  INSERT INTO public.encryption_keys (organization_id, encrypted_key)
+  VALUES (NEW.id, 'PLACEHOLDER_ENCRYPTED_KEY');
+  
   INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id)
   VALUES (NEW.owner_id, 'organization.created', 'organization', NEW.id::TEXT);
   
@@ -216,7 +283,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to check organization membership (with fix for ambiguity)
+-- Check organization membership
 CREATE OR REPLACE FUNCTION public.is_organization_member(org_id UUID, check_user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -233,7 +300,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to check organization ownership
+-- Check organization ownership
 CREATE OR REPLACE FUNCTION public.is_organization_owner(org_id UUID, check_user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -250,7 +317,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to check if user is admin or owner (with fix for ambiguity)
+-- Check if admin or owner
 CREATE OR REPLACE FUNCTION public.is_organization_admin(org_id UUID, check_user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -268,19 +335,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to check if user can access a project
+-- Check project membership
 CREATE OR REPLACE FUNCTION public.is_project_member(project_id UUID, check_user_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
   org_id UUID;
-  is_member BOOLEAN;
 BEGIN
-  -- Get the organization ID for this project
   SELECT organization_id INTO org_id
   FROM public.projects
   WHERE id = project_id;
   
-  -- Check if user is a member of the organization
   IF org_id IS NOT NULL THEN
     RETURN public.is_organization_member(org_id, check_user_id);
   END IF;
@@ -289,7 +353,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get user's organizations with member count and project count
+-- Get user organizations
 CREATE OR REPLACE FUNCTION public.get_user_organizations()
 RETURNS TABLE (
   id UUID,
@@ -327,7 +391,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get organization's projects
+-- Get organization projects
 CREATE OR REPLACE FUNCTION public.get_organization_projects(org_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -338,7 +402,8 @@ RETURNS TABLE (
   created_by UUID,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ,
-  created_by_username TEXT
+  created_by_username TEXT,
+  connections_count BIGINT
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -351,26 +416,162 @@ BEGIN
     p.created_by,
     p.created_at,
     p.updated_at,
-    pr.username as created_by_username
+    pr.username as created_by_username,
+    COUNT(DISTINCT c.id) as connections_count
   FROM public.projects p
   LEFT JOIN public.profiles pr ON pr.id = p.created_by
+  LEFT JOIN public.connections c ON c.project_id = p.id
   WHERE p.organization_id = org_id
     AND public.is_organization_member(org_id, auth.uid())
+  GROUP BY p.id, pr.username
   ORDER BY p.created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Check connection access
+CREATE OR REPLACE FUNCTION public.can_access_connection(conn_id UUID, check_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  conn RECORD;
+BEGIN
+  SELECT organization_id, project_id INTO conn
+  FROM public.connections
+  WHERE id = conn_id;
+  
+  IF NOT FOUND THEN
+    RETURN FALSE;
+  END IF;
+  
+  IF conn.project_id IS NOT NULL THEN
+    RETURN public.is_project_member(conn.project_id, check_user_id);
+  END IF;
+  
+  RETURN public.is_organization_member(conn.organization_id, check_user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Check connection management
+CREATE OR REPLACE FUNCTION public.can_manage_connection(conn_id UUID, check_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  conn RECORD;
+BEGIN
+  SELECT organization_id, project_id INTO conn
+  FROM public.connections
+  WHERE id = conn_id;
+  
+  IF NOT FOUND THEN
+    RETURN TRUE;
+  END IF;
+  
+  RETURN public.is_organization_admin(conn.organization_id, check_user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Get encryption key
+CREATE OR REPLACE FUNCTION public.get_encryption_key_id(org_id UUID, proj_id UUID DEFAULT NULL)
+RETURNS UUID AS $$
+DECLARE
+  key_id UUID;
+BEGIN
+  SELECT id INTO key_id
+  FROM public.encryption_keys
+  WHERE organization_id = org_id
+    AND is_active = TRUE
+  ORDER BY key_version DESC
+  LIMIT 1;
+  
+  RETURN key_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Cleanup expired sessions
+CREATE OR REPLACE FUNCTION public.cleanup_expired_sessions()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.connection_sessions
+  SET status = 'disconnected',
+      ended_at = NOW(),
+      termination_reason = 'Idle timeout'
+  WHERE status = 'active'
+    AND last_activity_at < NOW() - INTERVAL '30 minutes';
+  
+  UPDATE public.connection_sessions
+  SET status = 'terminated'
+  WHERE status = 'disconnected'
+    AND ended_at < NOW() - INTERVAL '1 hour';
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Log connection activity
+CREATE OR REPLACE FUNCTION public.log_connection_activity()
+RETURNS TRIGGER AS $$
+DECLARE
+  activity_type TEXT;
+  user_id UUID;
+BEGIN
+  user_id := auth.uid();
+  
+  IF TG_OP = 'INSERT' THEN
+    activity_type := 'connection.created';
+  ELSIF TG_OP = 'UPDATE' THEN
+    activity_type := 'connection.updated';
+  ELSIF TG_OP = 'DELETE' THEN
+    activity_type := 'connection.deleted';
+    user_id := OLD.created_by;
+  END IF;
+  
+  INSERT INTO public.connection_activity_logs (
+    connection_id,
+    user_id,
+    activity_type,
+    details,
+    ip_address
+  ) VALUES (
+    COALESCE(NEW.id, OLD.id),
+    user_id,
+    activity_type,
+    jsonb_build_object(
+      'operation', TG_OP,
+      'connection_name', COALESCE(NEW.name, OLD.name),
+      'host', COALESCE(NEW.host, OLD.host)
+    ),
+    inet_client_addr()
+  );
+  
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Validate connection project
+CREATE OR REPLACE FUNCTION public.validate_connection_project()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.project_id IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id = NEW.project_id 
+      AND p.organization_id = NEW.organization_id
+    ) THEN
+      RAISE EXCEPTION 'Project must belong to the specified organization';
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- =====================================================
--- SECTION 5: CREATE TRIGGERS
+-- CREATE TRIGGERS
 -- =====================================================
 
--- Trigger to create profile when user signs up
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW 
   EXECUTE FUNCTION public.handle_new_user();
 
--- Triggers to update the updated_at timestamp
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW 
@@ -386,14 +587,38 @@ CREATE TRIGGER update_projects_updated_at
   FOR EACH ROW 
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Trigger to add creator as owner when organization is created
+CREATE TRIGGER update_connections_updated_at
+  BEFORE UPDATE ON public.connections
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_connection_sessions_updated_at
+  BEFORE UPDATE ON public.connection_sessions
+  FOR EACH ROW 
+  EXECUTE FUNCTION public.update_updated_at_column();
+
 CREATE TRIGGER on_organization_created
   AFTER INSERT ON public.organizations
   FOR EACH ROW 
   EXECUTE FUNCTION public.create_organization_with_owner();
 
+CREATE TRIGGER log_connection_changes
+  AFTER INSERT OR UPDATE OR DELETE ON public.connections
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_connection_activity();
+
+CREATE TRIGGER cleanup_expired_sessions
+  AFTER INSERT OR UPDATE ON public.connection_sessions
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.cleanup_expired_sessions();
+
+CREATE TRIGGER validate_connection_project
+  BEFORE INSERT OR UPDATE ON public.connections
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validate_connection_project();
+
 -- =====================================================
--- SECTION 6: ENABLE ROW LEVEL SECURITY
+-- ENABLE RLS
 -- =====================================================
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -401,137 +626,161 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.encryption_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.connection_activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
--- SECTION 7: CREATE RLS POLICIES
+-- CREATE POLICIES
 -- =====================================================
 
--- PROFILES POLICIES
+-- Profiles
 CREATE POLICY "Users can view own profile" 
-  ON public.profiles 
-  FOR SELECT 
+  ON public.profiles FOR SELECT 
   USING (auth.uid() = id);
 
 CREATE POLICY "Users can update own profile" 
-  ON public.profiles 
-  FOR UPDATE 
+  ON public.profiles FOR UPDATE 
   USING (auth.uid() = id);
 
 CREATE POLICY "Anyone can check usernames" 
-  ON public.profiles 
-  FOR SELECT 
+  ON public.profiles FOR SELECT 
   USING (true);
 
--- AUDIT LOGS POLICIES
+-- Audit logs
 CREATE POLICY "Users can view own audit logs" 
-  ON public.audit_logs 
-  FOR SELECT 
+  ON public.audit_logs FOR SELECT 
   USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can create audit logs" 
-  ON public.audit_logs 
-  FOR INSERT 
+  ON public.audit_logs FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
 
--- ORGANIZATIONS POLICIES
+-- Organizations
 CREATE POLICY "Users can view their organizations" 
-  ON public.organizations 
-  FOR SELECT 
-  USING (
-    owner_id = auth.uid() 
-    OR 
-    public.is_organization_member(id, auth.uid())
-  );
+  ON public.organizations FOR SELECT 
+  USING (owner_id = auth.uid() OR public.is_organization_member(id, auth.uid()));
 
 CREATE POLICY "Users can create organizations" 
-  ON public.organizations 
-  FOR INSERT 
-  WITH CHECK (
-    auth.uid() IS NOT NULL 
-    AND auth.uid() = owner_id
-  );
+  ON public.organizations FOR INSERT 
+  WITH CHECK (auth.uid() IS NOT NULL AND auth.uid() = owner_id);
 
 CREATE POLICY "Owners can update their organizations" 
-  ON public.organizations 
-  FOR UPDATE 
+  ON public.organizations FOR UPDATE 
   USING (owner_id = auth.uid());
 
 CREATE POLICY "Owners can delete their organizations" 
-  ON public.organizations 
-  FOR DELETE 
+  ON public.organizations FOR DELETE 
   USING (owner_id = auth.uid());
 
--- ORGANIZATION MEMBERS POLICIES
+-- Organization members
 CREATE POLICY "Members can view organization members" 
-  ON public.organization_members 
-  FOR SELECT 
-  USING (
-    public.is_organization_member(organization_id, auth.uid())
-  );
+  ON public.organization_members FOR SELECT 
+  USING (public.is_organization_member(organization_id, auth.uid()));
 
 CREATE POLICY "Owners can add members" 
-  ON public.organization_members 
-  FOR INSERT 
-  WITH CHECK (
-    public.is_organization_owner(organization_id, auth.uid())
-  );
+  ON public.organization_members FOR INSERT 
+  WITH CHECK (public.is_organization_owner(organization_id, auth.uid()));
 
 CREATE POLICY "Owners can update members" 
-  ON public.organization_members 
-  FOR UPDATE 
-  USING (
-    public.is_organization_owner(organization_id, auth.uid())
-  );
+  ON public.organization_members FOR UPDATE 
+  USING (public.is_organization_owner(organization_id, auth.uid()));
 
 CREATE POLICY "Owners can remove members" 
-  ON public.organization_members 
-  FOR DELETE 
-  USING (
-    public.is_organization_owner(organization_id, auth.uid())
-  );
+  ON public.organization_members FOR DELETE 
+  USING (public.is_organization_owner(organization_id, auth.uid()));
 
--- PROJECTS POLICIES
+-- Projects
 CREATE POLICY "Members can view organization projects" 
-  ON public.projects 
-  FOR SELECT 
-  USING (
-    public.is_organization_member(organization_id, auth.uid())
-  );
+  ON public.projects FOR SELECT 
+  USING (public.is_organization_member(organization_id, auth.uid()));
 
 CREATE POLICY "Admins can create projects" 
-  ON public.projects 
-  FOR INSERT 
-  WITH CHECK (
-    public.is_organization_admin(organization_id, auth.uid())
-    AND auth.uid() = created_by
-  );
+  ON public.projects FOR INSERT 
+  WITH CHECK (public.is_organization_admin(organization_id, auth.uid()) AND auth.uid() = created_by);
 
 CREATE POLICY "Admins can update projects" 
-  ON public.projects 
-  FOR UPDATE 
-  USING (
-    public.is_organization_admin(organization_id, auth.uid())
-  );
+  ON public.projects FOR UPDATE 
+  USING (public.is_organization_admin(organization_id, auth.uid()));
 
 CREATE POLICY "Admins can delete projects" 
-  ON public.projects 
-  FOR DELETE 
+  ON public.projects FOR DELETE 
+  USING (public.is_organization_admin(organization_id, auth.uid()));
+
+-- Connections
+CREATE POLICY "Members can view accessible connections" 
+  ON public.connections FOR SELECT 
+  USING (public.can_access_connection(id, auth.uid()));
+
+CREATE POLICY "Authorized users can create connections" 
+  ON public.connections FOR INSERT 
+  WITH CHECK (public.is_organization_admin(organization_id, auth.uid()) AND auth.uid() = created_by);
+
+CREATE POLICY "Authorized users can update connections" 
+  ON public.connections FOR UPDATE 
+  USING (public.can_manage_connection(id, auth.uid()));
+
+CREATE POLICY "Authorized users can delete connections" 
+  ON public.connections FOR DELETE 
+  USING (public.can_manage_connection(id, auth.uid()));
+
+-- Connection sessions
+CREATE POLICY "Users can view accessible sessions" 
+  ON public.connection_sessions FOR SELECT 
   USING (
-    public.is_organization_admin(organization_id, auth.uid())
+    user_id = auth.uid() OR 
+    EXISTS (
+      SELECT 1 FROM public.connections c
+      WHERE c.id = connection_id
+      AND public.is_organization_admin(c.organization_id, auth.uid())
+    )
   );
 
+CREATE POLICY "Users can create sessions for accessible connections" 
+  ON public.connection_sessions FOR INSERT 
+  WITH CHECK (
+    auth.uid() = user_id AND 
+    EXISTS (
+      SELECT 1 FROM public.connections c
+      WHERE c.id = connection_id
+      AND public.can_access_connection(c.id, auth.uid())
+    )
+  );
+
+CREATE POLICY "Users can update their own sessions" 
+  ON public.connection_sessions FOR UPDATE 
+  USING (user_id = auth.uid());
+
+-- Connection activity logs
+CREATE POLICY "Users can view connection activity logs" 
+  ON public.connection_activity_logs FOR SELECT 
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.connections c
+      WHERE c.id = connection_id
+      AND public.can_access_connection(c.id, auth.uid())
+    )
+  );
+
+CREATE POLICY "System can create activity logs" 
+  ON public.connection_activity_logs FOR INSERT 
+  WITH CHECK (true);
+
 -- =====================================================
--- SECTION 8: GRANT PERMISSIONS
+-- GRANT PERMISSIONS
 -- =====================================================
 
--- Grant table permissions to authenticated users
 GRANT ALL ON public.profiles TO authenticated;
 GRANT ALL ON public.audit_logs TO authenticated;
 GRANT ALL ON public.organizations TO authenticated;
 GRANT ALL ON public.organization_members TO authenticated;
 GRANT ALL ON public.projects TO authenticated;
+GRANT SELECT ON public.encryption_keys TO authenticated;
+GRANT ALL ON public.connections TO authenticated;
+GRANT ALL ON public.connection_sessions TO authenticated;
+GRANT ALL ON public.connection_activity_logs TO authenticated;
 
--- Grant function execution permissions
 GRANT EXECUTE ON FUNCTION public.is_organization_member(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_organization_owner(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_organization_admin(UUID, UUID) TO authenticated;
@@ -539,54 +788,8 @@ GRANT EXECUTE ON FUNCTION public.is_project_member(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_slug(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_organizations() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_organization_projects(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_access_connection(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_manage_connection(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_encryption_key_id(UUID, UUID) TO authenticated;
 
--- Grant sequence permissions
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
-
--- =====================================================
--- SECTION 9: VERIFICATION QUERIES (Optional)
--- =====================================================
-
--- Uncomment these queries to verify the setup
-
--- Check all tables were created
--- SELECT table_name, 
---        (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name AND table_schema = 'public') as column_count
--- FROM information_schema.tables t
--- WHERE t.table_schema = 'public' 
--- AND t.table_name IN ('profiles', 'audit_logs', 'organizations', 'organization_members', 'projects')
--- ORDER BY t.table_name;
-
--- Check all policies were created
--- SELECT tablename, policyname, permissive, cmd
--- FROM pg_policies 
--- WHERE schemaname = 'public' 
--- ORDER BY tablename, policyname;
-
--- Check RLS is enabled on all tables
--- SELECT tablename, rowsecurity 
--- FROM pg_tables 
--- WHERE schemaname = 'public' 
--- AND tablename IN ('profiles', 'audit_logs', 'organizations', 'organization_members', 'projects');
-
--- =====================================================
--- SECTION 10: SAMPLE OPERATIONS (Examples)
--- =====================================================
-
--- Create an organization
--- INSERT INTO organizations (name, slug, owner_id) 
--- VALUES ('Acme Corp', 'acme-corp', auth.uid());
-
--- Add a member to organization
--- INSERT INTO organization_members (organization_id, user_id, role)
--- VALUES ('org-uuid', 'user-uuid', 'member');
-
--- Create a project
--- INSERT INTO projects (organization_id, name, slug, description, created_by)
--- VALUES ('org-uuid', 'Main Website', 'main-website', 'Production servers', auth.uid());
-
--- Get user's organizations with counts
--- SELECT * FROM public.get_user_organizations();
-
--- Get organization's projects
--- SELECT * FROM public.get_organization_projects('org-uuid');

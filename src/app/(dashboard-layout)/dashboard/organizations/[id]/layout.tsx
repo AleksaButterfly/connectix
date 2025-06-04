@@ -90,7 +90,7 @@ export default function OrganizationLayout({ children }: { children: React.React
   return (
     <div className="flex h-full">
       {/* Sidebar Container - Fixed width for collapsed state */}
-      <div className="relative w-[56px] flex-shrink-0">
+      <div className="relative flex-shrink-0">
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
           className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${

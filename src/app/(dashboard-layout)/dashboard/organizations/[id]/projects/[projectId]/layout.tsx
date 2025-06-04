@@ -52,6 +52,21 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
       active: pathname === `/dashboard/organizations/${orgId}/projects/${projectId}`,
     },
     {
+      label: 'Connections',
+      href: `/dashboard/organizations/${orgId}/projects/${projectId}/connections`,
+      icon: (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      ),
+      active: pathname === `/dashboard/organizations/${orgId}/projects/${projectId}/connections`,
+    },
+    {
       label: 'Settings',
       href: `/dashboard/organizations/${orgId}/projects/${projectId}/settings`,
       icon: (
@@ -77,7 +92,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex h-full">
       {/* Sidebar Container - Fixed width for collapsed state */}
-      <div className="relative w-[56px] flex-shrink-0">
+      <div className="relative flex-shrink-0">
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
           className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
