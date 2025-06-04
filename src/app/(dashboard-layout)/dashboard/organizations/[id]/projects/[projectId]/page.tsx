@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { projectService } from '@/lib/projects/project.service'
 import { organizationService } from '@/lib/organizations/organization.service'
-import type { Project, ProjectWithDetails } from '@/types/project'
+import type { ProjectWithDetails } from '@/types/project'
 import type { Organization } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
@@ -453,10 +453,7 @@ export default function ProjectOverviewPage() {
                   <dt className="text-sm text-foreground-muted">
                     <FormattedMessage id="projects.details.createdBy" />
                   </dt>
-                  <dd className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-terminal-green/10 text-xs font-medium text-terminal-green">
-                      {project.created_by_username?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
+                  <dd className="mt-1 text-sm font-medium text-foreground">
                     {project.created_by_username || intl.formatMessage({ id: 'common.unknown' })}
                   </dd>
                 </div>
