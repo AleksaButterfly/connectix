@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { projectService } from '@/lib/projects/project.service'
@@ -31,7 +32,7 @@ export default function ProjectOverviewPage() {
       // Check access first
       const hasAccess = await projectService.checkProjectAccess(projectId)
       if (!hasAccess) {
-        router.push('/dashboard/organizations')
+        router.push(`/dashboard/organizations/${orgId}`)
         return
       }
 
@@ -42,7 +43,7 @@ export default function ProjectOverviewPage() {
       ])
 
       if (!proj || !org) {
-        router.push('/dashboard/organizations')
+        router.push(`/dashboard/organizations/${orgId}`)
         return
       }
 
@@ -170,10 +171,8 @@ export default function ProjectOverviewPage() {
             <FormattedMessage id="projects.quickActions.title" />
           </h2>
           <div className="space-y-3">
-            <button
-              onClick={() =>
-                router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/settings`)
-              }
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/settings`}
               className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-left text-sm transition-colors hover:bg-background-tertiary"
             >
               <svg
@@ -198,7 +197,7 @@ export default function ProjectOverviewPage() {
               <span className="text-foreground">
                 <FormattedMessage id="projects.quickActions.settings" />
               </span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

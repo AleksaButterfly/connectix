@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Logo from '@/components/layout/Logo'
 import { FormattedMessage } from '@/lib/i18n'
 
 export default function Footer() {
@@ -14,13 +15,7 @@ export default function Footer() {
             {/* Brand Column */}
             <div className="md:col-span-1">
               <Link href="/" className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green">
-                  <span className="text-sm font-bold text-background">C</span>
-                </div>
-                <span className="text-lg font-semibold text-foreground">Connectix</span>
-                <span className="animate-terminal-blink text-terminal-green opacity-0 group-hover:opacity-100">
-                  _
-                </span>
+                <Logo />
               </Link>
               <p className="mt-3 text-xs text-foreground-subtle">
                 <FormattedMessage id="footer.tagline" />

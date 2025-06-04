@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { authService } from '@/lib/auth/auth.service'
 import { useRouter } from 'next/navigation'
 import UserMenu from '@/components/layout/UserMenu'
+import Logo from '@/components/layout/Logo'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function Header() {
@@ -27,13 +28,7 @@ export default function Header() {
             <div className="flex h-16 items-center justify-between">
               {/* Logo/Brand */}
               <Link href="/" className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green">
-                  <span className="text-sm font-bold text-background">C</span>
-                </div>
-                <span className="text-lg font-semibold text-foreground">Connectix</span>
-                <span className="animate-terminal-blink text-terminal-green opacity-0 group-hover:opacity-100">
-                  _
-                </span>
+                <Logo />
               </Link>
 
               {/* Desktop Navigation */}

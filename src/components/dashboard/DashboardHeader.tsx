@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import UserMenu from '../layout/UserMenu'
+import Logo from '../layout/Logo'
 import { useEffect, useState } from 'react'
 import { organizationService } from '@/lib/organizations/organization.service'
 import { projectService } from '@/lib/projects/project.service'
@@ -125,7 +126,7 @@ export default function DashboardHeader() {
           href="/dashboard/organizations"
           className="flex h-8 w-8 items-center justify-center rounded-md bg-terminal-green"
         >
-          <span className="text-sm font-bold text-background">C</span>
+          <Logo iconOnly />
         </Link>
       ),
     })
