@@ -150,7 +150,7 @@ export default function ProjectConnectionsPage() {
   }
 
   return (
-    <div className="flex h-full pl-[55]">
+    <div className="flex h-full">
       {/* Sidebar */}
       <div className="w-80 flex-shrink-0 border-r border-border bg-background-secondary">
         <div className="flex h-full flex-col">
