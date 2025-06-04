@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useConnections } from '@/hooks/useConnections'
 import { useConfirmation } from '@/hooks/useConfirmation'
@@ -14,12 +13,32 @@ import type { ConnectionWithDetails } from '@/types/connection'
 export default function ProjectConnectionsPage() {
   const intl = useIntl()
   const params = useParams()
+  const router = useRouter()
   const orgId = params.id as string
   const projectId = params.projectId as string
 
   const [selectedConnection, setSelectedConnection] = useState<ConnectionWithDetails | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+
+  const { toast } = useToast()
+
+  if (!orgId || !projectId) {
+    return (
+      <div className="flex min-h-[600px] items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 text-6xl">⚠️</div>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">Missing Parameters</h2>
+          <p className="mb-4 text-foreground-muted">
+            Organization ID or Project ID is missing from the URL.
+          </p>
+          <p className="text-sm text-foreground-muted">
+            Org ID: {orgId || 'MISSING'} | Project ID: {projectId || 'MISSING'}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const { connections, isLoading, loadConnections, deleteConnection, testConnection } =
     useConnections({
@@ -28,7 +47,13 @@ export default function ProjectConnectionsPage() {
     })
 
   const { confirm, ConfirmationModal } = useConfirmation()
-  const { toast } = useToast()
+
+  useEffect(() => {
+    loadConnections().catch((error) => {
+      console.error('Failed to load connections:', error)
+      toast.error('Failed to load connections: ' + error.message)
+    })
+  }, [loadConnections])
 
   // Select first connection when loaded
   useEffect(() => {
@@ -36,6 +61,16 @@ export default function ProjectConnectionsPage() {
       setSelectedConnection(connections[0])
     }
   }, [connections, selectedConnection, isCreating])
+
+  // Update selectedConnection when connections array changes (to get fresh data)
+  useEffect(() => {
+    if (selectedConnection && connections.length > 0) {
+      const updatedConnection = connections.find((conn) => conn.id === selectedConnection.id)
+      if (updatedConnection) {
+        setSelectedConnection(updatedConnection)
+      }
+    }
+  }, [connections, selectedConnection?.id])
 
   const handleCreateNew = () => {
     setIsCreating(true)
@@ -71,6 +106,7 @@ export default function ProjectConnectionsPage() {
             setSelectedConnection(null)
           }
         } catch (error: any) {
+          console.error('Delete connection error:', error)
           toast.error(error.message || intl.formatMessage({ id: 'connections.delete.error' }))
         }
       },
@@ -81,14 +117,25 @@ export default function ProjectConnectionsPage() {
     try {
       await testConnection(connection.id)
     } catch (error) {
+      console.error('Test connection error:', error)
       // Error is handled by the hook
     }
+  }
+
+  const handleBrowse = (connection: ConnectionWithDetails) => {
+    // Navigate to the browse page for this connection
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connection.id}/browse`
+    )
   }
 
   const handleFormComplete = () => {
     setIsCreating(false)
     setIsEditing(false)
-    loadConnections()
+    loadConnections().catch((error) => {
+      console.error('Failed to reload connections:', error)
+      toast.error('Failed to reload connections')
+    })
   }
 
   const handleFormCancel = () => {
@@ -144,6 +191,9 @@ export default function ProjectConnectionsPage() {
           <p className="text-foreground-muted">
             <FormattedMessage id="common.loading" />
           </p>
+          <p className="mt-2 text-xs text-foreground-muted">
+            Loading connections for project: {projectId}
+          </p>
         </div>
       </div>
     )
@@ -184,17 +234,20 @@ export default function ProjectConnectionsPage() {
                   const isSelected = selectedConnection?.id === connection.id && !isCreating
 
                   return (
-                    <button
+                    <div
                       key={connection.id}
-                      onClick={() => handleSelectConnection(connection)}
-                      className={`mb-1 w-full rounded-lg p-3 text-left transition-colors ${
+                      className={`group mb-1 w-full rounded-lg border transition-colors ${
                         isSelected
-                          ? 'border border-terminal-green/30 bg-terminal-green/10'
-                          : 'border border-transparent hover:bg-background-tertiary'
+                          ? 'border-terminal-green/30 bg-terminal-green/10'
+                          : 'border-transparent hover:bg-background-tertiary'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
+                      <div className="flex items-center">
+                        {/* Main connection button */}
+                        <button
+                          onClick={() => handleSelectConnection(connection)}
+                          className="flex-1 p-3 text-left"
+                        >
                           <div className="flex items-center gap-2">
                             <span className={`text-xs ${status.color}`}>{status.icon}</span>
                             <h3 className="truncate font-medium text-foreground">
@@ -204,9 +257,21 @@ export default function ProjectConnectionsPage() {
                           <p className="mt-0.5 truncate text-xs text-foreground-muted">
                             {connection.username}@{connection.host}:{connection.port}
                           </p>
-                        </div>
+                        </button>
+
+                        {/* Quick Browse Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleBrowse(connection)
+                          }}
+                          className="mr-3 rounded px-2 py-1 text-xs text-terminal-green opacity-0 transition-opacity hover:bg-terminal-green/10 group-hover:opacity-100"
+                          title="Browse Files"
+                        >
+                          📁
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -216,8 +281,8 @@ export default function ProjectConnectionsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl p-6">
+      <div className="align-center flex flex-1 overflow-y-auto">
+        <div className="mx-auto flex max-w-3xl p-6">
           {isCreating ? (
             <ConnectionForm
               organizationId={orgId}
@@ -239,6 +304,7 @@ export default function ProjectConnectionsPage() {
               onEdit={handleEdit}
               onDelete={() => handleDelete(selectedConnection)}
               onTest={() => handleTest(selectedConnection)}
+              onBrowse={() => handleBrowse(selectedConnection)}
             />
           ) : (
             <div className="flex min-h-[400px] items-center justify-center">
@@ -253,13 +319,13 @@ export default function ProjectConnectionsPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={1.5}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 002 2z"
                   />
                 </svg>
                 <h2 className="mb-2 text-xl font-semibold text-foreground">
                   <FormattedMessage id="connections.empty.title" />
                 </h2>
-                <p className="mb-4 text-sm text-foreground-muted">
+                <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
                   <FormattedMessage id="connections.empty.description" />
                 </p>
                 <button onClick={handleCreateNew} className="btn-primary">

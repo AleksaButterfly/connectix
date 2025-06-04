@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { projectService } from '@/lib/projects/project.service'
 import { organizationService } from '@/lib/organizations/organization.service'
+import { useConnections } from '@/hooks/useConnections'
 import type { ProjectWithDetails } from '@/types/project'
 import type { Organization } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
@@ -21,9 +22,21 @@ export default function ProjectOverviewPage() {
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Get connection data
+  const { connections, loadConnections } = useConnections({
+    organizationId: orgId,
+    projectId: projectId,
+  })
+
   useEffect(() => {
     fetchData()
   }, [orgId, projectId])
+
+  useEffect(() => {
+    if (orgId && projectId) {
+      loadConnections()
+    }
+  }, [orgId, projectId, loadConnections])
 
   const fetchData = async () => {
     try {
@@ -101,7 +114,7 @@ export default function ProjectOverviewPage() {
             />
           </svg>
           <p className="text-foreground-muted">
-            <FormattedMessage id="projects.loading" />
+            <FormattedMessage id="projects.overview.loading" />
           </p>
         </div>
       </div>
@@ -164,6 +177,14 @@ export default function ProjectOverviewPage() {
     )
   }
 
+  // Connection stats
+  const activeConnections = connections.filter(
+    (conn) => conn.connection_test_status === 'success'
+  ).length
+
+  const totalConnections = connections.length
+  const hasConnections = totalConnections > 0
+
   return (
     <div className="container mx-auto max-w-6xl px-6 py-8">
       {/* Page Header with Hero Section */}
@@ -206,12 +227,39 @@ export default function ProjectOverviewPage() {
                 </svg>
                 <span>{timeSinceCreation()}</span>
               </div>
+              {hasConnections && (
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  <span>{totalConnections} SSH connections</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Quick Actions */}
-          {isAdmin && (
-            <div className="ml-6 flex gap-2">
+          <div className="ml-6 flex gap-2">
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
+              className="btn-primary flex items-center gap-2"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              SSH Connections
+            </Link>
+            {isAdmin && (
               <Link
                 href={`/dashboard/organizations/${orgId}/projects/${projectId}/settings`}
                 className="btn-secondary flex items-center gap-2"
@@ -232,8 +280,8 @@ export default function ProjectOverviewPage() {
                 </svg>
                 <FormattedMessage id="projects.overview.settings" />
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -280,15 +328,20 @@ export default function ProjectOverviewPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-foreground-muted">
-                <FormattedMessage id="projects.overview.members" />
+              <p className="text-sm text-foreground-muted">SSH Connections</p>
+              <p className="text-lg font-semibold text-foreground">
+                {totalConnections}
+                {totalConnections > 0 && (
+                  <span className="ml-2 text-xs text-terminal-green">
+                    {activeConnections} active
+                  </span>
+                )}
               </p>
-              <p className="text-lg font-semibold text-foreground">--</p>
             </div>
           </div>
         </div>
@@ -334,16 +387,22 @@ export default function ProjectOverviewPage() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                 />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-foreground-muted">
-                <FormattedMessage id="projects.overview.activity" />
-              </p>
+              <p className="text-sm text-foreground-muted">Connection Health</p>
               <p className="text-lg font-semibold text-foreground">
-                <FormattedMessage id="projects.overview.activityNormal" />
+                {totalConnections === 0 ? (
+                  <span className="text-foreground-muted">No connections</span>
+                ) : activeConnections === totalConnections ? (
+                  <span className="text-terminal-green">Excellent</span>
+                ) : activeConnections > totalConnections / 2 ? (
+                  <span className="text-yellow-500">Good</span>
+                ) : (
+                  <span className="text-red-500">Issues</span>
+                )}
               </p>
             </div>
           </div>
@@ -364,47 +423,154 @@ export default function ProjectOverviewPage() {
             <div className="p-6">
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-terminal-green/10 text-sm font-medium text-terminal-green">
-                    1
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                      hasConnections
+                        ? 'border-terminal-green bg-transparent'
+                        : 'border-terminal-green/30 bg-terminal-green/10'
+                    }`}
+                  >
+                    {hasConnections ? (
+                      <svg
+                        className="h-5 w-5 text-terminal-green"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    ) : (
+                      <span className="text-sm font-medium text-terminal-green">1</span>
+                    )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">
-                      <FormattedMessage id="projects.overview.step1Title" />
-                    </h3>
+                    <h3 className="mb-1 font-medium text-foreground">Set up SSH connections</h3>
                     <p className="text-sm text-foreground-muted">
-                      <FormattedMessage id="projects.overview.step1Description" />
+                      Add SSH connections to your servers to start managing files and executing
+                      commands remotely.
+                    </p>
+                    {!hasConnections && (
+                      <Link
+                        href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
+                        className="hover:text-terminal-green-hover mt-2 inline-flex items-center gap-1 text-sm text-terminal-green"
+                      >
+                        Add your first connection →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                      hasConnections
+                        ? 'border-terminal-green/30 bg-terminal-green/10'
+                        : 'border-foreground-muted/30 bg-foreground-muted/10'
+                    }`}
+                  >
+                    <span
+                      className={`text-sm font-medium ${
+                        hasConnections ? 'text-terminal-green' : 'text-foreground-muted'
+                      }`}
+                    >
+                      2
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-1 font-medium text-foreground">Browse and manage files</h3>
+                    <p className="text-sm text-foreground-muted">
+                      Use the built-in file browser to navigate, edit, upload, and download files on
+                      your remote servers.
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-terminal-green/10 text-sm font-medium text-terminal-green">
-                    2
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                      hasConnections
+                        ? 'border-terminal-green/30 bg-terminal-green/10'
+                        : 'border-foreground-muted/30 bg-foreground-muted/10'
+                    }`}
+                  >
+                    <span
+                      className={`text-sm font-medium ${
+                        hasConnections ? 'text-terminal-green' : 'text-foreground-muted'
+                      }`}
+                    >
+                      3
+                    </span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">
-                      <FormattedMessage id="projects.overview.step2Title" />
-                    </h3>
+                    <h3 className="mb-1 font-medium text-foreground">Monitor and maintain</h3>
                     <p className="text-sm text-foreground-muted">
-                      <FormattedMessage id="projects.overview.step2Description" />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-terminal-green/10 text-sm font-medium text-terminal-green">
-                    3
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">
-                      <FormattedMessage id="projects.overview.step3Title" />
-                    </h3>
-                    <p className="text-sm text-foreground-muted">
-                      <FormattedMessage id="projects.overview.step3Description" />
+                      Keep track of connection status, view activity logs, and ensure your servers
+                      stay healthy.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Connections Overview Card */}
+          {hasConnections && (
+            <div className="rounded-lg border border-border bg-background-secondary">
+              <div className="border-b border-border px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">SSH Connections</h2>
+                  <Link
+                    href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
+                    className="hover:text-terminal-green-hover text-sm text-terminal-green"
+                  >
+                    View all →
+                  </Link>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="space-y-3">
+                  {connections.slice(0, 3).map((connection) => (
+                    <div
+                      key={connection.id}
+                      className="flex items-center justify-between rounded-lg border border-border p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-2 w-2 rounded-full ${
+                            connection.connection_test_status === 'success'
+                              ? 'bg-terminal-green'
+                              : connection.connection_test_status === 'failed'
+                                ? 'bg-red-500'
+                                : 'bg-foreground-muted'
+                          }`}
+                        />
+                        <div>
+                          <p className="font-medium text-foreground">{connection.name}</p>
+                          <p className="text-xs text-foreground-muted">
+                            {connection.username}@{connection.host}:{connection.port}
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connection.id}/browse`}
+                        className="btn-secondary btn-sm"
+                      >
+                        Browse
+                      </Link>
+                    </div>
+                  ))}
+                  {connections.length > 3 && (
+                    <p className="text-center text-sm text-foreground-muted">
+                      and {connections.length - 3} more connections...
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Recent Activity Card */}
           <div className="rounded-lg border border-border bg-background-secondary">
@@ -475,6 +641,18 @@ export default function ProjectOverviewPage() {
                   </dt>
                   <dd className="mt-1 font-mono text-sm text-foreground">{project.slug}</dd>
                 </div>
+                <div>
+                  <dt className="text-sm text-foreground-muted">SSH Connections</dt>
+                  <dd className="mt-1 text-sm font-medium text-foreground">
+                    {totalConnections === 0 ? (
+                      <span className="text-foreground-muted">None configured</span>
+                    ) : (
+                      <span>
+                        {totalConnections} total, {activeConnections} healthy
+                      </span>
+                    )}
+                  </dd>
+                </div>
               </dl>
             </div>
           </div>
@@ -488,6 +666,25 @@ export default function ProjectOverviewPage() {
             </div>
             <div className="p-6">
               <nav className="space-y-2">
+                <Link
+                  href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-background-tertiary"
+                >
+                  <svg
+                    className="h-5 w-5 text-foreground-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  <span className="text-foreground">SSH Connections</span>
+                </Link>
                 {isAdmin && (
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/settings`}

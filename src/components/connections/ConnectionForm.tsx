@@ -230,7 +230,7 @@ export default function ConnectionForm({
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl px-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground">
           {isEditing ? (
@@ -289,8 +289,8 @@ export default function ConnectionForm({
             </h2>
           </div>
           <div className="space-y-6 p-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
                 <FormInput
                   label={intl.formatMessage({ id: 'connections.form.hostLabel' })}
                   placeholder={intl.formatMessage({ id: 'connections.form.hostPlaceholder' })}
@@ -424,7 +424,7 @@ export default function ConnectionForm({
           </button>
 
           {showAdvanced && (
-            <div className="space-y-6 border-t border-border p-6">
+            <div className="space-y-6 overflow-hidden border-t border-border p-6">
               <div>
                 <FormInput
                   label={intl.formatMessage({ id: 'connections.form.proxyJumpLabel' })}
@@ -437,7 +437,7 @@ export default function ConnectionForm({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <FormInput
                     type="number"
@@ -484,7 +484,7 @@ export default function ConnectionForm({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between gap-3">
+        <div className="flex justify-between gap-3 pb-6">
           <button
             type="button"
             onClick={handleTest}
@@ -498,7 +498,7 @@ export default function ConnectionForm({
             )}
           </button>
 
-          <div className="flex gap-3">
+          <div className="align-center flex gap-3">
             <button
               type="button"
               onClick={onCancel}
