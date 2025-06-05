@@ -17,7 +17,7 @@ interface ConnectionFormProps {
   organizationId: string
   projectId: string // Made required
   connection?: ConnectionWithDetails
-  onComplete: () => void
+  onComplete: (connectionId?: string) => void
   onCancel: () => void
 }
 
@@ -154,6 +154,7 @@ export default function ConnectionForm({
         }
 
         await connectionService.updateConnection(connection.id, updates)
+        onComplete(connection.id)
       } else {
         const input: CreateConnectionInput = {
           name: data.name,
@@ -179,10 +180,9 @@ export default function ConnectionForm({
           input.credentials.passphrase = data.passphrase
         }
 
-        await connectionService.createConnection(organizationId, input)
+        const newConnection = await connectionService.createConnection(organizationId, input)
+        onComplete(newConnection.id)
       }
-
-      onComplete()
     } catch (error: any) {
       console.error('Failed to save connection:', error)
     } finally {

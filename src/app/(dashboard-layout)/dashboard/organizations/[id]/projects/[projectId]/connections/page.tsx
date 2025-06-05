@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useConnections } from '@/hooks/useConnections'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { useToast } from '@/components/ui/ToastContext'
-import ConnectionForm from '@/components/connections/ConnectionForm'
 import ConnectionDetails from '@/components/connections/ConnectionDetails'
 import type { ConnectionWithDetails } from '@/types/connection'
 
@@ -14,12 +13,13 @@ export default function ProjectConnectionsPage() {
   const intl = useIntl()
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const orgId = params.id as string
   const projectId = params.projectId as string
+  const selectedConnectionId = searchParams.get('selected')
 
   const [selectedConnection, setSelectedConnection] = useState<ConnectionWithDetails | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
+  const hasLoadedRef = useRef(false)
 
   const { toast } = useToast()
 
@@ -40,27 +40,53 @@ export default function ProjectConnectionsPage() {
     )
   }
 
-  const { connections, isLoading, loadConnections, deleteConnection, testConnection } =
-    useConnections({
-      organizationId: orgId,
-      projectId: projectId,
-    })
+  const {
+    connections,
+    isLoading,
+    loadConnections,
+    deleteConnection,
+    testConnection,
+    isTestingConnection,
+  } = useConnections({
+    organizationId: orgId,
+    projectId: projectId,
+  })
 
   const { confirm, ConfirmationModal } = useConfirmation()
 
+  // Load connections only once on mount
   useEffect(() => {
-    loadConnections().catch((error) => {
-      console.error('Failed to load connections:', error)
-      toast.error('Failed to load connections: ' + error.message)
-    })
-  }, [loadConnections])
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      loadConnections().catch((error) => {
+        console.error('Failed to load connections:', error)
+        toast.error('Failed to load connections: ' + error.message)
+      })
+    }
+  }, []) // Empty dependencies - only run once
 
-  // Select first connection when loaded
+  // Select connection based on URL parameter or first connection when loaded
   useEffect(() => {
-    if (connections.length > 0 && !selectedConnection && !isCreating) {
+    if (connections.length === 0) return
+
+    if (selectedConnectionId) {
+      // Try to select the connection specified in URL parameter
+      const connectionToSelect = connections.find((conn) => conn.id === selectedConnectionId)
+      if (connectionToSelect) {
+        setSelectedConnection(connectionToSelect)
+        // Clean up the URL parameter after selecting
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('selected')
+        router.replace(newUrl.pathname + newUrl.search, { scroll: false })
+        return
+      }
+    }
+
+    // Fall back to first connection if no specific selection or connection not found
+    if (!selectedConnection) {
       setSelectedConnection(connections[0])
     }
-  }, [connections, selectedConnection, isCreating])
+  }, [connections.length, selectedConnectionId, selectedConnection?.id, router])
 
   // Update selectedConnection when connections array changes (to get fresh data)
   useEffect(() => {
@@ -73,20 +99,19 @@ export default function ProjectConnectionsPage() {
   }, [connections, selectedConnection?.id])
 
   const handleCreateNew = () => {
-    setIsCreating(true)
-    setIsEditing(false)
-    setSelectedConnection(null)
+    router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections/new`)
   }
 
   const handleSelectConnection = (connection: ConnectionWithDetails) => {
     setSelectedConnection(connection)
-    setIsCreating(false)
-    setIsEditing(false)
   }
 
   const handleEdit = () => {
-    setIsEditing(true)
-    setIsCreating(false)
+    if (selectedConnection) {
+      router.push(
+        `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${selectedConnection.id}/edit`
+      )
+    }
   }
 
   const handleDelete = (connection: ConnectionWithDetails) => {
@@ -127,20 +152,6 @@ export default function ProjectConnectionsPage() {
     router.push(
       `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connection.id}/browse`
     )
-  }
-
-  const handleFormComplete = () => {
-    setIsCreating(false)
-    setIsEditing(false)
-    loadConnections().catch((error) => {
-      console.error('Failed to reload connections:', error)
-      toast.error('Failed to reload connections')
-    })
-  }
-
-  const handleFormCancel = () => {
-    setIsCreating(false)
-    setIsEditing(false)
   }
 
   const getConnectionStatus = (connection: ConnectionWithDetails) => {
@@ -231,7 +242,7 @@ export default function ProjectConnectionsPage() {
               <div className="p-2">
                 {connections.map((connection) => {
                   const status = getConnectionStatus(connection)
-                  const isSelected = selectedConnection?.id === connection.id && !isCreating
+                  const isSelected = selectedConnection?.id === connection.id
 
                   return (
                     <div
@@ -246,10 +257,12 @@ export default function ProjectConnectionsPage() {
                         {/* Main connection button */}
                         <button
                           onClick={() => handleSelectConnection(connection)}
-                          className="flex-1 p-3 text-left"
+                          className="min-w-0 flex-1 p-3 text-left" // Added min-w-0 for text truncation
                         >
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs ${status.color}`}>{status.icon}</span>
+                            <span className={`flex-shrink-0 text-xs ${status.color}`}>
+                              {status.icon}
+                            </span>
                             <h3 className="truncate font-medium text-foreground">
                               {connection.name}
                             </h3>
@@ -265,7 +278,7 @@ export default function ProjectConnectionsPage() {
                             e.stopPropagation()
                             handleBrowse(connection)
                           }}
-                          className="mr-3 rounded px-2 py-1 text-xs text-terminal-green opacity-0 transition-opacity hover:bg-terminal-green/10 group-hover:opacity-100"
+                          className="mr-3 flex-shrink-0 rounded px-2 py-1 text-xs text-terminal-green opacity-0 transition-opacity hover:bg-terminal-green/10 group-hover:opacity-100"
                           title="Browse Files"
                         >
                           📁
@@ -281,33 +294,21 @@ export default function ProjectConnectionsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="align-center flex flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-3xl p-6">
-          {isCreating ? (
-            <ConnectionForm
-              organizationId={orgId}
-              projectId={projectId}
-              onComplete={handleFormComplete}
-              onCancel={handleFormCancel}
-            />
-          ) : isEditing && selectedConnection ? (
-            <ConnectionForm
-              organizationId={orgId}
-              projectId={projectId}
-              connection={selectedConnection}
-              onComplete={handleFormComplete}
-              onCancel={handleFormCancel}
-            />
-          ) : selectedConnection ? (
-            <ConnectionDetails
-              connection={selectedConnection}
-              onEdit={handleEdit}
-              onDelete={() => handleDelete(selectedConnection)}
-              onTest={() => handleTest(selectedConnection)}
-              onBrowse={() => handleBrowse(selectedConnection)}
-            />
+      <div className="flex flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-4xl p-6">
+          {selectedConnection ? (
+            <div className="w-full">
+              <ConnectionDetails
+                connection={selectedConnection}
+                onEdit={handleEdit}
+                onDelete={() => handleDelete(selectedConnection)}
+                onTest={() => handleTest(selectedConnection)}
+                onBrowse={() => handleBrowse(selectedConnection)}
+                isTestingConnection={isTestingConnection}
+              />
+            </div>
           ) : (
-            <div className="flex min-h-[400px] items-center justify-center">
+            <div className="flex min-h-[400px] w-full items-center justify-center">
               <div className="text-center">
                 <svg
                   className="mx-auto mb-4 h-16 w-16 text-foreground-muted/30"

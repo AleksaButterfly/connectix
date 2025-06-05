@@ -9,6 +9,8 @@ interface ConnectionDetailsProps {
   onEdit: () => void
   onDelete: () => void
   onTest: () => void
+  onBrowse?: () => void
+  isTestingConnection?: boolean
 }
 
 export default function ConnectionDetails({
@@ -16,6 +18,8 @@ export default function ConnectionDetails({
   onEdit,
   onDelete,
   onTest,
+  onBrowse,
+  isTestingConnection = false,
 }: ConnectionDetailsProps) {
   const intl = useIntl()
   const [showCredentials, setShowCredentials] = useState(false)
@@ -64,35 +68,77 @@ export default function ConnectionDetails({
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">{connection.name}</h1>
+    <div className="w-full">
+      {/* Header with improved layout */}
+      <div className="mb-8">
+        {/* Title and Description Row */}
+        <div className="mb-4">
+          <h1 className="break-words text-3xl font-bold text-foreground">{connection.name}</h1>
           {connection.description && (
             <p className="mt-2 text-foreground-muted">{connection.description}</p>
           )}
-          <div className="mt-4 flex items-center gap-4">
-            {getStatusBadge()}
-            {connection.project_name && (
-              <span className="text-sm text-terminal-green">{connection.project_name}</span>
-            )}
-          </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* Status and Project Row */}
+        <div className="mb-4 flex flex-wrap items-center gap-4">
+          {getStatusBadge()}
+          {connection.project_name && (
+            <span className="text-sm text-terminal-green">{connection.project_name}</span>
+          )}
+        </div>
+
+        {/* Action Buttons Row */}
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={onTest}
-            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onTest()
+            }}
+            disabled={isTestingConnection}
+            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <FormattedMessage id="connections.actions.test" />
+            {isTestingConnection ? (
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <FormattedMessage id="connections.actions.testing" defaultMessage="Testing..." />
+              </span>
+            ) : (
+              <FormattedMessage id="connections.actions.test" />
+            )}
           </button>
+
+          {onBrowse && (
+            <button
+              onClick={onBrowse}
+              className="rounded-lg border border-terminal-green/20 bg-terminal-green/10 px-4 py-2 text-sm font-medium text-terminal-green transition-colors hover:bg-terminal-green/20"
+            >
+              <FormattedMessage id="connections.actions.browse" defaultMessage="Browse Files" />
+            </button>
+          )}
+
           <button
             onClick={onEdit}
             className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
           >
             <FormattedMessage id="connections.actions.edit" />
           </button>
+
           <button
             onClick={onDelete}
             className="rounded-lg border border-red-500/20 bg-background-secondary px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
@@ -110,12 +156,14 @@ export default function ConnectionDetails({
           </h2>
         </div>
         <div className="p-6">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
                 <FormattedMessage id="connections.form.hostLabel" />
               </dt>
-              <dd className="mt-1 font-mono text-sm text-foreground">{connection.host}</dd>
+              <dd className="mt-1 break-all font-mono text-sm text-foreground">
+                {connection.host}
+              </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
@@ -127,7 +175,9 @@ export default function ConnectionDetails({
               <dt className="text-sm font-medium text-foreground-muted">
                 <FormattedMessage id="connections.form.usernameLabel" />
               </dt>
-              <dd className="mt-1 font-mono text-sm text-foreground">{connection.username}</dd>
+              <dd className="mt-1 break-all font-mono text-sm text-foreground">
+                {connection.username}
+              </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
@@ -144,7 +194,7 @@ export default function ConnectionDetails({
           {/* SSH Command */}
           <div className="mt-6 rounded-lg bg-background p-4">
             <p className="mb-2 text-xs font-medium text-foreground-muted">SSH Command</p>
-            <code className="block font-mono text-sm text-terminal-green">
+            <code className="block break-all font-mono text-sm text-terminal-green">
               $ ssh {connection.username}@{connection.host} -p {connection.port}
               {connection.proxy_jump && ` -J ${connection.proxy_jump}`}
             </code>
@@ -163,13 +213,13 @@ export default function ConnectionDetails({
             </h2>
           </div>
           <div className="p-6">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
               {connection.proxy_jump && (
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <dt className="text-sm font-medium text-foreground-muted">
                     <FormattedMessage id="connections.form.proxyJumpLabel" />
                   </dt>
-                  <dd className="mt-1 font-mono text-sm text-foreground">
+                  <dd className="mt-1 break-all font-mono text-sm text-foreground">
                     {connection.proxy_jump}
                   </dd>
                 </div>
@@ -186,7 +236,7 @@ export default function ConnectionDetails({
                 </dt>
                 <dd className="mt-1 text-sm text-foreground">{connection.keepalive_interval}s</dd>
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <dt className="text-sm font-medium text-foreground-muted">
                   <FormattedMessage id="connections.form.strictHostCheckingLabel" />
                 </dt>
@@ -205,7 +255,7 @@ export default function ConnectionDetails({
           <h2 className="text-lg font-semibold text-foreground">Information</h2>
         </div>
         <div className="p-6">
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             <div>
               <dt className="text-sm font-medium text-foreground-muted">Created by</dt>
               <dd className="mt-1 text-sm text-foreground">
@@ -237,9 +287,9 @@ export default function ConnectionDetails({
                   </dd>
                 </div>
                 {connection.last_test_error && (
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <dt className="text-sm font-medium text-foreground-muted">Last test error</dt>
-                    <dd className="mt-1 rounded bg-red-500/10 p-2 font-mono text-xs text-red-500">
+                    <dd className="mt-1 break-words rounded bg-red-500/10 p-2 font-mono text-xs text-red-500">
                       {connection.last_test_error}
                     </dd>
                   </div>

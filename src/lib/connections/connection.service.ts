@@ -330,6 +330,9 @@ export const connectionService = {
     //   body: JSON.stringify(input)
     // })
 
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
+
     // Mock response for now
     return {
       success: true,
@@ -344,22 +347,52 @@ export const connectionService = {
       throw new Error('Connection ID is required!')
     }
 
-    const supabase = createClient()
+    // DON'T update the database - this was causing the page refreshes!
+    // The database update was triggering database triggers which caused side effects
 
-    // Update test status
-    await supabase
-      .from('connections')
-      .update({
-        last_test_at: new Date().toISOString(),
-        connection_test_status: 'success', // This would be based on actual test result
-      })
-      .eq('id', connectionId)
+    // Simulate network delay like a real test would have
+    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
 
-    // Mock response for now
+    // Mock response for now - in production, this would call an API endpoint
+    // that actually tests the SSH connection
     return {
       success: true,
       message: 'Connection test successful (mock)',
       latency_ms: Math.floor(Math.random() * 100) + 50,
+    }
+  },
+
+  // Update connection test status (separate method for when we want to persist results)
+  async updateConnectionTestStatus(
+    connectionId: string,
+    status: 'success' | 'failed',
+    error?: string
+  ): Promise<void> {
+    if (!connectionId) {
+      throw new Error('Connection ID is required!')
+    }
+
+    const supabase = createClient()
+
+    const updateData: any = {
+      last_test_at: new Date().toISOString(),
+      connection_test_status: status,
+    }
+
+    if (error) {
+      updateData.last_test_error = error
+    } else {
+      updateData.last_test_error = null
+    }
+
+    const { error: updateError } = await supabase
+      .from('connections')
+      .update(updateData)
+      .eq('id', connectionId)
+
+    if (updateError) {
+      console.error('Error updating connection test status:', updateError)
+      throw updateError
     }
   },
 
