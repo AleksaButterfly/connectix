@@ -34,6 +34,11 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     fetchProject()
   }, [projectId])
 
+  // Check if we're on any connections page (including individual connection pages)
+  const isConnectionsPage = pathname.startsWith(
+    `/dashboard/organizations/${orgId}/projects/${projectId}/connections`
+  )
+
   // Define sidebar items
   const sidebarItems: SidebarItem[] = [
     {
@@ -64,7 +69,8 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
           />
         </svg>
       ),
-      active: pathname === `/dashboard/organizations/${orgId}/projects/${projectId}/connections`,
+      // Update active state to highlight connections for any connections page
+      active: isConnectionsPage,
     },
     {
       label: 'Settings',
@@ -91,14 +97,8 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex h-full">
-      {/* Sidebar Container - Fixed width for collapsed state */}
-      <div
-        className={`relative flex-shrink-0 ${
-          pathname === `/dashboard/organizations/${orgId}/projects/${projectId}/connections`
-            ? ''
-            : 'w-[56px]'
-        }`}
-      >
+      {/* Sidebar Container - Fixed width for collapsed state, but not for connections pages */}
+      <div className={`relative flex-shrink-0 ${isConnectionsPage ? '' : 'w-[56px]'}`}>
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
           className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${

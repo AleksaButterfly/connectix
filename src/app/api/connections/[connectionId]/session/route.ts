@@ -3,7 +3,7 @@ import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 import { createClient } from '@/lib/supabase/server'
 import { decryptCredentials } from '@/lib/connections/encryption'
 
-// Define the SSH configuration interface to match your database schema
+// Define the SSH configuration interface
 interface SSHConfig {
   host: string
   port: number
@@ -20,9 +20,15 @@ interface SSHConfig {
 }
 
 // CREATE SESSION (POST)
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ connectionId: string }> }
+) {
   try {
+    const params = await context.params
     const { connectionId } = params
+
+    console.log('🔗 SSH CONNECTION START for:', connectionId)
 
     if (!connectionId) {
       return NextResponse.json({ error: 'Connection ID is required' }, { status: 400 })
@@ -40,135 +46,59 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch connection from database with RLS protection
+    // Fetch connection from database
     const { data: connection, error: connectionError } = await supabase
       .from('connections')
       .select('*')
       .eq('id', connectionId)
       .single()
 
-    if (connectionError) {
+    if (connectionError || !connection) {
       console.error('Database error fetching connection:', connectionError)
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
 
-    if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+    console.log('🔗 Connection found:', connection.name)
+
+    // Check if user can access this connection
+    const { data: canAccess } = await supabase.rpc('can_access_connection', {
+      conn_id: connectionId,
+      check_user_id: user.id,
+    })
+
+    if (!canAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Decrypt credentials
+    // Decrypt credentials - SIMPLE VERSION
     let decryptedCredentials
     try {
-      // Check if credentials exist
       if (!connection.encrypted_credentials) {
         return NextResponse.json(
-          {
-            error: 'No credentials found for this connection',
-          },
+          { error: 'No credentials found for this connection' },
           { status: 400 }
         )
       }
 
-      // Parse the encrypted credentials JSON first
-      let encryptedData
-      try {
-        encryptedData = JSON.parse(connection.encrypted_credentials)
-      } catch (parseError) {
-        console.error('❌ Failed to parse encrypted credentials JSON:', parseError)
-        return NextResponse.json(
-          {
-            error: 'Invalid encrypted credentials format - not valid JSON',
-          },
-          { status: 500 }
-        )
-      }
+      console.log('🔓 Decrypting credentials...')
 
-      // Check if it has the expected encryption format
-      if (!encryptedData.data || !encryptedData.iv || !encryptedData.salt) {
-        return NextResponse.json(
-          {
-            error: 'Invalid encrypted credentials format - missing encryption fields',
-          },
-          { status: 500 }
-        )
-      }
+      // Use your working decryptCredentials function (no extra parameters needed)
+      decryptedCredentials = decryptCredentials(connection.encrypted_credentials)
 
-      // Use the actual decryption function
-      if (typeof decryptCredentials === 'function') {
-        console.log(
-          '🔐 Attempting to decrypt credentials with key ID:',
-          connection.encryption_key_id
-        )
+      console.log('✅ Credentials decrypted successfully')
+      console.log('  Available credential keys:', Object.keys(decryptedCredentials))
+    } catch (decryptError: any) {
+      console.error('❌ Decryption failed:', decryptError.message)
 
-        try {
-          // Pass both the encrypted data and the key ID
-          decryptedCredentials = await decryptCredentials(
-            connection.encrypted_credentials,
-            connection.encryption_key_id
-          )
-        } catch (decryptError) {
-          // Check if the decryptCredentials function expects different parameters
-          // Try alternative calling patterns
-          try {
-            decryptedCredentials = await decryptCredentials(
-              encryptedData,
-              connection.encryption_key_id
-            )
-          } catch (altError) {
-            return NextResponse.json(
-              {
-                error: 'Failed to decrypt credentials - check encryption key availability',
-                details:
-                  process.env.NODE_ENV === 'development'
-                    ? {
-                        encryptionKeyId: connection.encryption_key_id,
-                        originalError: decryptError.message,
-                        alternativeError: altError.message,
-                      }
-                    : undefined,
-              },
-              { status: 500 }
-            )
-          }
-        }
-      } else {
-        return NextResponse.json(
-          {
-            error: 'Decryption function not available - credentials are encrypted',
-          },
-          { status: 500 }
-        )
-      }
-
-      // Validate decrypted credentials
-      if (!decryptedCredentials || typeof decryptedCredentials !== 'object') {
-        return NextResponse.json(
-          {
-            error: 'Decrypted credentials are not in expected format',
-          },
-          { status: 500 }
-        )
-      }
-
-      // Validate that we have credentials at this point
-      if (!decryptedCredentials) {
-        return NextResponse.json(
-          {
-            error: 'No valid credentials available after decryption attempt',
-          },
-          { status: 500 }
-        )
-      }
-    } catch (error) {
       return NextResponse.json(
         {
-          error: `Credential processing failed: ${error.message}`,
-          details:
+          error: 'Failed to decrypt credentials',
+          message: 'Please edit the connection and re-enter your credentials.',
+          debug:
             process.env.NODE_ENV === 'development'
               ? {
-                  errorType: error.name,
-                  errorMessage: error.message,
-                  stack: error.stack,
+                  originalError: decryptError.message,
+                  connectionId: connectionId,
                 }
               : undefined,
         },
@@ -176,12 +106,10 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       )
     }
 
-    // Validate that we have the required credentials for the auth type
+    // Validate credentials for auth type
     if (connection.auth_type === 'password' && !decryptedCredentials.password) {
       return NextResponse.json(
-        {
-          error: 'Password is required for password authentication',
-        },
+        { error: 'Password is required for password authentication' },
         { status: 400 }
       )
     }
@@ -191,23 +119,21 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       !decryptedCredentials.private_key
     ) {
       return NextResponse.json(
-        {
-          error: 'Private key is required for key authentication',
-        },
+        { error: 'Private key is required for key authentication' },
         { status: 400 }
       )
     }
 
     if (connection.auth_type === 'key_with_passphrase' && !decryptedCredentials.passphrase) {
       return NextResponse.json(
-        {
-          error: 'Passphrase is required for key with passphrase authentication',
-        },
+        { error: 'Passphrase is required for key with passphrase authentication' },
         { status: 400 }
       )
     }
 
-    // Transform database connection to SSHConfig format
+    console.log('🔗 Creating SSH session...')
+
+    // Transform to SSH config format
     const sshConfig: SSHConfig = {
       host: connection.host,
       port: connection.port,
@@ -222,12 +148,32 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     // Create SSH session
     const sessionToken = await SSHConnectionManager.createSession(connectionId, user.id, sshConfig)
 
+    console.log('✅ SSH session created successfully')
+
+    // Update connection usage
+    await supabase
+      .from('connections')
+      .update({
+        last_used_at: new Date().toISOString(),
+        last_used_by: user.id,
+        connection_test_status: 'success',
+      })
+      .eq('id', connectionId)
+
     return NextResponse.json({
       success: true,
       sessionToken,
       message: 'SSH session created successfully',
+      connection: {
+        id: connection.id,
+        name: connection.name,
+        host: connection.host,
+        port: connection.port,
+        username: connection.username,
+      },
     })
   } catch (error: any) {
+    console.error('❌ SSH connection error:', error)
     return NextResponse.json(
       {
         error: error.message || 'Failed to create SSH session',
@@ -239,7 +185,10 @@ export async function POST(request: NextRequest, { params }: { params: { connect
 }
 
 // GET SESSION INFO (GET)
-export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ connectionId: string }> }
+) {
   try {
     const sessionToken = request.headers.get('x-session-token')
 
@@ -262,7 +211,10 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
 }
 
 // KEEP SESSION ALIVE (PUT)
-export async function PUT(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ connectionId: string }> }
+) {
   try {
     const sessionToken = request.headers.get('x-session-token')
 
@@ -287,7 +239,7 @@ export async function PUT(request: NextRequest, { params }: { params: { connecti
 // CLOSE SESSION (DELETE)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { connectionId: string } }
+  context: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')

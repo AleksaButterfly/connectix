@@ -230,307 +230,290 @@ export default function ConnectionForm({
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">
-          {isEditing ? (
-            <FormattedMessage id="connections.edit.title" />
-          ) : (
-            <FormattedMessage id="connections.create.title" />
-          )}
-        </h1>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* General Information */}
-        <div className="mb-6 rounded-lg border border-border bg-background-secondary">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              <FormattedMessage id="connections.form.generalSection" />
-            </h2>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* General Information */}
+      <div className="mb-6 rounded-lg border border-border bg-background-secondary">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="connections.form.generalSection" />
+          </h2>
+        </div>
+        <div className="space-y-6 p-6">
+          <div>
+            <FormInput
+              label={intl.formatMessage({ id: 'connections.form.nameLabel' })}
+              placeholder={intl.formatMessage({ id: 'connections.form.namePlaceholder' })}
+              error={errors.name?.message}
+              {...register('name')}
+            />
+            <p className="mt-2 text-sm text-foreground-muted">
+              <FormattedMessage id="connections.form.nameHint" />
+            </p>
           </div>
-          <div className="space-y-6 p-6">
-            <div>
-              <FormInput
-                label={intl.formatMessage({ id: 'connections.form.nameLabel' })}
-                placeholder={intl.formatMessage({ id: 'connections.form.namePlaceholder' })}
-                error={errors.name?.message}
-                {...register('name')}
-              />
-              <p className="mt-2 text-sm text-foreground-muted">
-                <FormattedMessage id="connections.form.nameHint" />
-              </p>
-            </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                {intl.formatMessage({ id: 'connections.form.descriptionLabel' })}
-              </label>
-              <textarea
-                className={`w-full rounded-lg border bg-background px-4 py-2.5 text-foreground placeholder-foreground-muted transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green ${
-                  errors.description ? 'border-red-500' : 'border-border'
-                }`}
-                placeholder={intl.formatMessage({ id: 'connections.form.descriptionPlaceholder' })}
-                rows={3}
-                {...register('description')}
-              />
-              <p className="mt-2 text-sm text-foreground-muted">
-                <FormattedMessage id="connections.form.descriptionHint" />
-              </p>
-            </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              {intl.formatMessage({ id: 'connections.form.descriptionLabel' })}
+            </label>
+            <textarea
+              className={`w-full rounded-lg border bg-background px-4 py-2.5 text-foreground placeholder-foreground-muted transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green ${
+                errors.description ? 'border-red-500' : 'border-border'
+              }`}
+              placeholder={intl.formatMessage({ id: 'connections.form.descriptionPlaceholder' })}
+              rows={3}
+              {...register('description')}
+            />
+            <p className="mt-2 text-sm text-foreground-muted">
+              <FormattedMessage id="connections.form.descriptionHint" />
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Connection Details */}
-        <div className="mb-6 rounded-lg border border-border bg-background-secondary">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              <FormattedMessage id="connections.form.connectionSection" />
-            </h2>
+      {/* Connection Details */}
+      <div className="mb-6 rounded-lg border border-border bg-background-secondary">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="connections.form.connectionSection" />
+          </h2>
+        </div>
+        <div className="space-y-6 p-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <FormInput
+                label={intl.formatMessage({ id: 'connections.form.hostLabel' })}
+                placeholder={intl.formatMessage({ id: 'connections.form.hostPlaceholder' })}
+                error={errors.host?.message}
+                {...register('host')}
+              />
+            </div>
+            <div>
+              <FormInput
+                type="number"
+                label={intl.formatMessage({ id: 'connections.form.portLabel' })}
+                placeholder={intl.formatMessage({ id: 'connections.form.portPlaceholder' })}
+                error={errors.port?.message}
+                {...register('port', { valueAsNumber: true })}
+              />
+            </div>
           </div>
-          <div className="space-y-6 p-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="md:col-span-2">
+
+          <div>
+            <FormInput
+              label={intl.formatMessage({ id: 'connections.form.usernameLabel' })}
+              placeholder={intl.formatMessage({ id: 'connections.form.usernamePlaceholder' })}
+              error={errors.username?.message}
+              {...register('username')}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Authentication */}
+      <div className="mb-6 rounded-lg border border-border bg-background-secondary">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="connections.form.authSection" />
+          </h2>
+        </div>
+        <div className="space-y-6 p-6">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              {intl.formatMessage({ id: 'connections.form.authTypeLabel' })}
+            </label>
+            <select
+              className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green"
+              {...register('auth_type')}
+            >
+              <option value="password">
+                {intl.formatMessage({ id: 'connections.form.authTypes.password' })}
+              </option>
+              <option value="private_key">
+                {intl.formatMessage({ id: 'connections.form.authTypes.private_key' })}
+              </option>
+              <option value="key_with_passphrase">
+                {intl.formatMessage({ id: 'connections.form.authTypes.key_with_passphrase' })}
+              </option>
+            </select>
+          </div>
+
+          {authType === 'password' && (
+            <div>
+              <FormInput
+                type="password"
+                label={intl.formatMessage({ id: 'connections.form.passwordLabel' })}
+                placeholder={intl.formatMessage({ id: 'connections.form.passwordPlaceholder' })}
+                error={errors.password?.message}
+                {...register('password')}
+              />
+            </div>
+          )}
+
+          {(authType === 'private_key' || authType === 'key_with_passphrase') && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                {intl.formatMessage({ id: 'connections.form.privateKeyLabel' })}
+              </label>
+              <textarea
+                className={`w-full rounded-lg border bg-background px-4 py-2.5 font-mono text-sm text-foreground placeholder-foreground-muted transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green ${
+                  errors.privateKey ? 'border-red-500' : 'border-border'
+                }`}
+                placeholder={intl.formatMessage({ id: 'connections.form.privateKeyPlaceholder' })}
+                rows={10}
+                {...register('privateKey')}
+              />
+              {errors.privateKey && (
+                <p className="mt-1 text-sm text-red-500">{errors.privateKey.message}</p>
+              )}
+              <p className="mt-2 text-sm text-foreground-muted">
+                <FormattedMessage id="connections.form.privateKeyHint" />
+              </p>
+            </div>
+          )}
+
+          {authType === 'key_with_passphrase' && (
+            <div>
+              <FormInput
+                type="password"
+                label={intl.formatMessage({ id: 'connections.form.passphraseLabel' })}
+                placeholder={intl.formatMessage({ id: 'connections.form.passphrasePlaceholder' })}
+                error={errors.passphrase?.message}
+                {...register('passphrase')}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Advanced Options */}
+      <div className="mb-6 rounded-lg border border-border bg-background-secondary">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-background-tertiary"
+        >
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="connections.form.advancedSection" />
+          </h2>
+          <svg
+            className={`h-5 w-5 text-foreground-muted transition-transform ${
+              showAdvanced ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showAdvanced && (
+          <div className="space-y-6 overflow-hidden border-t border-border p-6">
+            <div>
+              <FormInput
+                label={intl.formatMessage({ id: 'connections.form.proxyJumpLabel' })}
+                placeholder={intl.formatMessage({ id: 'connections.form.proxyJumpPlaceholder' })}
+                error={errors.proxy_jump?.message}
+                {...register('proxy_jump')}
+              />
+              <p className="mt-2 text-sm text-foreground-muted">
+                <FormattedMessage id="connections.form.proxyJumpHint" />
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
                 <FormInput
-                  label={intl.formatMessage({ id: 'connections.form.hostLabel' })}
-                  placeholder={intl.formatMessage({ id: 'connections.form.hostPlaceholder' })}
-                  error={errors.host?.message}
-                  {...register('host')}
+                  type="number"
+                  label={intl.formatMessage({ id: 'connections.form.connectionTimeoutLabel' })}
+                  error={errors.connection_timeout?.message}
+                  {...register('connection_timeout', { valueAsNumber: true })}
                 />
+                <p className="mt-2 text-sm text-foreground-muted">
+                  <FormattedMessage id="connections.form.connectionTimeoutHint" />
+                </p>
               </div>
               <div>
                 <FormInput
                   type="number"
-                  label={intl.formatMessage({ id: 'connections.form.portLabel' })}
-                  placeholder={intl.formatMessage({ id: 'connections.form.portPlaceholder' })}
-                  error={errors.port?.message}
-                  {...register('port', { valueAsNumber: true })}
+                  label={intl.formatMessage({ id: 'connections.form.keepaliveIntervalLabel' })}
+                  error={errors.keepalive_interval?.message}
+                  {...register('keepalive_interval', { valueAsNumber: true })}
                 />
+                <p className="mt-2 text-sm text-foreground-muted">
+                  <FormattedMessage id="connections.form.keepaliveIntervalHint" />
+                </p>
               </div>
             </div>
 
             <div>
-              <FormInput
-                label={intl.formatMessage({ id: 'connections.form.usernameLabel' })}
-                placeholder={intl.formatMessage({ id: 'connections.form.usernamePlaceholder' })}
-                error={errors.username?.message}
-                {...register('username')}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Authentication */}
-        <div className="mb-6 rounded-lg border border-border bg-background-secondary">
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              <FormattedMessage id="connections.form.authSection" />
-            </h2>
-          </div>
-          <div className="space-y-6 p-6">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                {intl.formatMessage({ id: 'connections.form.authTypeLabel' })}
-              </label>
-              <select
-                className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green"
-                {...register('auth_type')}
-              >
-                <option value="password">
-                  {intl.formatMessage({ id: 'connections.form.authTypes.password' })}
-                </option>
-                <option value="private_key">
-                  {intl.formatMessage({ id: 'connections.form.authTypes.private_key' })}
-                </option>
-                <option value="key_with_passphrase">
-                  {intl.formatMessage({ id: 'connections.form.authTypes.key_with_passphrase' })}
-                </option>
-              </select>
-            </div>
-
-            {authType === 'password' && (
-              <div>
-                <FormInput
-                  type="password"
-                  label={intl.formatMessage({ id: 'connections.form.passwordLabel' })}
-                  placeholder={intl.formatMessage({ id: 'connections.form.passwordPlaceholder' })}
-                  error={errors.password?.message}
-                  {...register('password')}
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                  {...register('strict_host_checking')}
                 />
-              </div>
-            )}
-
-            {(authType === 'private_key' || authType === 'key_with_passphrase') && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground">
-                  {intl.formatMessage({ id: 'connections.form.privateKeyLabel' })}
-                </label>
-                <textarea
-                  className={`w-full rounded-lg border bg-background px-4 py-2.5 font-mono text-sm text-foreground placeholder-foreground-muted transition-colors focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green ${
-                    errors.privateKey ? 'border-red-500' : 'border-border'
-                  }`}
-                  placeholder={intl.formatMessage({ id: 'connections.form.privateKeyPlaceholder' })}
-                  rows={10}
-                  {...register('privateKey')}
-                />
-                {errors.privateKey && (
-                  <p className="mt-1 text-sm text-red-500">{errors.privateKey.message}</p>
-                )}
-                <p className="mt-2 text-sm text-foreground-muted">
-                  <FormattedMessage id="connections.form.privateKeyHint" />
-                </p>
-              </div>
-            )}
-
-            {authType === 'key_with_passphrase' && (
-              <div>
-                <FormInput
-                  type="password"
-                  label={intl.formatMessage({ id: 'connections.form.passphraseLabel' })}
-                  placeholder={intl.formatMessage({ id: 'connections.form.passphrasePlaceholder' })}
-                  error={errors.passphrase?.message}
-                  {...register('passphrase')}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Advanced Options */}
-        <div className="mb-6 rounded-lg border border-border bg-background-secondary">
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-background-tertiary"
-          >
-            <h2 className="text-lg font-semibold text-foreground">
-              <FormattedMessage id="connections.form.advancedSection" />
-            </h2>
-            <svg
-              className={`h-5 w-5 text-foreground-muted transition-transform ${
-                showAdvanced ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-
-          {showAdvanced && (
-            <div className="space-y-6 overflow-hidden border-t border-border p-6">
-              <div>
-                <FormInput
-                  label={intl.formatMessage({ id: 'connections.form.proxyJumpLabel' })}
-                  placeholder={intl.formatMessage({ id: 'connections.form.proxyJumpPlaceholder' })}
-                  error={errors.proxy_jump?.message}
-                  {...register('proxy_jump')}
-                />
-                <p className="mt-2 text-sm text-foreground-muted">
-                  <FormattedMessage id="connections.form.proxyJumpHint" />
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <FormInput
-                    type="number"
-                    label={intl.formatMessage({ id: 'connections.form.connectionTimeoutLabel' })}
-                    error={errors.connection_timeout?.message}
-                    {...register('connection_timeout', { valueAsNumber: true })}
-                  />
-                  <p className="mt-2 text-sm text-foreground-muted">
-                    <FormattedMessage id="connections.form.connectionTimeoutHint" />
-                  </p>
-                </div>
-                <div>
-                  <FormInput
-                    type="number"
-                    label={intl.formatMessage({ id: 'connections.form.keepaliveIntervalLabel' })}
-                    error={errors.keepalive_interval?.message}
-                    {...register('keepalive_interval', { valueAsNumber: true })}
-                  />
-                  <p className="mt-2 text-sm text-foreground-muted">
-                    <FormattedMessage id="connections.form.keepaliveIntervalHint" />
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
-                    {...register('strict_host_checking')}
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-foreground">
-                      {intl.formatMessage({ id: 'connections.form.strictHostCheckingLabel' })}
-                    </span>
-                    <p className="text-sm text-foreground-muted">
-                      <FormattedMessage id="connections.form.strictHostCheckingHint" />
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-between gap-3 pb-6">
-          <button
-            type="button"
-            onClick={handleTest}
-            disabled={isTesting}
-            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isTesting ? (
-              <FormattedMessage id="connections.create.testing" />
-            ) : (
-              <FormattedMessage id="connections.create.testButton" />
-            )}
-          </button>
-
-          <div className="align-center flex gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
-            >
-              <FormattedMessage id="common.cancel" />
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSaving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-pulse">
-                    {isEditing ? (
-                      <FormattedMessage id="connections.edit.saving" />
-                    ) : (
-                      <FormattedMessage id="common.creating" />
-                    )}
+                  <span className="text-sm font-medium text-foreground">
+                    {intl.formatMessage({ id: 'connections.form.strictHostCheckingLabel' })}
                   </span>
-                  <span className="animate-terminal-blink">_</span>
-                </span>
-              ) : isEditing ? (
-                <FormattedMessage id="connections.edit.saveButton" />
-              ) : (
-                <FormattedMessage id="connections.create.saveButton" />
-              )}
-            </button>
+                  <p className="text-sm text-foreground-muted">
+                    <FormattedMessage id="connections.form.strictHostCheckingHint" />
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleTest}
+          disabled={isTesting}
+          className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isTesting ? (
+            <FormattedMessage id="connections.create.testing" />
+          ) : (
+            <FormattedMessage id="connections.create.testButton" />
+          )}
+        </button>
+
+        <div className="align-center flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
+          >
+            <FormattedMessage id="common.cancel" />
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSaving ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-pulse">
+                  {isEditing ? (
+                    <FormattedMessage id="connections.edit.saving" />
+                  ) : (
+                    <FormattedMessage id="common.creating" />
+                  )}
+                </span>
+                <span className="animate-terminal-blink">_</span>
+              </span>
+            ) : isEditing ? (
+              <FormattedMessage id="connections.edit.saveButton" />
+            ) : (
+              <FormattedMessage id="connections.create.saveButton" />
+            )}
+          </button>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   )
 }

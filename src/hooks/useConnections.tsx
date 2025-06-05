@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { connectionService } from '@/lib/connections/connection.service'
 import { useToast } from '@/components/ui/ToastContext'
 import type { ConnectionWithDetails } from '@/types/connection'
@@ -11,7 +11,6 @@ interface UseConnectionsProps {
 interface UseConnectionsReturn {
   connections: ConnectionWithDetails[]
   isLoading: boolean
-  isTestingConnection: boolean
   error: string | null
   loadConnections: () => Promise<void>
   deleteConnection: (connectionId: string) => Promise<void>
@@ -24,13 +23,8 @@ export function useConnections({
 }: UseConnectionsProps): UseConnectionsReturn {
   const [connections, setConnections] = useState<ConnectionWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [isTestingConnection, setIsTestingConnection] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-
-  // Use refs to store stable references
-  const toastRef = useRef(toast)
-  toastRef.current = toast
 
   const loadConnections = useCallback(async () => {
     if (!organizationId) {
@@ -45,8 +39,10 @@ export function useConnections({
       let connectionsData: ConnectionWithDetails[]
 
       if (projectId) {
+        // Fetch connections for specific project
         connectionsData = await connectionService.getProjectConnections(projectId)
       } else {
+        // Fetch connections for organization
         connectionsData = await connectionService.getOrganizationConnections(organizationId)
       }
 
@@ -54,80 +50,60 @@ export function useConnections({
     } catch (err: any) {
       console.error('Error loading connections:', err)
       setError(err.message || 'Failed to load connections')
-      toastRef.current.error(err.message || 'Failed to load connections')
+      toast.error(err.message || 'Failed to load connections')
       setConnections([])
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, projectId]) // Removed toast from dependencies
+  }, [organizationId, projectId, toast])
 
   const deleteConnection = useCallback(
     async (connectionId: string) => {
       try {
         await connectionService.deleteConnection(connectionId)
-        toastRef.current.success('Connection deleted successfully')
+        toast.success('Connection deleted successfully')
 
         // Remove from local state
         setConnections((prev) => prev.filter((conn) => conn.id !== connectionId))
       } catch (err: any) {
         console.error('Error deleting connection:', err)
-        toastRef.current.error(err.message || 'Failed to delete connection')
+        toast.error(err.message || 'Failed to delete connection')
         throw err
       }
     },
-    [] // No dependencies needed
+    [toast]
   )
 
   const testConnection = useCallback(
     async (connectionId: string) => {
       try {
-        setIsTestingConnection(true)
         const result = await connectionService.testExistingConnection(connectionId)
-        toastRef.current.success('Connection test successful')
 
-        // Update the specific connection's test status in local state
-        // instead of reloading everything
-        setConnections((prevConnections) =>
-          prevConnections.map((conn) =>
-            conn.id === connectionId
-              ? {
-                  ...conn,
-                  connection_test_status: 'success' as const,
-                  last_test_at: new Date().toISOString(),
-                  last_test_error: null,
-                }
-              : conn
-          )
-        )
+        if (result.success) {
+          toast.success(`Connection test successful! Latency: ${result.latency_ms}ms`)
+        } else {
+          toast.error(`Connection test failed: ${result.error || 'Unknown error'}`)
+        }
+
+        // Reload connections to get updated test status
+        await loadConnections()
+
+        return result
       } catch (err: any) {
         console.error('Error testing connection:', err)
-        toastRef.current.error(err.message || 'Connection test failed')
+        toast.error(err.message || 'Connection test failed')
 
-        // Update the specific connection's test status to failed
-        setConnections((prevConnections) =>
-          prevConnections.map((conn) =>
-            conn.id === connectionId
-              ? {
-                  ...conn,
-                  connection_test_status: 'failed' as const,
-                  last_test_at: new Date().toISOString(),
-                  last_test_error: err.message || 'Connection test failed',
-                }
-              : conn
-          )
-        )
+        // Still reload to get any status updates
+        await loadConnections()
         throw err
-      } finally {
-        setIsTestingConnection(false)
       }
     },
-    [] // No dependencies needed
+    [toast, loadConnections]
   )
 
   return {
     connections,
     isLoading,
-    isTestingConnection,
     error,
     loadConnections,
     deleteConnection,

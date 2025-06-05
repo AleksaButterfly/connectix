@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 import { decryptCredentials } from '@/lib/connections/encryption'
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ connectionId: string }> }
+) {
   try {
-    const supabase = createClient()
+    const params = await context.params
+    const supabase = await createClient()
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -36,7 +41,31 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     }
 
     // Decrypt credentials
-    const credentials = await decryptCredentials(connection.encrypted_credentials)
+    let credentials: any
+    try {
+      credentials = decryptCredentials(connection.encrypted_credentials)
+    } catch (decryptError) {
+      console.error('Decryption error:', decryptError)
+
+      // Update connection status
+      await supabase
+        .from('connections')
+        .update({
+          connection_test_status: 'failed',
+          last_test_at: new Date().toISOString(),
+          last_test_error: 'Failed to decrypt credentials',
+        })
+        .eq('id', params.connectionId)
+
+      return NextResponse.json(
+        {
+          error: 'Failed to decrypt credentials',
+          message:
+            'Connection credentials could not be decrypted. Please edit the connection and re-enter your credentials.',
+        },
+        { status: 400 }
+      )
+    }
 
     // Create SSH connection
     const sessionToken = await SSHConnectionManager.createSession(params.connectionId, user.id, {
@@ -87,7 +116,8 @@ export async function POST(request: NextRequest, { params }: { params: { connect
 
     // Update connection test status on failure
     try {
-      const supabase = createClient()
+      const params = await context.params
+      const supabase = await createClient()
       await supabase
         .from('connections')
         .update({

@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/client'
-import { encryptCredentials } from '@/lib/connections/encryption'
 import type {
   Connection,
   ConnectionWithDetails,
@@ -162,74 +161,39 @@ export const connectionService = {
       throw new Error('Project ID is required!')
     }
 
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    console.log('🔐 CLIENT: Creating connection via server API')
+    console.log('  Organization ID:', organizationId)
+    console.log('  Connection name:', input.name)
+    console.log('  Credentials keys:', Object.keys(input.credentials))
 
-    // Get the active encryption key for the organization
-    const { data: encryptionKeyId, error: keyError } = await supabase.rpc('get_encryption_key_id', {
-      org_id: organizationId,
-      proj_id: input.project_id,
-    })
+    try {
+      // Call the server-side API that handles encryption
+      const response = await fetch('/api/connections', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify({
+          organizationId,
+          input,
+        }),
+      })
 
-    if (keyError || !encryptionKeyId) {
-      console.error('Encryption key error:', keyError)
-      throw new Error('No active encryption key found for organization')
-    }
+      const data = await response.json()
 
-    // Encrypt credentials
-    const encryptedCredentials = await encryptCredentials(input.credentials)
-
-    // Insert connection without returning data to avoid RLS issues
-    const { error } = await supabase.from('connections').insert({
-      organization_id: organizationId,
-      project_id: input.project_id,
-      name: input.name,
-      description: input.description || null,
-      host: input.host,
-      port: input.port || 22,
-      username: input.username,
-      auth_type: input.auth_type,
-      encrypted_credentials: encryptedCredentials,
-      encryption_key_id: encryptionKeyId,
-      proxy_jump: input.proxy_jump || null,
-      connection_timeout: input.connection_timeout || 30,
-      keepalive_interval: input.keepalive_interval || 60,
-      strict_host_checking: input.strict_host_checking ?? true,
-      custom_options: input.custom_options || null,
-      created_by: user.id,
-    })
-
-    if (error) {
-      console.error('Error creating connection:', error)
-      if (error.code === '23505') {
-        throw new Error('A connection with this name already exists')
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create connection')
       }
-      if (error.code === '42501') {
-        throw new Error('Permission denied - make sure you are an admin of this organization')
-      }
-      throw error
+
+      console.log('🔐 CLIENT: Connection created successfully')
+      console.log('  Connection ID:', data.id)
+
+      return data
+    } catch (error: any) {
+      console.error('❌ CLIENT: Connection creation error:', error)
+      throw new Error(error.message || 'Failed to create connection')
     }
-
-    // Fetch the created connection by name and project (unique combination)
-    const { data: connection, error: fetchError } = await supabase
-      .from('connections')
-      .select('*')
-      .eq('project_id', input.project_id)
-      .eq('name', input.name)
-      .eq('created_by', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (fetchError) {
-      console.error('Error fetching created connection:', fetchError)
-      throw fetchError
-    }
-
-    return connection
   },
 
   // Update a connection
@@ -241,66 +205,35 @@ export const connectionService = {
       throw new Error('Connection ID is required!')
     }
 
-    const supabase = createClient()
-
-    const updateData: any = {}
-
-    // Handle credential updates
+    console.log('🔐 CLIENT: Updating connection via server API')
+    console.log('  Connection ID:', connectionId)
     if (updates.credentials) {
-      // Get current connection to find encryption key
-      const { data: connection } = await supabase
-        .from('connections')
-        .select('encryption_key_id')
-        .eq('id', connectionId)
-        .single()
-
-      if (!connection) throw new Error('Connection not found')
-
-      updateData.encrypted_credentials = await encryptCredentials(updates.credentials)
+      console.log('  Updating credentials keys:', Object.keys(updates.credentials))
     }
 
-    // Copy other updates
-    const fields = [
-      'name',
-      'description',
-      'host',
-      'port',
-      'username',
-      'auth_type',
-      'proxy_jump',
-      'connection_timeout',
-      'keepalive_interval',
-      'strict_host_checking',
-      'custom_options',
-    ]
+    try {
+      // Call the server-side API that handles encryption
+      const response = await fetch(`/api/connections/${connectionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify(updates),
+      })
 
-    fields.forEach((field) => {
-      if (field in updates) {
-        updateData[field] = (updates as any)[field]
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update connection')
       }
-    })
 
-    // Update and then fetch separately
-    const { error } = await supabase.from('connections').update(updateData).eq('id', connectionId)
-
-    if (error) {
-      console.error('Error updating connection:', error)
-      throw error
+      console.log('🔐 CLIENT: Connection updated successfully')
+      return data
+    } catch (error: any) {
+      console.error('❌ CLIENT: Connection update error:', error)
+      throw new Error(error.message || 'Failed to update connection')
     }
-
-    // Fetch the updated connection
-    const { data: connection, error: fetchError } = await supabase
-      .from('connections')
-      .select('*')
-      .eq('id', connectionId)
-      .single()
-
-    if (fetchError) {
-      console.error('Error fetching updated connection:', fetchError)
-      throw fetchError
-    }
-
-    return connection
   },
 
   // Delete a connection
@@ -320,79 +253,60 @@ export const connectionService = {
 
   // Test a connection (without saving)
   async testConnection(input: TestConnectionInput): Promise<TestConnectionResult> {
-    // This would need to be implemented as an API endpoint that can actually test SSH connections
-    // For now, return a mock response
+    try {
+      const response = await fetch('/api/connections/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify(input),
+      })
 
-    // You would call an API endpoint here
-    // const response = await fetch('/api/connections/test', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(input)
-    // })
+      const data = await response.json()
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Connection test failed')
+      }
 
-    // Mock response for now
-    return {
-      success: true,
-      message: 'Connection test successful (mock)',
-      latency_ms: Math.floor(Math.random() * 100) + 50,
+      return data
+    } catch (error: any) {
+      console.error('Test connection error:', error)
+
+      return {
+        success: false,
+        message: error.message || 'Connection test failed',
+        error: error.message,
+      }
     }
   },
 
   // Test an existing connection
   async testExistingConnection(connectionId: string): Promise<TestConnectionResult> {
-    if (!connectionId) {
-      throw new Error('Connection ID is required!')
-    }
+    try {
+      const response = await fetch(`/api/connections/${connectionId}/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      })
 
-    // DON'T update the database - this was causing the page refreshes!
-    // The database update was triggering database triggers which caused side effects
+      const data = await response.json()
 
-    // Simulate network delay like a real test would have
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Connection test failed')
+      }
 
-    // Mock response for now - in production, this would call an API endpoint
-    // that actually tests the SSH connection
-    return {
-      success: true,
-      message: 'Connection test successful (mock)',
-      latency_ms: Math.floor(Math.random() * 100) + 50,
-    }
-  },
+      return data
+    } catch (error: any) {
+      console.error('Test existing connection error:', error)
 
-  // Update connection test status (separate method for when we want to persist results)
-  async updateConnectionTestStatus(
-    connectionId: string,
-    status: 'success' | 'failed',
-    error?: string
-  ): Promise<void> {
-    if (!connectionId) {
-      throw new Error('Connection ID is required!')
-    }
-
-    const supabase = createClient()
-
-    const updateData: any = {
-      last_test_at: new Date().toISOString(),
-      connection_test_status: status,
-    }
-
-    if (error) {
-      updateData.last_test_error = error
-    } else {
-      updateData.last_test_error = null
-    }
-
-    const { error: updateError } = await supabase
-      .from('connections')
-      .update(updateData)
-      .eq('id', connectionId)
-
-    if (updateError) {
-      console.error('Error updating connection test status:', updateError)
-      throw updateError
+      return {
+        success: false,
+        message: error.message || 'Connection test failed',
+        error: error.message,
+      }
     }
   },
 

@@ -29,12 +29,13 @@ export default function NewConnectionPage() {
   }
 
   const handleComplete = (connectionId?: string) => {
-    // Navigate back to connections page with the newly created connection selected
+    // Navigate to the newly created connection's single page
     if (connectionId) {
       router.push(
-        `/dashboard/organizations/${orgId}/projects/${projectId}/connections?selected=${connectionId}`
+        `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
       )
     } else {
+      // Fallback to connections list if no ID provided
       router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
     }
   }
@@ -45,31 +46,47 @@ export default function NewConnectionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      {/* Back Button */}
-      <div className="mb-6">
-        <button
-          onClick={handleCancel}
-          className="flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <FormattedMessage id="common.back" defaultMessage="Back" />
-        </button>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="w-full">
+        {/* Back Button - Now properly aligned */}
+        <div className="mb-6">
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <FormattedMessage id="common.back" defaultMessage="Back to Connections" />
+          </button>
+        </div>
 
-      <ConnectionForm
-        organizationId={orgId}
-        projectId={projectId}
-        onComplete={handleComplete}
-        onCancel={handleCancel}
-      />
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            <FormattedMessage
+              id="connections.create.title"
+              defaultMessage="Create New Connection"
+            />
+          </h1>
+          <p className="mt-2 text-foreground-muted">
+            Set up a new SSH connection to manage your servers.
+          </p>
+        </div>
+
+        {/* Connection Form */}
+        <ConnectionForm
+          organizationId={orgId}
+          projectId={projectId}
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+        />
+      </div>
     </div>
   )
 }

@@ -66,20 +66,18 @@ export default function EditConnectionPage() {
     )
   }
 
-  const handleComplete = (connectionId?: string) => {
-    // Navigate back to connections page with the edited connection selected
-    if (connectionId) {
-      router.push(
-        `/dashboard/organizations/${orgId}/projects/${projectId}/connections?selected=${connectionId}`
-      )
-    } else {
-      router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
-    }
+  const handleComplete = () => {
+    // Navigate back to the edited connection's single page
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
+    )
   }
 
   const handleCancel = () => {
-    // Navigate back to connections page
-    router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
+    // Navigate back to the connection's single page
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
+    )
   }
 
   if (isLoading) {
@@ -119,7 +117,7 @@ export default function EditConnectionPage() {
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">❌</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Error</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">Error Loading Connection</h2>
           <p className="mb-4 text-foreground-muted">{error}</p>
           <button onClick={handleCancel} className="btn-primary">
             <FormattedMessage id="common.back" defaultMessage="Back" />
@@ -147,32 +145,43 @@ export default function EditConnectionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      {/* Back Button */}
-      <div className="mb-6">
-        <button
-          onClick={handleCancel}
-          className="flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <FormattedMessage id="common.back" defaultMessage="Back" />
-        </button>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="w-full">
+        {/* Back Button - Now properly aligned */}
+        <div className="mb-6">
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <FormattedMessage id="common.back" defaultMessage="Back to Connection" />
+          </button>
+        </div>
 
-      <ConnectionForm
-        organizationId={orgId}
-        projectId={projectId}
-        connection={connection}
-        onComplete={handleComplete}
-        onCancel={handleCancel}
-      />
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">
+            Edit Connection of <span className="text-terminal-green">{connection.name}</span>
+          </h1>
+          <p className="mt-2 text-foreground-muted">Update the SSH connection settings.</p>
+        </div>
+
+        {/* Connection Form */}
+        <ConnectionForm
+          organizationId={orgId}
+          projectId={projectId}
+          connection={connection}
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+        />
+      </div>
     </div>
   )
 }
