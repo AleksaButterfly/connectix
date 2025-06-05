@@ -115,8 +115,6 @@ export async function POST(request: NextRequest, { params }: { params: { connect
               connection.encryption_key_id
             )
           } catch (altError) {
-            console.error('❌ Alternative decryption also failed:', altError)
-
             return NextResponse.json(
               {
                 error: 'Failed to decrypt credentials - check encryption key availability',

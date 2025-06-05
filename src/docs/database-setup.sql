@@ -1,5 +1,5 @@
 -- =====================================================
--- COMPLETE DATABASE SCHEMA FOR CONNECTIX
+-- COMPLETE DATABASE SCHEMA FOR CONNECTIX (with connection deletion fix)
 -- =====================================================
 
 -- Drop all tables (CASCADE drops everything related)
@@ -185,7 +185,7 @@ CREATE INDEX idx_connection_sessions_user_id ON public.connection_sessions(user_
 CREATE INDEX idx_connection_sessions_status ON public.connection_sessions(status);
 CREATE INDEX idx_connection_sessions_token ON public.connection_sessions(session_token);
 
--- Connection activity logs
+-- Connection activity logs (FIXED: Added CASCADE DELETE)
 CREATE TABLE public.connection_activity_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   connection_id UUID REFERENCES public.connections(id) ON DELETE CASCADE NOT NULL,
@@ -505,24 +505,58 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Log connection activity
+-- FIXED: Log connection activity function with proper DELETE handling
 CREATE OR REPLACE FUNCTION public.log_connection_activity()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+AS $$
 DECLARE
   activity_type TEXT;
   user_id UUID;
+  conn_id UUID;
+  log_details JSONB;
 BEGIN
   user_id := auth.uid();
   
   IF TG_OP = 'INSERT' THEN
     activity_type := 'connection.created';
+    conn_id := NEW.id;
+    log_details := jsonb_build_object(
+      'operation', TG_OP,
+      'connection_name', NEW.name,
+      'host', NEW.host,
+      'username', NEW.username
+    );
   ELSIF TG_OP = 'UPDATE' THEN
     activity_type := 'connection.updated';
+    conn_id := NEW.id;
+    log_details := jsonb_build_object(
+      'operation', TG_OP,
+      'connection_name', NEW.name,
+      'host', NEW.host,
+      'username', NEW.username,
+      'changes', jsonb_build_object(
+        'name_changed', (OLD.name <> NEW.name),
+        'host_changed', (OLD.host <> NEW.host),
+        'username_changed', (OLD.username <> NEW.username)
+      )
+    );
   ELSIF TG_OP = 'DELETE' THEN
     activity_type := 'connection.deleted';
-    user_id := OLD.created_by;
+    conn_id := OLD.id;
+    user_id := COALESCE(auth.uid(), OLD.created_by);
+    log_details := jsonb_build_object(
+      'operation', TG_OP,
+      'connection_name', OLD.name,
+      'host', OLD.host,
+      'username', OLD.username
+    );
   END IF;
   
+  -- Insert the log entry
+  -- Note: For DELETE operations, this runs BEFORE the actual delete
+  -- so the foreign key constraint is satisfied
   INSERT INTO public.connection_activity_logs (
     connection_id,
     user_id,
@@ -530,20 +564,16 @@ BEGIN
     details,
     ip_address
   ) VALUES (
-    COALESCE(NEW.id, OLD.id),
+    conn_id,
     user_id,
     activity_type,
-    jsonb_build_object(
-      'operation', TG_OP,
-      'connection_name', COALESCE(NEW.name, OLD.name),
-      'host', COALESCE(NEW.host, OLD.host)
-    ),
+    log_details,
     inet_client_addr()
   );
   
   RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Validate connection project
 CREATE OR REPLACE FUNCTION public.validate_connection_project()
@@ -602,8 +632,16 @@ CREATE TRIGGER on_organization_created
   FOR EACH ROW 
   EXECUTE FUNCTION public.create_organization_with_owner();
 
-CREATE TRIGGER log_connection_changes
-  AFTER INSERT OR UPDATE OR DELETE ON public.connections
+-- FIXED: Split triggers for proper timing
+-- BEFORE DELETE: logs while connection still exists  
+CREATE TRIGGER log_connection_changes_before_delete
+  BEFORE DELETE ON public.connections
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_connection_activity();
+
+-- AFTER INSERT/UPDATE: normal behavior
+CREATE TRIGGER log_connection_changes_after_modify
+  AFTER INSERT OR UPDATE ON public.connections
   FOR EACH ROW
   EXECUTE FUNCTION public.log_connection_activity();
 

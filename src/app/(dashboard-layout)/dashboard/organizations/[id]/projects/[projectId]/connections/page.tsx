@@ -132,7 +132,6 @@ export default function ProjectConnectionsPage() {
           }
         } catch (error: any) {
           console.error('Delete connection error:', error)
-          toast.error(error.message || intl.formatMessage({ id: 'connections.delete.error' }))
         }
       },
     })
@@ -293,48 +292,50 @@ export default function ProjectConnectionsPage() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - Fixed bottom spacing issue */}
       <div className="flex flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-4xl p-6">
-          {selectedConnection ? (
-            <div className="w-full">
-              <ConnectionDetails
-                connection={selectedConnection}
-                onEdit={handleEdit}
-                onDelete={() => handleDelete(selectedConnection)}
-                onTest={() => handleTest(selectedConnection)}
-                onBrowse={() => handleBrowse(selectedConnection)}
-                isTestingConnection={isTestingConnection}
-              />
-            </div>
-          ) : (
-            <div className="flex min-h-[400px] w-full items-center justify-center">
-              <div className="text-center">
-                <svg
-                  className="mx-auto mb-4 h-16 w-16 text-foreground-muted/30"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 002 2z"
-                  />
-                </svg>
-                <h2 className="mb-2 text-xl font-semibold text-foreground">
-                  <FormattedMessage id="connections.empty.title" />
-                </h2>
-                <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
-                  <FormattedMessage id="connections.empty.description" />
-                </p>
-                <button onClick={handleCreateNew} className="btn-primary">
-                  <FormattedMessage id="connections.empty.createButton" />
-                </button>
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="min-h-full px-6 py-6">
+            {selectedConnection ? (
+              <div className="w-full">
+                <ConnectionDetails
+                  connection={selectedConnection}
+                  onEdit={handleEdit}
+                  onDelete={() => handleDelete(selectedConnection)}
+                  onTest={() => handleTest(selectedConnection)}
+                  onBrowse={() => handleBrowse(selectedConnection)}
+                  isTestingConnection={isTestingConnection}
+                />
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="mb-16 flex min-h-[400px] w-full items-center justify-center">
+                <div className="text-center">
+                  <svg
+                    className="mx-auto mb-4 h-16 w-16 text-foreground-muted/30"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <h2 className="mb-2 text-xl font-semibold text-foreground">
+                    <FormattedMessage id="connections.empty.title" />
+                  </h2>
+                  <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
+                    <FormattedMessage id="connections.empty.description" />
+                  </p>
+                  <button onClick={handleCreateNew} className="btn-primary">
+                    <FormattedMessage id="connections.empty.createButton" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
