@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { FormattedMessage } from '@/lib/i18n'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { connectionService } from '@/lib/connections/connection.service'
 import ConnectionForm from '@/components/connections/ConnectionForm'
 import type { Connection } from '@/types/connection'
@@ -10,6 +10,7 @@ import type { Connection } from '@/types/connection'
 export default function EditConnectionPage() {
   const params = useParams()
   const router = useRouter()
+  const intl = useIntl()
 
   const orgId = params.id as string
   const projectId = params.projectId as string
@@ -22,7 +23,7 @@ export default function EditConnectionPage() {
   useEffect(() => {
     const loadConnection = async () => {
       if (!connectionId) {
-        setError('Connection ID is missing')
+        setError(intl.formatMessage({ id: 'connections.edit.error.missingConnectionId' }))
         setIsLoading(false)
         return
       }
@@ -32,34 +33,44 @@ export default function EditConnectionPage() {
         const connectionData = await connectionService.getConnection(connectionId)
 
         if (!connectionData) {
-          setError('Connection not found')
+          setError(intl.formatMessage({ id: 'connections.edit.error.notFound' }))
           return
         }
 
         setConnection(connectionData)
       } catch (err: any) {
         console.error('Failed to load connection:', err)
-        setError(err.message || 'Failed to load connection')
+        setError(err.message || intl.formatMessage({ id: 'connections.edit.error.loadFailed' }))
       } finally {
         setIsLoading(false)
       }
     }
 
     loadConnection()
-  }, [connectionId])
+  }, [connectionId, intl])
 
   if (!orgId || !projectId || !connectionId) {
     return (
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Missing Parameters</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.edit.error.missingParams.title" />
+          </h2>
           <p className="mb-4 text-foreground-muted">
-            Required parameters are missing from the URL.
+            <FormattedMessage id="connections.edit.error.missingParams.description" />
           </p>
           <p className="text-sm text-foreground-muted">
-            Org ID: {orgId || 'MISSING'} | Project ID: {projectId || 'MISSING'} | Connection ID:{' '}
-            {connectionId || 'MISSING'}
+            <FormattedMessage
+              id="connections.edit.error.missingParams.details"
+              values={{
+                orgId: orgId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
+                projectId:
+                  projectId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
+                connectionId:
+                  connectionId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
+              }}
+            />
           </p>
         </div>
       </div>
@@ -104,9 +115,11 @@ export default function EditConnectionPage() {
             />
           </svg>
           <p className="text-foreground-muted">
-            <FormattedMessage id="common.loading" defaultMessage="Loading..." />
+            <FormattedMessage id="common.loading" />
           </p>
-          <p className="mt-2 text-xs text-foreground-muted">Loading connection details...</p>
+          <p className="mt-2 text-xs text-foreground-muted">
+            <FormattedMessage id="connections.edit.loadingDetails" />
+          </p>
         </div>
       </div>
     )
@@ -117,10 +130,12 @@ export default function EditConnectionPage() {
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">❌</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Error Loading Connection</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.edit.error.loadError.title" />
+          </h2>
           <p className="mb-4 text-foreground-muted">{error}</p>
           <button onClick={handleCancel} className="btn-primary">
-            <FormattedMessage id="common.back" defaultMessage="Back" />
+            <FormattedMessage id="common.back" />
           </button>
         </div>
       </div>
@@ -132,12 +147,14 @@ export default function EditConnectionPage() {
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">🔍</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Connection Not Found</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.edit.error.connectionNotFound.title" />
+          </h2>
           <p className="mb-4 text-foreground-muted">
-            The connection you're looking for doesn't exist or you don't have access to it.
+            <FormattedMessage id="connections.edit.error.connectionNotFound.description" />
           </p>
           <button onClick={handleCancel} className="btn-primary">
-            <FormattedMessage id="common.back" defaultMessage="Back" />
+            <FormattedMessage id="common.back" />
           </button>
         </div>
       </div>
@@ -161,16 +178,23 @@ export default function EditConnectionPage() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <FormattedMessage id="common.back" defaultMessage="Back to Connection" />
+            <FormattedMessage id="connections.edit.backToConnection" />
           </button>
         </div>
 
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            Edit Connection of <span className="text-terminal-green">{connection.name}</span>
+            <FormattedMessage
+              id="connections.edit.title"
+              values={{
+                connectionName: <span className="text-terminal-green">{connection.name}</span>,
+              }}
+            />
           </h1>
-          <p className="mt-2 text-foreground-muted">Update the SSH connection settings.</p>
+          <p className="mt-2 text-foreground-muted">
+            <FormattedMessage id="connections.edit.subtitle" />
+          </p>
         </div>
 
         {/* Connection Form */}

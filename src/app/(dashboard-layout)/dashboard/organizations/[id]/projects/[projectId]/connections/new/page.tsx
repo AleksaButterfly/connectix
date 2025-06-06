@@ -1,12 +1,13 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { FormattedMessage } from '@/lib/i18n'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import ConnectionForm from '@/components/connections/ConnectionForm'
 
 export default function NewConnectionPage() {
   const params = useParams()
   const router = useRouter()
+  const intl = useIntl()
 
   const orgId = params.id as string
   const projectId = params.projectId as string
@@ -16,12 +17,20 @@ export default function NewConnectionPage() {
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Missing Parameters</h2>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.new.error.missingParams.title" />
+          </h2>
           <p className="mb-4 text-foreground-muted">
-            Organization ID or Project ID is missing from the URL.
+            <FormattedMessage id="connections.new.error.missingParams.description" />
           </p>
           <p className="text-sm text-foreground-muted">
-            Org ID: {orgId || 'MISSING'} | Project ID: {projectId || 'MISSING'}
+            <FormattedMessage
+              id="connections.new.error.missingParams.details"
+              values={{
+                orgId: orgId || intl.formatMessage({ id: 'connections.new.error.missing' }),
+                projectId: projectId || intl.formatMessage({ id: 'connections.new.error.missing' }),
+              }}
+            />
           </p>
         </div>
       </div>
@@ -62,20 +71,17 @@ export default function NewConnectionPage() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <FormattedMessage id="common.back" defaultMessage="Back to Connections" />
+            <FormattedMessage id="connections.new.backToConnections" />
           </button>
         </div>
 
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            <FormattedMessage
-              id="connections.create.title"
-              defaultMessage="Create New Connection"
-            />
+            <FormattedMessage id="connections.new.title" />
           </h1>
           <p className="mt-2 text-foreground-muted">
-            Set up a new SSH connection to manage your servers.
+            <FormattedMessage id="connections.new.subtitle" />
           </p>
         </div>
 

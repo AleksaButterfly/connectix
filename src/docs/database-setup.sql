@@ -1,5 +1,5 @@
 -- =====================================================
--- COMPLETE DATABASE SCHEMA FOR CONNECTIX (with connection deletion fix)
+-- COMPLETE DATABASE SCHEMA FOR CONNECTIX (with OAuth & profile fixes)
 -- =====================================================
 
 -- Drop all tables (CASCADE drops everything related)
@@ -185,7 +185,7 @@ CREATE INDEX idx_connection_sessions_user_id ON public.connection_sessions(user_
 CREATE INDEX idx_connection_sessions_status ON public.connection_sessions(status);
 CREATE INDEX idx_connection_sessions_token ON public.connection_sessions(session_token);
 
--- Connection activity logs (FIXED: Added CASCADE DELETE)
+-- Connection activity logs (with CASCADE DELETE)
 CREATE TABLE public.connection_activity_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   connection_id UUID REFERENCES public.connections(id) ON DELETE CASCADE NOT NULL,
@@ -224,29 +224,70 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Handle new user
+-- Handle new user (FIXED for OAuth providers)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  new_username TEXT;
+  random_suffix TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, email, username)
-  VALUES (
-    NEW.id, 
-    NEW.email,
-    COALESCE(
-      NEW.raw_user_meta_data->>'username', 
-      split_part(NEW.email, '@', 1)
-    )
+  -- Extract username from various possible sources
+  new_username := COALESCE(
+    NEW.raw_user_meta_data->>'username',      -- Standard field
+    NEW.raw_user_meta_data->>'user_name',     -- GitHub
+    NEW.raw_user_meta_data->>'preferred_username', -- Some OAuth providers
+    NEW.raw_user_meta_data->>'nickname',      -- Some OAuth providers
+    split_part(NEW.email, '@', 1)             -- Fallback to email prefix
   );
   
-  INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id)
-  VALUES (
-    NEW.id,
-    'user.signup',
-    'user',
-    NEW.id::TEXT
-  );
+  -- Clean the username (remove spaces, special chars)
+  new_username := LOWER(REGEXP_REPLACE(new_username, '[^a-zA-Z0-9_-]', '_', 'g'));
+  
+  -- Ensure username is not empty
+  IF new_username IS NULL OR new_username = '' THEN
+    new_username := 'user';
+  END IF;
+  
+  -- Try to insert the profile
+  BEGIN
+    INSERT INTO public.profiles (id, email, username)
+    VALUES (NEW.id, NEW.email, new_username);
+  EXCEPTION
+    WHEN unique_violation THEN
+      -- Username already taken, try with random suffix
+      random_suffix := substr(md5(random()::text), 1, 6);
+      new_username := new_username || '_' || random_suffix;
+      
+      -- Try again with suffix
+      BEGIN
+        INSERT INTO public.profiles (id, email, username)
+        VALUES (NEW.id, NEW.email, new_username);
+      EXCEPTION
+        WHEN OTHERS THEN
+          -- If still fails, use user ID as username
+          new_username := 'user_' || substr(NEW.id::text, 1, 8);
+          INSERT INTO public.profiles (id, email, username)
+          VALUES (NEW.id, NEW.email, new_username)
+          ON CONFLICT (id) DO NOTHING;
+      END;
+  END;
+  
+  -- Try to create audit log (don't fail if this errors)
+  BEGIN
+    INSERT INTO public.audit_logs (user_id, action, resource_type, resource_id)
+    VALUES (NEW.id, 'user.signup', 'user', NEW.id::TEXT);
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Ignore audit log errors
+      NULL;
+  END;
   
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log the error but don't fail the user creation
+    RAISE WARNING 'Error in handle_new_user: %', SQLERRM;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -505,7 +546,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- FIXED: Log connection activity function with proper DELETE handling
+-- Log connection activity (with proper DELETE handling)
 CREATE OR REPLACE FUNCTION public.log_connection_activity()
 RETURNS TRIGGER 
 LANGUAGE plpgsql 
@@ -555,8 +596,6 @@ BEGIN
   END IF;
   
   -- Insert the log entry
-  -- Note: For DELETE operations, this runs BEFORE the actual delete
-  -- so the foreign key constraint is satisfied
   INSERT INTO public.connection_activity_logs (
     connection_id,
     user_id,
@@ -632,14 +671,12 @@ CREATE TRIGGER on_organization_created
   FOR EACH ROW 
   EXECUTE FUNCTION public.create_organization_with_owner();
 
--- FIXED: Split triggers for proper timing
--- BEFORE DELETE: logs while connection still exists  
+-- Split triggers for proper timing
 CREATE TRIGGER log_connection_changes_before_delete
   BEFORE DELETE ON public.connections
   FOR EACH ROW
   EXECUTE FUNCTION public.log_connection_activity();
 
--- AFTER INSERT/UPDATE: normal behavior
 CREATE TRIGGER log_connection_changes_after_modify
   AFTER INSERT OR UPDATE ON public.connections
   FOR EACH ROW
@@ -670,21 +707,26 @@ ALTER TABLE public.connection_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.connection_activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
--- CREATE POLICIES
+-- CREATE POLICIES (with fixed profile policies)
 -- =====================================================
 
--- Profiles
-CREATE POLICY "Users can view own profile" 
+-- Profiles (FIXED for OAuth and triggers)
+CREATE POLICY "Users can view any profile" 
   ON public.profiles FOR SELECT 
-  USING (auth.uid() = id);
+  USING (true);
+
+CREATE POLICY "Users can insert own profile" 
+  ON public.profiles FOR INSERT 
+  WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can update own profile" 
   ON public.profiles FOR UPDATE 
   USING (auth.uid() = id);
 
-CREATE POLICY "Anyone can check usernames" 
-  ON public.profiles FOR SELECT 
-  USING (true);
+-- This ensures the trigger can create profiles
+CREATE POLICY "System can create profiles" 
+  ON public.profiles FOR INSERT 
+  WITH CHECK (true);
 
 -- Audit logs
 CREATE POLICY "Users can view own audit logs" 
@@ -694,6 +736,11 @@ CREATE POLICY "Users can view own audit logs"
 CREATE POLICY "Users can create audit logs" 
   ON public.audit_logs FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
+
+-- Also allow system to create audit logs
+CREATE POLICY "System can create audit logs" 
+  ON public.audit_logs FOR INSERT 
+  WITH CHECK (true);
 
 -- Organizations
 CREATE POLICY "Users can view their organizations" 
@@ -831,3 +878,24 @@ GRANT EXECUTE ON FUNCTION public.can_manage_connection(UUID, UUID) TO authentica
 GRANT EXECUTE ON FUNCTION public.get_encryption_key_id(UUID, UUID) TO authenticated;
 
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- =====================================================
+-- FIX EXISTING OAUTH USERS (if any)
+-- =====================================================
+
+-- Create profiles for any existing users without them
+INSERT INTO public.profiles (id, email, username)
+SELECT 
+  au.id,
+  au.email,
+  COALESCE(
+    au.raw_user_meta_data->>'username',
+    au.raw_user_meta_data->>'user_name',
+    au.raw_user_meta_data->>'preferred_username',
+    au.raw_user_meta_data->>'nickname',
+    'user_' || substr(au.id::text, 1, 8)
+  ) as username
+FROM auth.users au
+LEFT JOIN public.profiles p ON p.id = au.id
+WHERE p.id IS NULL
+ON CONFLICT (id) DO NOTHING;
