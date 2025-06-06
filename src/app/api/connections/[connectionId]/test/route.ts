@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { decryptCredentials, checkEncryptionConfig } from '@/lib/connections/encryption'
+import { decryptCredentials } from '@/lib/connections/encryption'
 import { Client } from 'ssh2'
 
 interface TestConnectionResult {
@@ -53,7 +53,6 @@ async function testSSHConnection(config: {
 
     client.on('error', (err) => {
       clearTimeout(timeout)
-      console.error('SSH connection error:', err)
 
       let errorMessage = 'Connection failed'
 
@@ -115,43 +114,6 @@ export async function POST(
     const params = await context.params
     const supabase = await createClient()
 
-    // Enhanced encryption debugging
-    console.log('🔍 ENCRYPTION ENVIRONMENT DEBUG:')
-    console.log('  CONNECTIX_ENCRYPTION_KEY exists:', !!process.env.CONNECTIX_ENCRYPTION_KEY)
-    console.log('  SSH_ENCRYPTION_KEY exists:', !!process.env.SSH_ENCRYPTION_KEY)
-    console.log(
-      '  Will use fallback:',
-      !process.env.CONNECTIX_ENCRYPTION_KEY && !process.env.SSH_ENCRYPTION_KEY
-    )
-
-    if (process.env.CONNECTIX_ENCRYPTION_KEY) {
-      console.log('  CONNECTIX_ENCRYPTION_KEY length:', process.env.CONNECTIX_ENCRYPTION_KEY.length)
-      console.log(
-        '  CONNECTIX_ENCRYPTION_KEY preview:',
-        process.env.CONNECTIX_ENCRYPTION_KEY.substring(0, 10) + '...'
-      )
-    }
-
-    if (process.env.SSH_ENCRYPTION_KEY) {
-      console.log('  SSH_ENCRYPTION_KEY length:', process.env.SSH_ENCRYPTION_KEY.length)
-      console.log(
-        '  SSH_ENCRYPTION_KEY preview:',
-        process.env.SSH_ENCRYPTION_KEY.substring(0, 10) + '...'
-      )
-    }
-
-    // Test encryption configuration
-    try {
-      const encConfig = checkEncryptionConfig()
-      console.log('  Encryption config:', encConfig)
-
-      if (!encConfig.testPassed) {
-        console.error('❌ Encryption test failed - this will cause decryption issues!')
-      }
-    } catch (encTestError) {
-      console.error('❌ Encryption config test failed:', encTestError)
-    }
-
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -170,15 +132,6 @@ export async function POST(
     if (error || !connection) {
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
-
-    console.log('🔍 CONNECTION DEBUG:')
-    console.log('  Connection ID:', params.connectionId)
-    console.log('  Created at:', connection.created_at)
-    console.log('  Updated at:', connection.updated_at)
-    console.log('  Has encrypted data:', !!connection.encrypted_credentials)
-    console.log('  Encrypted data length:', connection.encrypted_credentials?.length)
-    console.log('  Last test status:', connection.connection_test_status)
-    console.log('  Last test error:', connection.last_test_error)
 
     // Check if user can access this connection
     const { data: canAccess } = await supabase.rpc('can_access_connection', {
@@ -206,26 +159,13 @@ export async function POST(
     // Check if encrypted data is valid JSON
     try {
       const parsedData = JSON.parse(connection.encrypted_credentials)
-      console.log(
-        '  Encrypted data structure valid:',
-        !!parsedData.data && !!parsedData.iv && !!parsedData.salt && !!parsedData.tag
-      )
 
       if (!parsedData.data || !parsedData.iv || !parsedData.salt || !parsedData.tag) {
         throw new Error('Missing required encryption fields')
       }
     } catch (parseError) {
-      console.error('❌ Invalid encrypted data format:', parseError)
-
-      await supabase
-        .from('connections')
-        .update({
-          connection_test_status: 'failed',
-          last_test_at: new Date().toISOString(),
-          last_test_error: 'Invalid encrypted data format',
-        })
-        .eq('id', params.connectionId)
-
+      // ❌ REMOVED: Database update that causes page flash
+      // Only return the error, let frontend handle database updates
       return NextResponse.json(
         {
           success: false,
@@ -240,19 +180,8 @@ export async function POST(
     // Decrypt credentials with enhanced error handling
     let credentials: any
     try {
-      console.log('🔓 Attempting decryption...')
       credentials = decryptCredentials(connection.encrypted_credentials)
-      console.log('✅ Decryption successful')
     } catch (decryptError: any) {
-      console.error('❌ DETAILED DECRYPTION ERROR:')
-      console.error('  Error message:', decryptError.message)
-      console.error('  Error name:', decryptError.name)
-      console.error('  Error stack:', decryptError.stack)
-      console.error('  Connection ID:', params.connectionId)
-      console.error('  Connection created:', connection.created_at)
-      console.error('  Encrypted data exists:', !!connection.encrypted_credentials)
-      console.error('  Encrypted data length:', connection.encrypted_credentials?.length)
-
       // Determine specific error type
       let userMessage =
         'Connection credentials could not be decrypted. Please edit the connection and re-enter your credentials.'
@@ -270,15 +199,8 @@ export async function POST(
         errorCode = 'INVALID_KEY'
       }
 
-      // Update connection status
-      await supabase
-        .from('connections')
-        .update({
-          connection_test_status: 'failed',
-          last_test_at: new Date().toISOString(),
-          last_test_error: `${errorCode}: ${decryptError.message}`,
-        })
-        .eq('id', params.connectionId)
+      // ❌ REMOVED: Database update that causes page flash
+      // Let frontend handle database updates to avoid double updates
 
       return NextResponse.json(
         {
@@ -297,7 +219,6 @@ export async function POST(
     }
 
     // Test the connection
-    console.log('🔌 Testing SSH connection...')
     const result = await testSSHConnection({
       host: connection.host,
       port: connection.port,
@@ -308,37 +229,8 @@ export async function POST(
       strict_host_checking: connection.strict_host_checking,
     })
 
-    // Update connection test status
-    await supabase
-      .from('connections')
-      .update({
-        connection_test_status: result.success ? 'success' : 'failed',
-        last_test_at: new Date().toISOString(),
-        last_test_error: result.success ? null : result.error,
-      })
-      .eq('id', params.connectionId)
-
-    console.log('✅ Connection test completed:', result.success ? 'SUCCESS' : 'FAILED')
     return NextResponse.json(result)
   } catch (error: any) {
-    console.error('❌ UNEXPECTED ERROR in connection test:', error)
-
-    // Update connection status on unexpected error
-    try {
-      const params = await context.params
-      const supabase = await createClient()
-      await supabase
-        .from('connections')
-        .update({
-          connection_test_status: 'failed',
-          last_test_at: new Date().toISOString(),
-          last_test_error: `UNEXPECTED: ${error.message}`,
-        })
-        .eq('id', params.connectionId)
-    } catch (updateError) {
-      console.error('Failed to update connection status:', updateError)
-    }
-
     return NextResponse.json(
       {
         success: false,

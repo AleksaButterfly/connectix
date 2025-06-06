@@ -23,14 +23,6 @@ function getEncryptionKey(): string {
   // Clean the key of quotes
   const cleanKey = envKey.replace(/^["']|["']$/g, '')
 
-  console.log('🔑 Using encryption key from environment')
-  console.log(
-    '   Source:',
-    process.env.CONNECTIX_ENCRYPTION_KEY ? 'CONNECTIX_ENCRYPTION_KEY' : 'SSH_ENCRYPTION_KEY'
-  )
-  console.log('   Length:', cleanKey.length)
-  console.log('   Preview:', cleanKey.substring(0, 10) + '...')
-
   return cleanKey
 }
 
@@ -63,19 +55,8 @@ export function encryptCredentials(credentials: Record<string, any>, customKey?:
       tag: tag.toString('base64'),
     }
 
-    console.log('🔐 ENCRYPT DEBUG')
-    console.log('  Input credentials keys:', Object.keys(credentials))
-    console.log('  JSON length:', jsonString.length)
-    console.log('  Master key length:', masterKey.length)
-    console.log('  IV length:', iv.length, 'Salt length:', salt.length)
-    console.log('  Encrypted data length:', encrypted.length)
-    console.log('  Auth tag length:', tag.length)
-    console.log('  Final result length:', JSON.stringify(result).length)
-
     return JSON.stringify(result)
   } catch (error) {
-    console.error('❌ Encryption failed:', error)
-    console.error('  Input:', typeof credentials, Object.keys(credentials || {}))
     throw new Error('Failed to encrypt credentials: ' + (error as Error).message)
   }
 }
@@ -85,10 +66,6 @@ export function encryptCredentials(credentials: Record<string, any>, customKey?:
  */
 export function decryptCredentials(encryptedData: string, customKey?: string): Record<string, any> {
   try {
-    console.log('🔓 DECRYPT START')
-    console.log('  Input type:', typeof encryptedData)
-    console.log('  Input length:', encryptedData?.length)
-
     if (!encryptedData || typeof encryptedData !== 'string') {
       throw new Error('Invalid encrypted data format - not a string')
     }
@@ -97,15 +74,8 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
     try {
       encrypted = JSON.parse(encryptedData) as EncryptedData
     } catch (parseError) {
-      console.error('❌ JSON parse failed:', parseError)
       throw new Error('Corrupted encrypted data - invalid JSON format')
     }
-
-    console.log('  Parsed structure:')
-    console.log('    - has data:', !!encrypted.data, 'length:', encrypted.data?.length)
-    console.log('    - has iv:', !!encrypted.iv, 'length:', encrypted.iv?.length)
-    console.log('    - has salt:', !!encrypted.salt, 'length:', encrypted.salt?.length)
-    console.log('    - has tag:', !!encrypted.tag, 'length:', encrypted.tag?.length)
 
     if (!encrypted.data || !encrypted.iv || !encrypted.salt || !encrypted.tag) {
       throw new Error('Corrupted encrypted data - missing required fields')
@@ -119,29 +89,18 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
       salt = Buffer.from(encrypted.salt, 'base64')
       tag = Buffer.from(encrypted.tag, 'base64')
     } catch (base64Error) {
-      console.error('❌ Base64 decode failed:', base64Error)
       throw new Error('Corrupted encrypted data - invalid base64 encoding')
     }
 
-    console.log('  Decoded buffers:')
-    console.log('    - data length:', data.length)
-    console.log('    - iv length:', iv.length)
-    console.log('    - salt length:', salt.length)
-    console.log('    - tag length:', tag.length)
-
     const masterKey = customKey || getEncryptionKey()
-    console.log('  Master key length:', masterKey.length)
 
     // Derive key using same parameters as encryption
     const key = crypto.pbkdf2Sync(masterKey, salt, 100000, 32, 'sha256')
-    console.log('  Derived key length:', key.length)
 
     // Set up decipher
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
     decipher.setAAD(salt)
     decipher.setAuthTag(tag)
-
-    console.log('  Decipher configured, attempting decryption...')
 
     let decrypted: Buffer
     try {
@@ -149,10 +108,6 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
       const final = decipher.final()
       decrypted = Buffer.concat([decryptedPart, final])
     } catch (decipherError: any) {
-      console.error('❌ Decipher failed:', decipherError)
-      console.error('  Error type:', decipherError.constructor.name)
-      console.error('  Error code:', decipherError.code)
-
       if (
         decipherError.message?.includes('Unsupported state') ||
         decipherError.message?.includes('Invalid tag') ||
@@ -164,38 +119,22 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
       throw new Error('Failed to decrypt credentials - cipher error: ' + decipherError.message)
     }
 
-    console.log('  Decryption successful, buffer length:', decrypted.length)
-
     let jsonString: string
     try {
       jsonString = decrypted.toString('utf8')
     } catch (utf8Error) {
-      console.error('❌ UTF-8 decode failed:', utf8Error)
       throw new Error('Failed to decrypt credentials - invalid character encoding')
     }
-
-    console.log('  JSON string length:', jsonString.length)
-    console.log('  JSON preview:', jsonString.substring(0, 100) + '...')
 
     let result: Record<string, any>
     try {
       result = JSON.parse(jsonString)
     } catch (jsonParseError) {
-      console.error('❌ Final JSON parse failed:', jsonParseError)
-      console.error('  JSON string:', jsonString.substring(0, 200))
       throw new Error('Failed to decrypt credentials - decrypted data is not valid JSON')
     }
 
-    console.log('✅ DECRYPT SUCCESS')
-    console.log('  Result keys:', Object.keys(result))
-
     return result
   } catch (error) {
-    console.error('❌ DECRYPT FAILED - Full Error Details:')
-    console.error('  Error message:', (error as Error).message)
-    console.error('  Error name:', (error as Error).name)
-    console.error('  Error stack:', (error as Error).stack)
-
     // Re-throw with more specific error messages
     const errorMessage = (error as Error).message
 
@@ -252,34 +191,16 @@ export function validateEncryptedFormat(encryptedData: string): boolean {
  */
 export function testEncryption(customKey?: string): boolean {
   try {
-    console.log('🧪 RUNNING ENCRYPTION TEST')
-
     const testData = { username: 'test', password: 'secret123', timestamp: Date.now() }
-    console.log('  Test data:', testData)
-
     const encrypted = encryptCredentials(testData, customKey)
-    console.log('  Encryption completed, length:', encrypted.length)
-
     const decrypted = decryptCredentials(encrypted, customKey)
-    console.log('  Decryption completed')
 
     const originalJson = JSON.stringify(testData)
     const decryptedJson = JSON.stringify(decrypted)
     const passed = originalJson === decryptedJson
 
-    console.log('  Original JSON:', originalJson)
-    console.log('  Decrypted JSON:', decryptedJson)
-    console.log('  Test passed:', passed)
-
-    if (!passed) {
-      console.error('❌ Test data mismatch!')
-      console.error('  Original keys:', Object.keys(testData))
-      console.error('  Decrypted keys:', Object.keys(decrypted))
-    }
-
     return passed
   } catch (error) {
-    console.error('❌ Encryption test failed:', error)
     return false
   }
 }
@@ -288,7 +209,6 @@ export function testEncryption(customKey?: string): boolean {
  * Key rotation utility - re-encrypt with new key
  */
 export function rotateEncryptionKey(encryptedData: string, oldKey: string, newKey: string): string {
-  console.log('🔄 Rotating encryption key')
   const credentials = decryptCredentials(encryptedData, oldKey)
   return encryptCredentials(credentials, newKey)
 }
@@ -303,8 +223,6 @@ export function checkEncryptionConfig(): {
   testPassed: boolean
   error?: string
 } {
-  console.log('🔍 Checking encryption configuration...')
-
   const hasConnectixKey = !!process.env.CONNECTIX_ENCRYPTION_KEY
   const hasSSHKey = !!process.env.SSH_ENCRYPTION_KEY
 
@@ -338,7 +256,6 @@ export function checkEncryptionConfig(): {
     error,
   }
 
-  console.log('  Configuration result:', result)
   return result
 }
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/components/ui/ToastContext'
+import { useIntl } from '@/lib/i18n'
 
 interface UseSSHSessionReturn {
   sessionToken: string | null
@@ -16,6 +17,7 @@ export function useSSHSession(connectionId: string): UseSSHSessionReturn {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const intl = useIntl()
 
   const connect = useCallback(async () => {
     if (isConnected || isConnecting) return
@@ -33,20 +35,22 @@ export function useSSHSession(connectionId: string): UseSSHSessionReturn {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to establish SSH connection')
+        throw new Error(
+          errorData.error || intl.formatMessage({ id: 'ssh.errors.connectionFailed' })
+        )
       }
 
       const data = await response.json()
       setSessionToken(data.sessionToken)
       setIsConnected(true)
-      toast.success('SSH connection established')
+      toast.success(intl.formatMessage({ id: 'ssh.connectionEstablished' }))
     } catch (err: any) {
       setError(err.message)
-      toast.error(err.message || 'Failed to connect')
+      toast.error(err.message || intl.formatMessage({ id: 'ssh.errors.connectFailed' }))
     } finally {
       setIsConnecting(false)
     }
-  }, [connectionId, isConnected, isConnecting, toast])
+  }, [connectionId, isConnected, isConnecting, toast, intl])
 
   const disconnect = useCallback(() => {
     if (sessionToken) {
@@ -62,8 +66,8 @@ export function useSSHSession(connectionId: string): UseSSHSessionReturn {
     setSessionToken(null)
     setIsConnected(false)
     setError(null)
-    toast.success('SSH connection closed')
-  }, [connectionId, sessionToken, toast])
+    toast.success(intl.formatMessage({ id: 'ssh.connectionClosed' }))
+  }, [connectionId, sessionToken, toast, intl])
 
   return {
     sessionToken,

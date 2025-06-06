@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useConnections } from '@/hooks/useConnections'
 import { useToast } from '@/components/ui/ToastContext'
-import { FormattedMessage } from '@/lib/i18n'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 export default function AllConnectionsPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const intl = useIntl()
 
   const orgId = params.id as string
   const projectId = params.projectId as string
@@ -24,9 +25,11 @@ export default function AllConnectionsPage() {
   useEffect(() => {
     loadConnections().catch((error) => {
       console.error('Failed to load connections:', error)
-      toast.error('Failed to load connections: ' + error.message)
+      toast.error(
+        intl.formatMessage({ id: 'connections.errors.loadFailed' }) + ': ' + error.message
+      )
     })
-  }, [loadConnections, toast])
+  }, [loadConnections, toast, intl])
 
   // Handle redirect when connections are loaded
   useEffect(() => {

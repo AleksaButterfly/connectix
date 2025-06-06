@@ -1,10 +1,14 @@
+'use client'
+
 import { useState } from 'react'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface FileUploadProps {
   onUpload: (files: FileList) => void
 }
 
 export function FileUpload({ onUpload }: FileUploadProps) {
+  const intl = useIntl()
   const [isDragging, setIsDragging] = useState(false)
 
   const handleDrop = (e: React.DragEvent) => {
@@ -37,9 +41,10 @@ export function FileUpload({ onUpload }: FileUploadProps) {
         multiple
         onChange={handleFileInput}
         className="absolute inset-0 z-10 cursor-pointer opacity-0"
+        aria-label={intl.formatMessage({ id: 'files.upload.selectFiles' })}
       />
       <button className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary">
-        Upload
+        <FormattedMessage id="files.upload.button" />
       </button>
     </div>
   )

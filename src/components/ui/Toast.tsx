@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useIntl } from '@/lib/i18n'
 
 export interface ToastProps {
   id: string
@@ -17,6 +18,8 @@ export default function Toast({
   duration = 3000,
   onClose,
 }: ToastProps) {
+  const intl = useIntl()
+
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -96,7 +99,7 @@ export default function Toast({
       <button
         onClick={() => onClose(id)}
         className="ml-auto shrink-0 text-foreground-muted hover:text-foreground"
-        aria-label="Close"
+        aria-label={intl.formatMessage({ id: 'common.close' })}
       >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path

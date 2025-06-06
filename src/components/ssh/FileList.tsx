@@ -9,7 +9,7 @@ interface FileListProps {
   files: FileInfo[]
   isLoading?: boolean
   viewMode?: 'list' | 'grid'
-  selectedFiles?: Set<string> // Changed from string[] to Set<string>
+  selectedFiles?: Set<string>
   onFileSelect?: (filePath: string, isSelected: boolean) => void
   onFileDoubleClick?: (file: FileInfo) => void
   onRename?: (file: FileInfo) => void
@@ -40,7 +40,7 @@ export function FileList({
       return 0
     }
 
-    // Always put directories first - FIXED: use 'type' property from your API
+    // Always put directories first - use 'type' property from your API
     const aIsDir = a.type === 'directory'
     const bIsDir = b.type === 'directory'
 
@@ -57,7 +57,7 @@ export function FileList({
         comparison = (a.size || 0) - (b.size || 0)
         break
       case 'modified':
-        // FIXED: use 'mtime' property from your API
+        // Use 'mtime' property from your API
         const aDate = a.mtime || new Date(0)
         const bDate = b.mtime || new Date(0)
         comparison = new Date(aDate).getTime() - new Date(bDate).getTime()
@@ -110,7 +110,9 @@ export function FileList({
       <div className="flex h-64 items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
-          <p className="text-foreground-muted">Loading files...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="files.list.loadingFiles" />
+          </p>
         </div>
       </div>
     )
@@ -121,8 +123,12 @@ export function FileList({
       <div className="flex h-64 items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl opacity-50">📁</div>
-          <h3 className="mb-2 text-lg font-medium text-foreground">Empty Directory</h3>
-          <p className="text-foreground-muted">This directory contains no files or folders.</p>
+          <h3 className="mb-2 text-lg font-medium text-foreground">
+            <FormattedMessage id="files.list.emptyDirectory" />
+          </h3>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="files.list.emptyDirectoryDescription" />
+          </p>
         </div>
       </div>
     )
@@ -135,7 +141,13 @@ export function FileList({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="text-sm text-foreground-muted">
-              {files.length} items{selectedFiles.size > 0 && ` • ${selectedFiles.size} selected`}
+              <FormattedMessage
+                id="files.list.itemCount"
+                values={{
+                  count: files.length,
+                  selected: selectedFiles.size > 0 ? selectedFiles.size : null,
+                }}
+              />
             </span>
           </div>
         </div>
@@ -153,7 +165,7 @@ export function FileList({
                     onClick={() => handleSort('name')}
                     className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
                   >
-                    Name
+                    <FormattedMessage id="files.list.columns.name" />
                     {sortBy === 'name' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                   </button>
                 </th>
@@ -162,7 +174,7 @@ export function FileList({
                     onClick={() => handleSort('size')}
                     className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
                   >
-                    Size
+                    <FormattedMessage id="files.list.columns.size" />
                     {sortBy === 'size' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                   </button>
                 </th>
@@ -171,7 +183,7 @@ export function FileList({
                     onClick={() => handleSort('modified')}
                     className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
                   >
-                    Modified
+                    <FormattedMessage id="files.list.columns.modified" />
                     {sortBy === 'modified' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
                   </button>
                 </th>
@@ -185,7 +197,7 @@ export function FileList({
                   return null
                 }
 
-                const isSelected = selectedFiles.has(file.name) // Changed from .includes() to .has()
+                const isSelected = selectedFiles.has(file.name)
                 return (
                   <tr
                     key={file.name}
@@ -221,14 +233,14 @@ export function FileList({
                         <button
                           onClick={(e) => handleFileAction(file, 'rename', e)}
                           className="rounded p-1 text-xs text-foreground-muted hover:bg-background-tertiary hover:text-foreground"
-                          title="Rename"
+                          title={intl.formatMessage({ id: 'files.list.actions.rename' })}
                         >
                           ✏️
                         </button>
                         <button
                           onClick={(e) => handleFileAction(file, 'delete', e)}
                           className="rounded p-1 text-xs text-foreground-muted hover:bg-red-100 hover:text-red-600"
-                          title="Delete"
+                          title={intl.formatMessage({ id: 'files.list.actions.delete' })}
                         >
                           🗑️
                         </button>
@@ -247,7 +259,7 @@ export function FileList({
                 return null
               }
 
-              const isSelected = selectedFiles.has(file.name) // Changed from .includes() to .has()
+              const isSelected = selectedFiles.has(file.name)
               return (
                 <div
                   key={file.name}
@@ -271,7 +283,11 @@ export function FileList({
                       {file.name}
                     </div>
                     <div className="text-xs text-foreground-muted">
-                      {file.type === 'directory' ? 'Folder' : formatFileSize(file.size)}
+                      {file.type === 'directory' ? (
+                        <FormattedMessage id="files.list.folder" />
+                      ) : (
+                        formatFileSize(file.size)
+                      )}
                     </div>
                   </div>
 
@@ -280,14 +296,14 @@ export function FileList({
                     <button
                       onClick={(e) => handleFileAction(file, 'rename', e)}
                       className="rounded bg-background p-1 text-xs shadow-md hover:bg-background-secondary"
-                      title="Rename"
+                      title={intl.formatMessage({ id: 'files.list.actions.rename' })}
                     >
                       ✏️
                     </button>
                     <button
                       onClick={(e) => handleFileAction(file, 'delete', e)}
                       className="rounded bg-background p-1 text-xs shadow-md hover:bg-red-100"
-                      title="Delete"
+                      title={intl.formatMessage({ id: 'files.list.actions.delete' })}
                     >
                       🗑️
                     </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useToast } from '@/components/ui/ToastContext'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { FileInfo } from '@/types/ssh'
 
 interface FileEditorProps {
@@ -19,6 +20,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const { toast } = useToast()
+  const intl = useIntl()
 
   useEffect(() => {
     loadFileContent()
@@ -38,14 +40,14 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       })
 
       if (!response.ok) {
-        throw new Error('Failed to load file content')
+        throw new Error(intl.formatMessage({ id: 'files.editor.errors.loadFailed' }))
       }
 
       const data = await response.text()
       setContent(data)
       setOriginalContent(data)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to load file')
+      toast.error(error.message || intl.formatMessage({ id: 'files.editor.errors.loadFailed' }))
       onClose()
     } finally {
       setIsLoading(false)
@@ -65,14 +67,14 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save file')
+        throw new Error(intl.formatMessage({ id: 'files.editor.errors.saveFailed' }))
       }
 
       setOriginalContent(content)
-      toast.success('File saved successfully')
+      toast.success(intl.formatMessage({ id: 'files.editor.saveSuccess' }))
       onSave()
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save file')
+      toast.error(error.message || intl.formatMessage({ id: 'files.editor.errors.saveFailed' }))
     } finally {
       setIsSaving(false)
     }
@@ -80,7 +82,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
   const handleClose = () => {
     if (hasChanges) {
-      if (confirm('You have unsaved changes. Are you sure you want to close?')) {
+      if (confirm(intl.formatMessage({ id: 'files.editor.unsavedChangesWarning' }))) {
         onClose()
       }
     } else {
@@ -137,7 +139,9 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
-          <p className="text-foreground-muted">Loading file...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="files.editor.loadingFile" />
+          </p>
         </div>
       </div>
     )
@@ -152,7 +156,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
             <h2 className="font-medium text-foreground">{file.name}</h2>
             {hasChanges && (
               <span className="rounded bg-terminal-green/20 px-2 py-1 text-xs text-terminal-green">
-                Modified
+                <FormattedMessage id="files.editor.modified" />
               </span>
             )}
           </div>
@@ -163,21 +167,32 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
               disabled={!hasChanges || isSaving}
               className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-3 py-1.5 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? (
+                <FormattedMessage id="files.editor.saving" />
+              ) : (
+                <FormattedMessage id="files.editor.save" />
+              )}
             </button>
             <button
               onClick={handleClose}
               className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary"
             >
-              Close
+              <FormattedMessage id="files.editor.close" />
             </button>
           </div>
         </div>
 
         <div className="mt-2 flex items-center gap-4 text-xs text-foreground-muted">
           <span>{file.path}</span>
-          <span>Size: {file.size} bytes</span>
-          <span>Language: {getLanguageFromFilename(file.name)}</span>
+          <span>
+            <FormattedMessage id="files.editor.size" values={{ bytes: file.size }} />
+          </span>
+          <span>
+            <FormattedMessage
+              id="files.editor.language"
+              values={{ language: getLanguageFromFilename(file.name) }}
+            />
+          </span>
         </div>
       </div>
 
@@ -196,12 +211,21 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       <div className="border-t border-border bg-background-secondary px-4 py-2">
         <div className="flex items-center justify-between text-xs text-foreground-muted">
           <div className="flex items-center gap-4">
-            <span>Lines: {content.split('\n').length}</span>
-            <span>Characters: {content.length}</span>
+            <span>
+              <FormattedMessage
+                id="files.editor.lines"
+                values={{ count: content.split('\n').length }}
+              />
+            </span>
+            <span>
+              <FormattedMessage id="files.editor.characters" values={{ count: content.length }} />
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span>Ctrl+S to save</span>
+            <span>
+              <FormattedMessage id="files.editor.shortcut" />
+            </span>
             {hasChanges && <span className="text-terminal-green">●</span>}
           </div>
         </div>

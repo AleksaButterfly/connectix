@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -20,12 +21,17 @@ export default function ConfirmationModal({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   variant = 'danger',
   isLoading = false,
 }: ConfirmationModalProps) {
+  const intl = useIntl()
   const modalRef = useRef<HTMLDivElement>(null)
+
+  // Use provided text or default translations
+  const confirmButtonText = confirmText || intl.formatMessage({ id: 'common.confirm' })
+  const cancelButtonText = cancelText || intl.formatMessage({ id: 'common.cancel' })
 
   // Handle escape key
   useEffect(() => {
@@ -154,7 +160,7 @@ export default function ConfirmationModal({
               disabled={isLoading}
               className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {cancelText}
+              {cancelButtonText}
             </button>
             <button
               type="button"
@@ -164,11 +170,13 @@ export default function ConfirmationModal({
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-pulse">Processing</span>
+                  <span className="animate-pulse">
+                    <FormattedMessage id="common.processing" />
+                  </span>
                   <span className="animate-terminal-blink">_</span>
                 </span>
               ) : (
-                confirmText
+                confirmButtonText
               )}
             </button>
           </div>

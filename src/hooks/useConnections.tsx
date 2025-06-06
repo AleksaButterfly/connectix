@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react'
+import { useIntl } from '@/lib/i18n'
 import { connectionService } from '@/lib/connections/connection.service'
 import { useToast } from '@/components/ui/ToastContext'
 import type { ConnectionWithDetails } from '@/types/connection'
 
 interface UseConnectionsProps {
   organizationId: string
-  projectId?: string // Make projectId optional
+  projectId?: string
 }
 
 interface UseConnectionsReturn {
@@ -15,6 +16,10 @@ interface UseConnectionsReturn {
   loadConnections: () => Promise<void>
   deleteConnection: (connectionId: string) => Promise<void>
   testConnection: (connectionId: string) => Promise<void>
+  operationLoadingStates: {
+    testing: Set<string>
+    deleting: Set<string>
+  }
 }
 
 export function useConnections({
@@ -24,11 +29,18 @@ export function useConnections({
   const [connections, setConnections] = useState<ConnectionWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [operationLoadingStates, setOperationLoadingStates] = useState({
+    testing: new Set<string>(),
+    deleting: new Set<string>(),
+  })
+
   const { toast } = useToast()
+  const intl = useIntl()
 
   const loadConnections = useCallback(async () => {
     if (!organizationId) {
-      setError('Organization ID is required')
+      setError(intl.formatMessage({ id: 'connections.errors.organizationRequired' }))
       return
     }
 
@@ -39,66 +51,122 @@ export function useConnections({
       let connectionsData: ConnectionWithDetails[]
 
       if (projectId) {
-        // Fetch connections for specific project
         connectionsData = await connectionService.getProjectConnections(projectId)
       } else {
-        // Fetch connections for organization
         connectionsData = await connectionService.getOrganizationConnections(organizationId)
       }
 
       setConnections(connectionsData)
     } catch (err: any) {
       console.error('Error loading connections:', err)
-      setError(err.message || 'Failed to load connections')
-      toast.error(err.message || 'Failed to load connections')
+      const errorMessage =
+        err.message || intl.formatMessage({ id: 'connections.errors.loadFailed' })
+      setError(errorMessage)
+      toast.error(errorMessage)
       setConnections([])
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, projectId, toast])
+  }, [organizationId, projectId, toast, intl])
 
   const deleteConnection = useCallback(
     async (connectionId: string) => {
+      setOperationLoadingStates((prev) => ({
+        ...prev,
+        deleting: new Set(prev.deleting).add(connectionId),
+      }))
+
       try {
         await connectionService.deleteConnection(connectionId)
-        toast.success('Connection deleted successfully')
+        toast.success(intl.formatMessage({ id: 'connections.delete.success' }))
 
         // Remove from local state
         setConnections((prev) => prev.filter((conn) => conn.id !== connectionId))
       } catch (err: any) {
         console.error('Error deleting connection:', err)
-        toast.error(err.message || 'Failed to delete connection')
+        const errorMessage =
+          err.message || intl.formatMessage({ id: 'connections.errors.deleteFailed' })
+        toast.error(errorMessage)
         throw err
+      } finally {
+        setOperationLoadingStates((prev) => {
+          const newDeleting = new Set(prev.deleting)
+          newDeleting.delete(connectionId)
+          return { ...prev, deleting: newDeleting }
+        })
       }
     },
-    [toast]
+    [toast, intl]
   )
 
   const testConnection = useCallback(
     async (connectionId: string) => {
+      // Set loading state
+      setOperationLoadingStates((prev) => ({
+        ...prev,
+        testing: new Set(prev.testing).add(connectionId),
+      }))
+
       try {
+        // API call handles database update now
         const result = await connectionService.testExistingConnection(connectionId)
 
-        if (result.success) {
-          toast.success(`Connection test successful! Latency: ${result.latency_ms}ms`)
-        } else {
-          toast.error(`Connection test failed: ${result.error || 'Unknown error'}`)
-        }
+        toast.success(
+          intl.formatMessage(
+            {
+              id: 'connections.test.successWithLatency',
+            },
+            {
+              latency: result.latency_ms || 0,
+            }
+          )
+        )
 
-        // Reload connections to get updated test status
-        await loadConnections()
-
-        return result
+        setConnections((prev) =>
+          prev.map((conn) => {
+            if (conn.id === connectionId) {
+              return {
+                ...conn,
+                connection_test_status: result.success ? 'success' : 'failed',
+                last_test_at: new Date().toISOString(),
+                last_test_error: result.success ? null : result.error || null,
+              }
+            }
+            return conn
+          })
+        )
       } catch (err: any) {
         console.error('Error testing connection:', err)
-        toast.error(err.message || 'Connection test failed')
+        const errorMessage =
+          err.message || intl.formatMessage({ id: 'connections.errors.testFailed' })
+        toast.error(errorMessage)
 
-        // Still reload to get any status updates
-        await loadConnections()
+        setConnections((prev) =>
+          prev.map((conn) => {
+            if (conn.id === connectionId) {
+              return {
+                ...conn,
+                connection_test_status: 'failed',
+                last_test_at: new Date().toISOString(),
+                last_test_error:
+                  err.message || intl.formatMessage({ id: 'connections.errors.testFailed' }),
+              }
+            }
+            return conn
+          })
+        )
+
         throw err
+      } finally {
+        // Clear loading state
+        setOperationLoadingStates((prev) => {
+          const newTesting = new Set(prev.testing)
+          newTesting.delete(connectionId)
+          return { ...prev, testing: newTesting }
+        })
       }
     },
-    [toast, loadConnections]
+    [toast, intl]
   )
 
   return {
@@ -108,5 +176,6 @@ export function useConnections({
     loadConnections,
     deleteConnection,
     testConnection,
+    operationLoadingStates,
   }
 }

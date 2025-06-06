@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { ConnectionWithDetails } from '@/types/connection'
 
@@ -9,8 +8,9 @@ interface ConnectionDetailsProps {
   onEdit: () => void
   onDelete: () => void
   onTest: () => void
-  onBrowse?: () => void
+  onBrowse: () => void
   isTestingConnection?: boolean
+  isDeletingConnection?: boolean
 }
 
 export default function ConnectionDetails({
@@ -20,9 +20,9 @@ export default function ConnectionDetails({
   onTest,
   onBrowse,
   isTestingConnection = false,
+  isDeletingConnection = false,
 }: ConnectionDetailsProps) {
   const intl = useIntl()
-  const [showCredentials, setShowCredentials] = useState(false)
 
   const getStatusBadge = () => {
     if (!connection.connection_test_status || connection.connection_test_status === 'untested') {
@@ -59,91 +59,102 @@ export default function ConnectionDetails({
     const diffHours = Math.floor(diffMins / 60)
     const diffDays = Math.floor(diffHours / 24)
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins} minutes ago`
-    if (diffHours < 24) return `${diffHours} hours ago`
-    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffMins < 1) return intl.formatMessage({ id: 'common.time.justNow' })
+    if (diffMins < 60)
+      return intl.formatMessage({ id: 'common.time.minutesAgo' }, { minutes: diffMins })
+    if (diffHours < 24)
+      return intl.formatMessage({ id: 'common.time.hoursAgo' }, { hours: diffHours })
+    if (diffDays < 7) return intl.formatMessage({ id: 'common.time.daysAgo' }, { days: diffDays })
 
     return date.toLocaleDateString()
   }
 
   return (
-    <div className="w-full">
-      {/* Header with improved layout */}
-      <div className="mb-8">
-        {/* Title and Description Row */}
-        <div className="mb-4">
-          <h1 className="break-words text-3xl font-bold text-foreground">{connection.name}</h1>
+    <div>
+      {/* Header */}
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">{connection.name}</h1>
           {connection.description && (
             <p className="mt-2 text-foreground-muted">{connection.description}</p>
           )}
+          <div className="mt-4 flex items-center gap-4">
+            {getStatusBadge()}
+            {connection.project_name && (
+              <span className="text-sm text-terminal-green">{connection.project_name}</span>
+            )}
+          </div>
         </div>
 
-        {/* Status and Project Row */}
-        <div className="mb-4 flex flex-wrap items-center gap-4">
-          {getStatusBadge()}
-          {connection.project_name && (
-            <span className="text-sm text-terminal-green">{connection.project_name}</span>
-          )}
-        </div>
-
-        {/* Action Buttons Row */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
+          {/* Browse Files Button */}
           <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onTest()
-            }}
+            onClick={onBrowse}
+            disabled={isTestingConnection || isDeletingConnection}
+            className={`rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
+              isTestingConnection || isDeletingConnection
+                ? 'cursor-not-allowed opacity-75'
+                : 'text-foreground hover:bg-background-tertiary'
+            }`}
+          >
+            <FormattedMessage id="connections.actions.browseFiles" />
+          </button>
+
+          {/* Test Button with Loading State */}
+          <button
+            onClick={onTest}
             disabled={isTestingConnection}
-            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+            className={`relative flex min-w-[120px] items-center justify-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
+              isTestingConnection
+                ? 'cursor-not-allowed opacity-75'
+                : 'text-foreground hover:bg-background-tertiary'
+            }`}
           >
             {isTestingConnection ? (
-              <span className="flex items-center gap-2">
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <FormattedMessage id="connections.actions.testing" defaultMessage="Testing..." />
-              </span>
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground"></div>
+                <span>
+                  <FormattedMessage id="connections.actions.testing" />
+                </span>
+              </>
             ) : (
               <FormattedMessage id="connections.actions.test" />
             )}
           </button>
 
-          {onBrowse && (
-            <button
-              onClick={onBrowse}
-              className="rounded-lg border border-terminal-green/20 bg-terminal-green/10 px-4 py-2 text-sm font-medium text-terminal-green transition-colors hover:bg-terminal-green/20"
-            >
-              <FormattedMessage id="connections.actions.browse" defaultMessage="Browse Files" />
-            </button>
-          )}
-
+          {/* Edit Button */}
           <button
             onClick={onEdit}
-            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
+            disabled={isTestingConnection || isDeletingConnection}
+            className={`rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
+              isTestingConnection || isDeletingConnection
+                ? 'cursor-not-allowed opacity-75'
+                : 'text-foreground hover:bg-background-tertiary'
+            }`}
           >
             <FormattedMessage id="connections.actions.edit" />
           </button>
 
+          {/* Delete Button with Loading State */}
           <button
             onClick={onDelete}
-            className="rounded-lg border border-red-500/20 bg-background-secondary px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
+            disabled={isTestingConnection || isDeletingConnection}
+            className={`relative flex min-w-[120px] items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
+              isTestingConnection || isDeletingConnection
+                ? 'cursor-not-allowed opacity-75'
+                : 'text-red-500 hover:bg-red-500/10'
+            }`}
           >
-            <FormattedMessage id="connections.actions.delete" />
+            {isDeletingConnection ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500/20 border-t-red-500"></div>
+                <span>
+                  <FormattedMessage id="connections.actions.deleting" />
+                </span>
+              </>
+            ) : (
+              <FormattedMessage id="connections.actions.delete" />
+            )}
           </button>
         </div>
       </div>
@@ -156,14 +167,12 @@ export default function ConnectionDetails({
           </h2>
         </div>
         <div className="p-6">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
                 <FormattedMessage id="connections.form.hostLabel" />
               </dt>
-              <dd className="mt-1 break-all font-mono text-sm text-foreground">
-                {connection.host}
-              </dd>
+              <dd className="mt-1 font-mono text-sm text-foreground">{connection.host}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
@@ -175,9 +184,7 @@ export default function ConnectionDetails({
               <dt className="text-sm font-medium text-foreground-muted">
                 <FormattedMessage id="connections.form.usernameLabel" />
               </dt>
-              <dd className="mt-1 break-all font-mono text-sm text-foreground">
-                {connection.username}
-              </dd>
+              <dd className="mt-1 font-mono text-sm text-foreground">{connection.username}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-foreground-muted">
@@ -193,8 +200,10 @@ export default function ConnectionDetails({
 
           {/* SSH Command */}
           <div className="mt-6 rounded-lg bg-background p-4">
-            <p className="mb-2 text-xs font-medium text-foreground-muted">SSH Command</p>
-            <code className="block break-all font-mono text-sm text-terminal-green">
+            <p className="mb-2 text-xs font-medium text-foreground-muted">
+              <FormattedMessage id="connections.details.sshCommand" />
+            </p>
+            <code className="block font-mono text-sm text-terminal-green">
               $ ssh {connection.username}@{connection.host} -p {connection.port}
               {connection.proxy_jump && ` -J ${connection.proxy_jump}`}
             </code>
@@ -213,13 +222,13 @@ export default function ConnectionDetails({
             </h2>
           </div>
           <div className="p-6">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
               {connection.proxy_jump && (
-                <div className="sm:col-span-2">
+                <div className="col-span-2">
                   <dt className="text-sm font-medium text-foreground-muted">
                     <FormattedMessage id="connections.form.proxyJumpLabel" />
                   </dt>
-                  <dd className="mt-1 break-all font-mono text-sm text-foreground">
+                  <dd className="mt-1 font-mono text-sm text-foreground">
                     {connection.proxy_jump}
                   </dd>
                 </div>
@@ -228,20 +237,32 @@ export default function ConnectionDetails({
                 <dt className="text-sm font-medium text-foreground-muted">
                   <FormattedMessage id="connections.form.connectionTimeoutLabel" />
                 </dt>
-                <dd className="mt-1 text-sm text-foreground">{connection.connection_timeout}s</dd>
+                <dd className="mt-1 text-sm text-foreground">
+                  {intl.formatMessage(
+                    { id: 'common.seconds' },
+                    { count: connection.connection_timeout }
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-foreground-muted">
                   <FormattedMessage id="connections.form.keepaliveIntervalLabel" />
                 </dt>
-                <dd className="mt-1 text-sm text-foreground">{connection.keepalive_interval}s</dd>
+                <dd className="mt-1 text-sm text-foreground">
+                  {intl.formatMessage(
+                    { id: 'common.seconds' },
+                    { count: connection.keepalive_interval }
+                  )}
+                </dd>
               </div>
-              <div className="sm:col-span-2">
+              <div className="col-span-2">
                 <dt className="text-sm font-medium text-foreground-muted">
                   <FormattedMessage id="connections.form.strictHostCheckingLabel" />
                 </dt>
                 <dd className="mt-1 text-sm text-foreground">
-                  {connection.strict_host_checking ? 'Enabled' : 'Disabled'}
+                  {connection.strict_host_checking
+                    ? intl.formatMessage({ id: 'common.enabled' })
+                    : intl.formatMessage({ id: 'common.disabled' })}
                 </dd>
               </div>
             </dl>
@@ -252,44 +273,58 @@ export default function ConnectionDetails({
       {/* Metadata */}
       <div className="rounded-lg border border-border bg-background-secondary">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">Information</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            <FormattedMessage id="connections.details.information" />
+          </h2>
         </div>
         <div className="p-6">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <dt className="text-sm font-medium text-foreground-muted">Created by</dt>
+              <dt className="text-sm font-medium text-foreground-muted">
+                <FormattedMessage id="connections.details.createdBy" />
+              </dt>
               <dd className="mt-1 text-sm text-foreground">
-                {connection.created_by_username || 'Unknown'}
+                {connection.created_by_username || intl.formatMessage({ id: 'common.unknown' })}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-foreground-muted">Created</dt>
+              <dt className="text-sm font-medium text-foreground-muted">
+                <FormattedMessage id="connections.details.created" />
+              </dt>
               <dd className="mt-1 text-sm text-foreground">{formatDate(connection.created_at)}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-foreground-muted">Last used</dt>
+              <dt className="text-sm font-medium text-foreground-muted">
+                <FormattedMessage id="connections.details.lastUsed" />
+              </dt>
               <dd className="mt-1 text-sm text-foreground">
                 {formatDate(connection.last_used_at)}
               </dd>
             </div>
             {connection.last_used_by_username && (
               <div>
-                <dt className="text-sm font-medium text-foreground-muted">Last used by</dt>
+                <dt className="text-sm font-medium text-foreground-muted">
+                  <FormattedMessage id="connections.details.lastUsedBy" />
+                </dt>
                 <dd className="mt-1 text-sm text-foreground">{connection.last_used_by_username}</dd>
               </div>
             )}
             {connection.last_test_at && (
               <>
                 <div>
-                  <dt className="text-sm font-medium text-foreground-muted">Last tested</dt>
+                  <dt className="text-sm font-medium text-foreground-muted">
+                    <FormattedMessage id="connections.details.lastTested" />
+                  </dt>
                   <dd className="mt-1 text-sm text-foreground">
                     {formatDate(connection.last_test_at)}
                   </dd>
                 </div>
                 {connection.last_test_error && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-sm font-medium text-foreground-muted">Last test error</dt>
-                    <dd className="mt-1 break-words rounded bg-red-500/10 p-2 font-mono text-xs text-red-500">
+                  <div className="col-span-2">
+                    <dt className="text-sm font-medium text-foreground-muted">
+                      <FormattedMessage id="connections.details.lastTestError" />
+                    </dt>
+                    <dd className="mt-1 rounded bg-red-500/10 p-2 font-mono text-xs text-red-500">
                       {connection.last_test_error}
                     </dd>
                   </div>

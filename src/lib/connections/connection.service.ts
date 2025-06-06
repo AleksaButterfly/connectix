@@ -36,7 +36,6 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      console.error('Error fetching project connections:', error)
       throw error
     }
 
@@ -92,7 +91,6 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      console.error('Error fetching organization connections:', error)
       throw error
     }
 
@@ -141,7 +139,7 @@ export const connectionService = {
       if (error.code === 'PGRST116') {
         return null // Not found
       }
-      console.error('Error fetching connection:', error)
+
       throw error
     }
 
@@ -160,11 +158,6 @@ export const connectionService = {
     if (!input.project_id) {
       throw new Error('Project ID is required!')
     }
-
-    console.log('🔐 CLIENT: Creating connection via server API')
-    console.log('  Organization ID:', organizationId)
-    console.log('  Connection name:', input.name)
-    console.log('  Credentials keys:', Object.keys(input.credentials))
 
     try {
       // Call the server-side API that handles encryption
@@ -186,12 +179,8 @@ export const connectionService = {
         throw new Error(data.error || 'Failed to create connection')
       }
 
-      console.log('🔐 CLIENT: Connection created successfully')
-      console.log('  Connection ID:', data.id)
-
       return data
     } catch (error: any) {
-      console.error('❌ CLIENT: Connection creation error:', error)
       throw new Error(error.message || 'Failed to create connection')
     }
   },
@@ -203,12 +192,6 @@ export const connectionService = {
   ): Promise<Connection> {
     if (!connectionId) {
       throw new Error('Connection ID is required!')
-    }
-
-    console.log('🔐 CLIENT: Updating connection via server API')
-    console.log('  Connection ID:', connectionId)
-    if (updates.credentials) {
-      console.log('  Updating credentials keys:', Object.keys(updates.credentials))
     }
 
     try {
@@ -228,10 +211,8 @@ export const connectionService = {
         throw new Error(data.error || 'Failed to update connection')
       }
 
-      console.log('🔐 CLIENT: Connection updated successfully')
       return data
     } catch (error: any) {
-      console.error('❌ CLIENT: Connection update error:', error)
       throw new Error(error.message || 'Failed to update connection')
     }
   },
@@ -246,7 +227,6 @@ export const connectionService = {
     const { error } = await supabase.from('connections').delete().eq('id', connectionId)
 
     if (error) {
-      console.error('Error deleting connection:', error)
       throw error
     }
   },
@@ -271,8 +251,6 @@ export const connectionService = {
 
       return data
     } catch (error: any) {
-      console.error('Test connection error:', error)
-
       return {
         success: false,
         message: error.message || 'Connection test failed',
@@ -283,31 +261,55 @@ export const connectionService = {
 
   // Test an existing connection
   async testExistingConnection(connectionId: string): Promise<TestConnectionResult> {
-    try {
-      const response = await fetch(`/api/connections/${connectionId}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Connection test failed')
-      }
-
-      return data
-    } catch (error: any) {
-      console.error('Test existing connection error:', error)
-
-      return {
-        success: false,
-        message: error.message || 'Connection test failed',
-        error: error.message,
-      }
+    if (!connectionId) {
+      throw new Error('Connection ID is required!')
     }
+
+    // Call the API endpoint (which now only tests, doesn't update DB)
+    const response = await fetch(`/api/connections/${connectionId}/test`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+
+      try {
+        const supabase = createClient()
+        await supabase
+          .from('connections')
+          .update({
+            connection_test_status: 'failed',
+            last_test_at: new Date().toISOString(),
+            last_test_error: errorData.error || errorData.message || 'Connection test failed',
+          })
+          .eq('id', connectionId)
+      } catch (dbError) {
+        console.warn('Failed to update connection test status in DB:', dbError)
+      }
+
+      throw new Error(errorData.message || 'Connection test failed')
+    }
+
+    const result = await response.json()
+
+    try {
+      const supabase = createClient()
+      await supabase
+        .from('connections')
+        .update({
+          connection_test_status: result.success ? 'success' : 'failed',
+          last_test_at: new Date().toISOString(),
+          last_test_error: result.success ? null : result.error,
+        })
+        .eq('id', connectionId)
+    } catch (dbError) {
+      console.warn('Failed to update connection test status in DB:', dbError)
+    }
+
+    return result
   },
 
   // Get active sessions for a connection
@@ -326,7 +328,6 @@ export const connectionService = {
       .order('started_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching connection sessions:', error)
       throw error
     }
 
@@ -352,7 +353,6 @@ export const connectionService = {
       .limit(limit)
 
     if (error) {
-      console.error('Error fetching activity logs:', error)
       throw error
     }
 
@@ -379,7 +379,6 @@ export const connectionService = {
     })
 
     if (error) {
-      console.error('Error checking connection access:', error)
       return false
     }
 
@@ -406,7 +405,6 @@ export const connectionService = {
     })
 
     if (error) {
-      console.error('Error checking connection manage access:', error)
       return false
     }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useConnections } from '@/hooks/useConnections'
@@ -18,21 +18,32 @@ export default function SingleConnectionPage() {
   const connectionId = params.connectionId as string
 
   const { toast } = useToast()
-  const [isTestingConnection, setIsTestingConnection] = useState<string | null>(null)
 
   if (!orgId || !projectId || !connectionId) {
     return (
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Missing Parameters</h2>
-          <p className="mb-4 text-foreground-muted">Required URL parameters are missing.</p>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.errors.missingParameters" />
+          </h2>
+          <p className="mb-4 text-foreground-muted">
+            <FormattedMessage id="connections.errors.requiredParametersMissing" />
+          </p>
         </div>
       </div>
     )
   }
 
-  const { connections, isLoading, loadConnections, deleteConnection } = useConnections({
+  // ✅ FIXED: Use the updated hook with operationLoadingStates
+  const {
+    connections,
+    isLoading,
+    loadConnections,
+    deleteConnection,
+    testConnection,
+    operationLoadingStates,
+  } = useConnections({
     organizationId: orgId,
     projectId: projectId,
   })
@@ -43,9 +54,11 @@ export default function SingleConnectionPage() {
   useEffect(() => {
     loadConnections().catch((error) => {
       console.error('Failed to load connections:', error)
-      toast.error('Failed to load connections: ' + error.message)
+      toast.error(
+        intl.formatMessage({ id: 'connections.errors.loadFailed' }) + ': ' + error.message
+      )
     })
-  }, [loadConnections, toast])
+  }, [loadConnections, toast, intl])
 
   // Find the selected connection from URL - no state needed!
   const selectedConnection = connections.find((conn) => conn.id === connectionId) || null
@@ -115,37 +128,15 @@ export default function SingleConnectionPage() {
     })
   }
 
+  // ✅ FIXED: Use the hook's testConnection method instead of manual API calls
   const handleTest = async (connection: ConnectionWithDetails) => {
-    if (isTestingConnection === connection.id) return // Prevent double clicks
-
-    setIsTestingConnection(connection.id)
-
     try {
-      const response = await fetch(`/api/connections/${connection.id}/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        toast.success(`Connection test successful! Latency: ${result.latency_ms}ms`)
-      } else {
-        toast.error(`Connection test failed: ${result.error || 'Unknown error'}`)
-      }
-
-      // Only refresh data if the test completed (success or failure)
-      // This prevents unnecessary re-renders
-      if (response.ok) {
-        await loadConnections()
-      }
+      await testConnection(connection.id)
+      // ✅ Success message and state updates are handled by the hook
+      // ❌ REMOVED: No more loadConnections() call - this was causing the flash!
     } catch (error: any) {
+      // ✅ Error handling is already done by the hook
       console.error('Test connection error:', error)
-      toast.error('Connection test failed: ' + error.message)
-    } finally {
-      setIsTestingConnection(null)
     }
   }
 
@@ -242,6 +233,8 @@ export default function SingleConnectionPage() {
                 {connections.map((connection) => {
                   const status = getConnectionStatus(connection)
                   const isSelected = selectedConnection?.id === connection.id
+                  // ✅ FIXED: Use the hook's loading states instead of manual state
+                  const isTestingThisConnection = operationLoadingStates.testing.has(connection.id)
 
                   return (
                     <div
@@ -256,15 +249,26 @@ export default function SingleConnectionPage() {
                         {/* Main connection button */}
                         <button
                           onClick={() => handleSelectConnection(connection)}
-                          className="min-w-0 flex-1 p-3 text-left"
+                          disabled={isTestingThisConnection}
+                          className={`min-w-0 flex-1 p-3 text-left ${
+                            isTestingThisConnection ? 'opacity-75' : ''
+                          }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className={`flex-shrink-0 text-xs ${status.color}`}>
-                              {status.icon}
-                            </span>
+                            {/* ✅ Show loading spinner for the connection being tested */}
+                            {isTestingThisConnection ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border border-terminal-green/20 border-t-terminal-green"></div>
+                            ) : (
+                              <span className={`flex-shrink-0 text-xs ${status.color}`}>
+                                {status.icon}
+                              </span>
+                            )}
                             <h3 className="truncate font-medium text-foreground">
                               {connection.name}
                             </h3>
+                            {isTestingThisConnection && (
+                              <span className="text-xs text-terminal-green">Testing...</span>
+                            )}
                           </div>
                           <p className="mt-0.5 truncate text-xs text-foreground-muted">
                             {connection.username}@{connection.host}:{connection.port}
@@ -283,8 +287,13 @@ export default function SingleConnectionPage() {
                             e.stopPropagation()
                             handleBrowse(connection)
                           }}
-                          className="mr-3 flex-shrink-0 rounded px-2 py-1 text-xs text-terminal-green opacity-0 transition-opacity hover:bg-terminal-green/10 group-hover:opacity-100"
-                          title="Browse Files"
+                          disabled={isTestingThisConnection}
+                          className={`mr-3 flex-shrink-0 rounded px-2 py-1 text-xs text-terminal-green transition-opacity hover:bg-terminal-green/10 ${
+                            isTestingThisConnection
+                              ? 'cursor-not-allowed opacity-50'
+                              : 'opacity-0 group-hover:opacity-100'
+                          }`}
+                          title={intl.formatMessage({ id: 'connections.actions.browseFiles' })}
                         >
                           📁
                         </button>
@@ -310,7 +319,9 @@ export default function SingleConnectionPage() {
                   onDelete={() => handleDelete(selectedConnection)}
                   onTest={() => handleTest(selectedConnection)}
                   onBrowse={() => handleBrowse(selectedConnection)}
-                  isTestingConnection={isTestingConnection === selectedConnection.id}
+                  // ✅ FIXED: Use the hook's loading states
+                  isTestingConnection={operationLoadingStates.testing.has(selectedConnection.id)}
+                  isDeletingConnection={operationLoadingStates.deleting.has(selectedConnection.id)}
                 />
               </div>
             ) : (
@@ -330,10 +341,10 @@ export default function SingleConnectionPage() {
                     />
                   </svg>
                   <h2 className="mb-2 text-xl font-semibold text-foreground">
-                    Connection Not Found
+                    <FormattedMessage id="connections.notFound.title" />
                   </h2>
                   <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
-                    The requested connection could not be found.
+                    <FormattedMessage id="connections.notFound.description" />
                   </p>
                   <button onClick={handleCreateNew} className="btn-primary">
                     <FormattedMessage id="connections.empty.createButton" />
