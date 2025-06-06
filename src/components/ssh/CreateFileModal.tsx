@@ -1,129 +1,116 @@
 'use client'
 
-import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface CreateFileModalProps {
-  isOpen: boolean
   onClose: () => void
-  onConfirm: (name: string, type: 'file' | 'folder') => Promise<void>
-  currentPath: string
+  onCreate: (name: string, content?: string) => Promise<void>
 }
 
-export function CreateFileModal({ isOpen, onClose, onConfirm, currentPath }: CreateFileModalProps) {
+export function CreateFileModal({ onClose, onCreate }: CreateFileModalProps) {
   const intl = useIntl()
-  const [name, setName] = useState('')
-  const [type, setType] = useState<'file' | 'folder'>('file')
-  const [isCreating, setIsCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Validation schema
+  const createFileSchema = z.object({
+    name: z
+      .string()
+      .min(1, intl.formatMessage({ id: 'files.validation.nameRequired' }))
+      .max(255, intl.formatMessage({ id: 'files.validation.nameTooLong' }))
+      .regex(/^[^/\\]+$/, intl.formatMessage({ id: 'files.validation.invalidCharacters' }))
+      .refine(
+        (name) => !(name === '.' || name === '..'),
+        intl.formatMessage({ id: 'files.validation.invalidName' })
+      ),
+    content: z.string().optional(),
+  })
 
-    if (!name.trim()) {
-      setError('Name is required')
-      return
-    }
+  type CreateFileFormData = z.infer<typeof createFileSchema>
 
-    // Basic validation
-    if (name.includes('/') || name.includes('\\')) {
-      setError('Name cannot contain / or \\ characters')
-      return
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<CreateFileFormData>({
+    resolver: zodResolver(createFileSchema),
+    defaultValues: {
+      name: '',
+      content: '',
+    },
+  })
 
-    if (name.startsWith('.') && name.length < 2) {
-      setError('Invalid name')
-      return
-    }
-
+  const onSubmit = async (data: CreateFileFormData) => {
     try {
-      setIsCreating(true)
-      setError(null)
-      await onConfirm(name.trim(), type)
-      handleClose()
-    } catch (err: any) {
-      setError(err.message || `Failed to create ${type}`)
-    } finally {
-      setIsCreating(false)
+      await onCreate(data.name.trim(), data.content)
+      onClose()
+    } catch (error: any) {
+      setError('root', {
+        message: error.message || intl.formatMessage({ id: 'files.errors.createFailed' }),
+      })
     }
   }
 
   const handleClose = () => {
-    setName('')
-    setType('file')
-    setError(null)
-    setIsCreating(false)
-    onClose()
+    if (!isSubmitting) {
+      onClose()
+    }
   }
-
-  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-lg border border-border bg-background p-6">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          <FormattedMessage id="files.create.title" />
+          <FormattedMessage id="files.createFile.title" />
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Type Selection */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">
-              <FormattedMessage id="files.create.type" />
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  value="file"
-                  checked={type === 'file'}
-                  onChange={(e) => setType(e.target.value as 'file' | 'folder')}
-                  className="text-terminal-green focus:ring-terminal-green"
-                />
-                <span className="text-sm text-foreground">
-                  📄 <FormattedMessage id="files.create.file" />
-                </span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  value="folder"
-                  checked={type === 'folder'}
-                  onChange={(e) => setType(e.target.value as 'file' | 'folder')}
-                  className="text-terminal-green focus:ring-terminal-green"
-                />
-                <span className="text-sm text-foreground">
-                  📁 <FormattedMessage id="files.create.folder" />
-                </span>
-              </label>
-            </div>
-          </div>
-
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Name Input */}
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground">
-              <FormattedMessage id="files.create.name" />
+              <FormattedMessage id="files.createFile.nameLabel" />
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={type === 'file' ? 'filename.txt' : 'folder-name'}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-foreground-muted focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green"
+              {...register('name')}
+              placeholder={intl.formatMessage({ id: 'files.createFile.namePlaceholder' })}
+              className={`w-full rounded-md border px-3 py-2 text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-1 ${
+                errors.name
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : 'border-border bg-background focus:border-terminal-green focus:ring-terminal-green'
+              }`}
               autoFocus
-              disabled={isCreating}
+              disabled={isSubmitting}
             />
+            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
+            <p className="mt-1 text-xs text-foreground-muted">
+              <FormattedMessage id="files.createFile.nameHint" />
+            </p>
           </div>
 
-          {/* Current Path */}
-          <div className="text-xs text-foreground-muted">
-            <FormattedMessage id="files.create.location" />: {currentPath || '/'}
+          {/* Initial Content (Optional) */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              <FormattedMessage id="files.createFile.contentLabel" />
+            </label>
+            <textarea
+              {...register('content')}
+              placeholder={intl.formatMessage({ id: 'files.createFile.contentPlaceholder' })}
+              rows={4}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground placeholder:text-foreground-muted focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green"
+              disabled={isSubmitting}
+            />
+            <p className="mt-1 text-xs text-foreground-muted">
+              <FormattedMessage id="files.createFile.contentHint" />
+            </p>
           </div>
 
-          {/* Error Message */}
-          {error && (
+          {/* Root Error */}
+          {errors.root && (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-              {error}
+              {errors.root.message}
             </div>
           )}
 
@@ -132,26 +119,23 @@ export function CreateFileModal({ isOpen, onClose, onConfirm, currentPath }: Cre
             <button
               type="button"
               onClick={handleClose}
-              disabled={isCreating}
+              disabled={isSubmitting}
               className="flex-1 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-background-secondary focus:outline-none focus:ring-2 focus:ring-terminal-green focus:ring-offset-2 disabled:opacity-50"
             >
               <FormattedMessage id="common.cancel" />
             </button>
             <button
               type="submit"
-              disabled={isCreating || !name.trim()}
+              disabled={isSubmitting}
               className="hover:bg-terminal-green-hover flex-1 rounded-md bg-terminal-green px-4 py-2 text-sm font-medium text-background focus:outline-none focus:ring-2 focus:ring-terminal-green focus:ring-offset-2 disabled:opacity-50"
             >
-              {isCreating ? (
+              {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                  <FormattedMessage id="common.creating" />
+                  <FormattedMessage id="files.createFile.creating" />
                 </div>
               ) : (
-                <FormattedMessage
-                  id="files.create.confirm"
-                  values={{ type: type === 'file' ? 'File' : 'Folder' }}
-                />
+                <FormattedMessage id="files.createFile.createButton" />
               )}
             </button>
           </div>

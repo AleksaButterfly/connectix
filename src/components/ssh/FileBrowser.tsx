@@ -10,6 +10,7 @@ import { CreateFolderModal } from './CreateFolderModal'
 import { RenameModal } from './RenameModal'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { useToast } from '@/components/ui/ToastContext'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { FileInfo } from '@/types/ssh'
 
 interface FileBrowserProps {
@@ -31,6 +32,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
   const { confirm, ConfirmationModal } = useConfirmation()
   const { toast } = useToast()
+  const intl = useIntl()
 
   // Load files when path changes
   const loadFiles = useCallback(async () => {
@@ -48,7 +50,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       )
 
       if (!response.ok) {
-        throw new Error('Failed to load files')
+        throw new Error(intl.formatMessage({ id: 'files.errors.loadFailed' }))
       }
 
       const data = await response.json()
@@ -56,11 +58,11 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       setFiles(data.files || [])
       setSelectedFiles(new Set())
     } catch (error: any) {
-      toast.error(error.message || 'Failed to load files')
+      toast.error(error.message || intl.formatMessage({ id: 'files.errors.loadFailed' }))
     } finally {
       setIsLoading(false)
     }
-  }, [sessionToken, currentPath, connectionId, toast])
+  }, [sessionToken, currentPath, connectionId, toast, intl])
 
   useEffect(() => {
     if (sessionToken) {
@@ -95,9 +97,9 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
     if (!sessionToken) return
 
     confirm({
-      title: 'Delete Files',
-      message: `Are you sure you want to delete ${filePaths.length} file(s)?`,
-      confirmText: 'Delete',
+      title: intl.formatMessage({ id: 'files.delete.title' }),
+      message: intl.formatMessage({ id: 'files.delete.message' }, { count: filePaths.length }),
+      confirmText: intl.formatMessage({ id: 'files.delete.confirmButton' }),
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -112,91 +114,90 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
             )
           )
 
-          toast.success('Files deleted successfully')
+          toast.success(intl.formatMessage({ id: 'files.delete.success' }))
           loadFiles()
         } catch (error: any) {
-          toast.error(error.message || 'Failed to delete files')
+          toast.error(error.message || intl.formatMessage({ id: 'files.errors.deleteFailed' }))
         }
       },
     })
   }
 
   const handleRenameFile = async (oldPath: string, newName: string) => {
-    if (!sessionToken) return
-
-    try {
-      const newPath = oldPath.substring(0, oldPath.lastIndexOf('/') + 1) + newName
-
-      const response = await fetch(`/api/connections/${connectionId}/files/rename`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-token': sessionToken,
-        },
-        body: JSON.stringify({ oldPath, newPath }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to rename file')
-      }
-
-      toast.success('File renamed successfully')
-      loadFiles()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to rename file')
+    if (!sessionToken) {
+      throw new Error(intl.formatMessage({ id: 'files.errors.noSession' }))
     }
+
+    const newPath = oldPath.substring(0, oldPath.lastIndexOf('/') + 1) + newName
+
+    const response = await fetch(`/api/connections/${connectionId}/files/rename`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': sessionToken,
+      },
+      body: JSON.stringify({ oldPath, newPath }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.message || intl.formatMessage({ id: 'files.errors.renameFailed' }))
+    }
+
+    toast.success(intl.formatMessage({ id: 'files.rename.success' }))
+    loadFiles()
   }
 
-  const handleCreateFile = async (name: string, content: string = '') => {
-    if (!sessionToken) return
-
-    try {
-      const filePath = currentPath.endsWith('/') ? currentPath + name : currentPath + '/' + name
-
-      const response = await fetch(`/api/connections/${connectionId}/files${filePath}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-token': sessionToken,
-        },
-        body: JSON.stringify({ content }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create file')
-      }
-
-      toast.success('File created successfully')
-      loadFiles()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create file')
+  const handleCreateFile = async (name: string, content?: string) => {
+    if (!sessionToken) {
+      throw new Error(intl.formatMessage({ id: 'files.errors.noSession' }))
     }
+
+    const filePath = currentPath.endsWith('/') ? currentPath + name : currentPath + '/' + name
+
+    const response = await fetch(`/api/connections/${connectionId}/files${filePath}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': sessionToken,
+      },
+      body: JSON.stringify({ content: content || '' }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.message || intl.formatMessage({ id: 'files.errors.createFailed' }))
+    }
+
+    toast.success(intl.formatMessage({ id: 'files.createFile.success' }))
+    loadFiles()
   }
 
   const handleCreateFolder = async (name: string) => {
-    if (!sessionToken) return
-
-    try {
-      const folderPath = currentPath.endsWith('/') ? currentPath + name : currentPath + '/' + name
-
-      const response = await fetch(`/api/connections/${connectionId}/files/mkdir`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-token': sessionToken,
-        },
-        body: JSON.stringify({ path: folderPath }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create folder')
-      }
-
-      toast.success('Folder created successfully')
-      loadFiles()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create folder')
+    if (!sessionToken) {
+      throw new Error(intl.formatMessage({ id: 'files.errors.noSession' }))
     }
+
+    const folderPath = currentPath.endsWith('/') ? currentPath + name : currentPath + '/' + name
+
+    const response = await fetch(`/api/connections/${connectionId}/files/mkdir`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-token': sessionToken,
+      },
+      body: JSON.stringify({ path: folderPath }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(
+        error.message || intl.formatMessage({ id: 'files.errors.createFolderFailed' })
+      )
+    }
+
+    toast.success(intl.formatMessage({ id: 'files.createFolder.success' }))
+    loadFiles()
   }
 
   const handleFileUpload = async (files: FileList) => {
@@ -208,20 +209,26 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         formData.append('file', file)
         formData.append('path', currentPath)
 
-        return fetch(`/api/connections/${connectionId}/files/upload`, {
+        const response = await fetch(`/api/connections/${connectionId}/files/upload`, {
           method: 'POST',
           headers: {
             'x-session-token': sessionToken,
           },
           body: formData,
         })
+
+        if (!response.ok) {
+          throw new Error(intl.formatMessage({ id: 'files.errors.uploadFailed' }))
+        }
+
+        return response
       })
 
       await Promise.all(uploadPromises)
-      toast.success('Files uploaded successfully')
+      toast.success(intl.formatMessage({ id: 'files.upload.success' }))
       loadFiles()
     } catch (error: any) {
-      toast.error(error.message || 'Failed to upload files')
+      toast.error(error.message || intl.formatMessage({ id: 'files.errors.uploadFailed' }))
     }
   }
 
@@ -231,7 +238,9 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
-          <p className="text-foreground-muted">Establishing SSH connection...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="files.browser.establishingConnection" />
+          </p>
         </div>
       </div>
     )
@@ -266,13 +275,13 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
               onClick={() => setShowCreateFile(true)}
               className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-3 py-1.5 text-sm font-medium text-background"
             >
-              New File
+              <FormattedMessage id="files.browser.newFile" />
             </button>
             <button
               onClick={() => setShowCreateFolder(true)}
               className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary"
             >
-              New Folder
+              <FormattedMessage id="files.browser.newFolder" />
             </button>
             <FileUpload onUpload={handleFileUpload} />
 
@@ -285,7 +294,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
                     : 'text-foreground hover:bg-background-secondary'
                 }`}
               >
-                List
+                <FormattedMessage id="files.browser.listView" />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
@@ -295,7 +304,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
                     : 'text-foreground hover:bg-background-secondary'
                 }`}
               >
-                Grid
+                <FormattedMessage id="files.browser.gridView" />
               </button>
             </div>
 
@@ -303,7 +312,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
               onClick={onDisconnect}
               className="rounded-lg border border-red-500/20 bg-background px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-500/10"
             >
-              Disconnect
+              <FormattedMessage id="files.browser.disconnect" />
             </button>
           </div>
         </div>
@@ -311,19 +320,22 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         {selectedFiles.size > 0 && (
           <div className="mt-3 flex items-center gap-2 rounded-lg bg-terminal-green/10 px-3 py-2">
             <span className="text-sm text-terminal-green">
-              {selectedFiles.size} file(s) selected
+              <FormattedMessage
+                id="files.browser.filesSelected"
+                values={{ count: selectedFiles.size }}
+              />
             </span>
             <button
               onClick={() => handleDeleteFiles(Array.from(selectedFiles))}
               className="ml-auto rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
             >
-              Delete
+              <FormattedMessage id="files.browser.delete" />
             </button>
             <button
               onClick={() => setSelectedFiles(new Set())}
               className="rounded bg-background-tertiary px-2 py-1 text-xs text-foreground hover:bg-background"
             >
-              Clear
+              <FormattedMessage id="files.browser.clear" />
             </button>
           </div>
         )}
