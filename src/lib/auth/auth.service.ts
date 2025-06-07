@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessageKey } from '@/lib/errors/error-messages'
 
 export class AuthService {
   private supabase = createClient()
@@ -44,26 +45,12 @@ export class AuthService {
 
       return { data, error: null }
     } catch (error: any) {
-      // Map database errors to user-friendly messages
-      let message = error.message || 'An unexpected error occurred'
-
-      if (message === 'username_taken') {
-        message = 'This username is already taken'
-      } else if (
-        message.includes('Database error saving new user') ||
-        message.includes('duplicate key value') ||
-        message.includes('unique constraint') ||
-        message.includes('23505')
-      ) {
-        // This is likely a username conflict from the database trigger
-        message = 'This username is already taken'
-      } else if (message.includes('User already registered')) {
-        message = 'This email is already registered'
-      }
+      // Use the helper to get translation key
+      const messageKey = getErrorMessageKey(error)
 
       return {
         data: null,
-        error: { message },
+        error: { message: messageKey },
       }
     }
   }
@@ -85,8 +72,14 @@ export class AuthService {
       }
 
       return { data, error: null }
-    } catch (error) {
-      return { data: null, error }
+    } catch (error: any) {
+      // Use the helper to get translation key
+      const messageKey = getErrorMessageKey(error)
+
+      return {
+        data: null,
+        error: { message: messageKey },
+      }
     }
   }
 

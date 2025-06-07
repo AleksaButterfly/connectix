@@ -78,12 +78,6 @@ class SSHConnectionManager {
         connectConfig.passphrase = config.credentials.passphrase
       }
 
-      // Handle proxy jump if configured
-      if (config.proxy_jump) {
-        // Implement proxy jump logic here
-        // This would require parsing the proxy_jump string and creating a tunnel
-      }
-
       client.on('ready', async () => {
         try {
           // Initialize SFTP

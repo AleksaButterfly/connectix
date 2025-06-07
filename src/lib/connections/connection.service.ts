@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessageKey } from '@/lib/errors/error-messages'
 import type {
   Connection,
   ConnectionWithDetails,
@@ -14,7 +15,7 @@ export const connectionService = {
   // Get all connections for a project
   async getProjectConnections(projectId: string): Promise<ConnectionWithDetails[]> {
     if (!projectId) {
-      throw new Error('Project ID is required!')
+      throw new Error('connections.error.projectIdRequired')
     }
 
     const supabase = createClient()
@@ -36,7 +37,7 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     // Fetch user details separately since the foreign key might be missing
@@ -69,7 +70,7 @@ export const connectionService = {
   // Get all connections for an organization (across all projects)
   async getOrganizationConnections(organizationId: string): Promise<ConnectionWithDetails[]> {
     if (!organizationId) {
-      throw new Error('Organization ID is required!')
+      throw new Error('connections.error.organizationIdRequired')
     }
 
     const supabase = createClient()
@@ -91,7 +92,7 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     // Fetch user details
@@ -124,7 +125,7 @@ export const connectionService = {
   // Get a single connection
   async getConnection(connectionId: string): Promise<Connection | null> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     const supabase = createClient()
@@ -140,7 +141,7 @@ export const connectionService = {
         return null // Not found
       }
 
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data
@@ -152,11 +153,11 @@ export const connectionService = {
     input: CreateConnectionInput
   ): Promise<Connection> {
     if (!organizationId) {
-      throw new Error('Organization ID is required!')
+      throw new Error('connections.error.organizationIdRequired')
     }
 
     if (!input.project_id) {
-      throw new Error('Project ID is required!')
+      throw new Error('connections.error.projectIdRequired')
     }
 
     try {
@@ -176,12 +177,17 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create connection')
+        // Check for specific error codes in the response
+        const errorKey = getErrorMessageKey({ message: data.error })
+        throw new Error(errorKey)
       }
 
       return data
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to create connection')
+      // If it's already a translation key, use it, otherwise map it
+      const message = error.message || 'connections.error.createFailed'
+      const errorKey = message.includes('.error.') ? message : getErrorMessageKey(error)
+      throw new Error(errorKey)
     }
   },
 
@@ -191,7 +197,7 @@ export const connectionService = {
     updates: UpdateConnectionInput
   ): Promise<Connection> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     try {
@@ -208,26 +214,30 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update connection')
+        const errorKey = getErrorMessageKey({ message: data.error })
+        throw new Error(errorKey)
       }
 
       return data
     } catch (error: any) {
-      throw new Error(error.message || 'Failed to update connection')
+      // If it's already a translation key, use it, otherwise map it
+      const message = error.message || 'connections.error.updateFailed'
+      const errorKey = message.includes('.error.') ? message : getErrorMessageKey(error)
+      throw new Error(errorKey)
     }
   },
 
   // Delete a connection
   async deleteConnection(connectionId: string): Promise<void> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     const supabase = createClient()
     const { error } = await supabase.from('connections').delete().eq('id', connectionId)
 
     if (error) {
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
   },
 
@@ -246,15 +256,17 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Connection test failed')
+        const errorKey = getErrorMessageKey({ message: data.error || data.message })
+        throw new Error(errorKey)
       }
 
       return data
     } catch (error: any) {
+      const errorKey = getErrorMessageKey(error)
       return {
         success: false,
-        message: error.message || 'Connection test failed',
-        error: error.message,
+        message: errorKey,
+        error: errorKey,
       }
     }
   },
@@ -262,7 +274,7 @@ export const connectionService = {
   // Test an existing connection
   async testExistingConnection(connectionId: string): Promise<TestConnectionResult> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     // Call the API endpoint (which now only tests, doesn't update DB)
@@ -275,6 +287,7 @@ export const connectionService = {
 
     if (!response.ok) {
       const errorData = await response.json()
+      const errorKey = getErrorMessageKey({ message: errorData.error || errorData.message })
 
       try {
         const supabase = createClient()
@@ -283,14 +296,14 @@ export const connectionService = {
           .update({
             connection_test_status: 'failed',
             last_test_at: new Date().toISOString(),
-            last_test_error: errorData.error || errorData.message || 'Connection test failed',
+            last_test_error: errorKey,
           })
           .eq('id', connectionId)
       } catch (dbError) {
-        console.warn('Failed to update connection test status in DB:', dbError)
+        // Silent fail - don't throw another error
       }
 
-      throw new Error(errorData.message || 'Connection test failed')
+      throw new Error(errorKey)
     }
 
     const result = await response.json()
@@ -302,11 +315,11 @@ export const connectionService = {
         .update({
           connection_test_status: result.success ? 'success' : 'failed',
           last_test_at: new Date().toISOString(),
-          last_test_error: result.success ? null : result.error,
+          last_test_error: result.success ? null : getErrorMessageKey({ message: result.error }),
         })
         .eq('id', connectionId)
     } catch (dbError) {
-      console.warn('Failed to update connection test status in DB:', dbError)
+      // Silent fail - don't throw another error
     }
 
     return result
@@ -315,7 +328,7 @@ export const connectionService = {
   // Get active sessions for a connection
   async getConnectionSessions(connectionId: string): Promise<ConnectionSession[]> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     const supabase = createClient()
@@ -328,7 +341,7 @@ export const connectionService = {
       .order('started_at', { ascending: false })
 
     if (error) {
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data || []
@@ -340,7 +353,7 @@ export const connectionService = {
     limit = 50
   ): Promise<ConnectionActivityLog[]> {
     if (!connectionId) {
-      throw new Error('Connection ID is required!')
+      throw new Error('connections.error.connectionIdRequired')
     }
 
     const supabase = createClient()
@@ -353,7 +366,7 @@ export const connectionService = {
       .limit(limit)
 
     if (error) {
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data || []

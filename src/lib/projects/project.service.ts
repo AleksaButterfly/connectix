@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessageKey } from '@/lib/errors/error-messages'
 import type {
   Project,
   ProjectWithDetails,
@@ -15,7 +16,7 @@ export const projectService = {
       org_id: organizationId,
     })
 
-    if (error) throw error
+    if (error) throw new Error(getErrorMessageKey(error))
     return data || []
   },
 
@@ -26,7 +27,7 @@ export const projectService = {
 
     if (error) {
       if (error.code === 'PGRST116') return null // Not found
-      throw error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data
@@ -37,7 +38,7 @@ export const projectService = {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    if (!user) throw new Error('auth.error.notAuthenticated')
 
     // Generate slug from name
     const slug = input.name
@@ -60,11 +61,8 @@ export const projectService = {
       .single()
 
     if (error) {
-      // Handle duplicate slug error
-      if (error.code === '23505' && error.message.includes('projects_organization_id_slug_key')) {
-        throw new Error('A project with this name already exists in this organization')
-      }
-      throw error
+      // The error mapping will handle the duplicate slug error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data
@@ -99,11 +97,8 @@ export const projectService = {
       .single()
 
     if (error) {
-      // Handle duplicate slug error
-      if (error.code === '23505' && error.message.includes('projects_organization_id_slug_key')) {
-        throw new Error('A project with this name already exists in this organization')
-      }
-      throw error
+      // The error mapping will handle the duplicate slug error
+      throw new Error(getErrorMessageKey(error))
     }
 
     return data
@@ -113,7 +108,7 @@ export const projectService = {
     const supabase = createClient()
     const { error } = await supabase.from('projects').delete().eq('id', projectId)
 
-    if (error) throw error
+    if (error) throw new Error(getErrorMessageKey(error))
   },
 
   async checkProjectAccess(projectId: string): Promise<boolean> {

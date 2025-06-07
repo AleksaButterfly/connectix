@@ -9,11 +9,13 @@ import { useConnections } from '@/hooks/useConnections'
 import type { ProjectWithDetails } from '@/types/project'
 import type { Organization } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { useToast } from '@/components/ui/ToastContext'
 
 export default function ProjectOverviewPage() {
   const intl = useIntl()
   const params = useParams()
   const router = useRouter()
+  const { toast } = useToast()
   const orgId = params.id as string
   const projectId = params.projectId as string
   const [project, setProject] = useState<ProjectWithDetails | null>(null)
@@ -21,6 +23,7 @@ export default function ProjectOverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
 
   // Get connection data
   const { connections, loadConnections } = useConnections({
@@ -87,6 +90,15 @@ export default function ProjectOverviewPage() {
       setError(err.message || intl.formatMessage({ id: 'projects.error.loadFailed' }))
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleCopyProjectId = () => {
+    if (project?.id) {
+      navigator.clipboard.writeText(project.id)
+      setIsCopied(true)
+      toast.success(intl.formatMessage({ id: 'projects.overview.idCopied' }))
+      setTimeout(() => setIsCopied(false), 2000)
     }
   }
 
@@ -373,7 +385,7 @@ export default function ProjectOverviewPage() {
                 />
               </svg>
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-foreground-muted">
                 <FormattedMessage id="projects.overview.projectId" />
               </p>
@@ -381,6 +393,38 @@ export default function ProjectOverviewPage() {
                 {project.id.substring(0, 8)}...
               </p>
             </div>
+            <button
+              type="button"
+              onClick={handleCopyProjectId}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-200 ${
+                isCopied
+                  ? 'border-terminal-green bg-terminal-green/10 text-terminal-green'
+                  : 'border-border bg-background-tertiary text-foreground-muted hover:bg-background-secondary hover:text-foreground'
+              }`}
+              title={intl.formatMessage({
+                id: isCopied ? 'projects.overview.copied' : 'projects.overview.copyId',
+              })}
+            >
+              {isCopied ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 
@@ -454,7 +498,7 @@ export default function ProjectOverviewPage() {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth={3}
+                          strokeWidth={2}
                           d="M5 13l4 4L19 7"
                         />
                       </svg>

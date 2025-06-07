@@ -1,4 +1,3 @@
-// src/components/auth/AuthStateListener.tsx
 'use client'
 
 import { useEffect } from 'react'

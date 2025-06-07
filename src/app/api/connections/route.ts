@@ -8,11 +8,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { organizationId, input }: { organizationId: string; input: CreateConnectionInput } = body
 
-    console.log('🔐 SERVER-SIDE CONNECTION CREATION START')
-    console.log('  Organization ID:', organizationId)
-    console.log('  Connection name:', input.name)
-    console.log('  Credentials keys:', Object.keys(input.credentials))
-
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID is required!' }, { status: 400 })
     }
@@ -44,24 +39,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ENCRYPT ON SERVER SIDE - this will use the correct environment variables
-    console.log('🔐 SERVER-SIDE ENCRYPTION START')
-    console.log('  CONNECTIX_ENCRYPTION_KEY exists:', !!process.env.CONNECTIX_ENCRYPTION_KEY)
-    console.log('  SSH_ENCRYPTION_KEY exists:', !!process.env.SSH_ENCRYPTION_KEY)
-
     const encryptedCredentials = encryptCredentials(input.credentials)
-    console.log('🔐 SERVER-SIDE ENCRYPTION COMPLETE')
-    console.log('  Encrypted data length:', encryptedCredentials.length)
-
-    // Test immediate decryption to ensure it works
-    try {
-      const testDecrypt = decryptCredentials(encryptedCredentials)
-      console.log('  ✅ Immediate decryption test: SUCCESS')
-      console.log('  Decrypted keys:', Object.keys(testDecrypt))
-    } catch (testError) {
-      console.log('  ❌ Immediate decryption test: FAILED -', testError.message)
-      return NextResponse.json({ error: 'Encryption/decryption test failed' }, { status: 500 })
-    }
 
     // Insert connection
     const { error } = await supabase.from('connections').insert({
@@ -116,12 +94,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: fetchError.message }, { status: 400 })
     }
 
-    console.log('🔐 SERVER-SIDE CONNECTION CREATION SUCCESS')
-    console.log('  Connection ID:', connection.id)
-
     return NextResponse.json(connection)
   } catch (error: any) {
-    console.error('❌ Server-side connection creation error:', error)
+    console.error('Server-side connection creation error:', error)
     return NextResponse.json(
       { error: 'Failed to create connection: ' + error.message },
       { status: 500 }

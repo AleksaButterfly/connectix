@@ -191,7 +191,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error: any) {
     console.error('Test connection error:', error)
-
     return NextResponse.json(
       {
         success: false,

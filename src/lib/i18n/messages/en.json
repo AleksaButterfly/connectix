@@ -24,6 +24,7 @@
   "common.time.minutesAgo": "{minutes} minutes ago",
   "common.time.hoursAgo": "{hours} hours ago",
   "common.time.daysAgo": "{days} days ago",
+  "common.error.unknown": "An unexpected error occurred",
 
   "header.dashboard": "Dashboard",
   "header.signIn": "Sign in",
@@ -361,6 +362,11 @@
   "auth.verifyEmail.signOut": "Sign out and try different email",
   "auth.verifyEmail.support": "Having trouble? Contact {email}",
 
+  "auth.error.usernameTaken": "This username is already taken",
+  "auth.error.emailRegistered": "This email is already registered",
+  "auth.error.invalidCredentials": "Invalid email or password",
+  "auth.error.emailNotConfirmed": "Please verify your email address",
+
   "dashboard.breadcrumb.organizations": "Organizations",
   "dashboard.breadcrumb.newOrganization": "New Organization",
   "dashboard.breadcrumb.organization": "Organization",
@@ -378,6 +384,8 @@
   "organizations.projectCount": "{count} {projects}",
   "organizations.memberCount": "{count} {members}",
   "organizations.createdDate": "Created {date}",
+  "organizations.error.nameExists": "An organization with this name already exists",
+  "organizations.error.permissionDenied": "You don't have permission to manage this organization",
 
   "organizations.new.title": "New organization",
   "organizations.new.backToOrganizations": "Back to organizations",
@@ -437,6 +445,8 @@
   "projects.createdDate": "Created {date}",
   "projects.error.loadFailed": "Failed to load projects",
   "projects.error.notFound": "Project not found",
+  "projects.error.nameExists": "A project with this name already exists in this organization",
+  "projects.error.permissionDenied": "You don't have permission to manage this project",
 
   "projects.new.title": "Create New Project",
   "projects.new.backToProjects": "Back to Projects",
@@ -505,6 +515,7 @@
   "projects.overview.moreConnections": "and {count} more connections...",
   "projects.overview.noneConfigured": "None configured",
   "projects.overview.connectionStats": "{total} total, {healthy} healthy",
+  "projects.overview.idCopied": "Project ID copied to clipboard",
 
   "project.settings.loading": "Loading project settings...",
   "project.settings.backToProject": "Back to project",
@@ -667,6 +678,15 @@
   "connections.errors.requiredParametersMissing": "Required URL parameters are missing.",
   "connections.notFound.title": "Connection Not Found",
   "connections.notFound.description": "The requested connection could not be found.",
+  "connections.error.projectIdRequired": "Project ID is required",
+  "connections.error.organizationIdRequired": "Organization ID is required",
+  "connections.error.connectionIdRequired": "Connection ID is required",
+  "connections.error.createFailed": "Failed to create connection",
+  "connections.error.updateFailed": "Failed to update connection",
+  "connections.error.testFailed": "Connection test failed",
+  "connections.error.nameExists": "A connection with this name already exists",
+  "connections.error.permissionDenied": "You don't have permission to perform this action",
+  "connections.error.notFound": "Connection not found",
 
   "files.browser.establishingConnection": "Establishing SSH connection...",
   "files.browser.newFile": "New File",
