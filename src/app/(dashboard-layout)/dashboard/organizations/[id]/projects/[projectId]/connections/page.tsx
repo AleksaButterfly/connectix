@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useConnections } from '@/hooks/useConnections'
@@ -16,6 +17,7 @@ export default function AllConnectionsPage() {
   const projectId = params.projectId as string
 
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const { connections, isLoading, loadConnections } = useConnections({
     organizationId: orgId,
@@ -23,13 +25,18 @@ export default function AllConnectionsPage() {
   })
 
   useEffect(() => {
-    loadConnections().catch((error) => {
-      console.error('Failed to load connections:', error)
-      toast.error(
-        intl.formatMessage({ id: 'connections.errors.loadFailed' }) + ': ' + error.message
-      )
-    })
-  }, [loadConnections, toast, intl])
+    loadConnections()
+      .then(() => {
+        setHasLoadedOnce(true)
+      })
+      .catch((error) => {
+        console.error('Failed to load connections:', error)
+        toast.error(
+          intl.formatMessage({ id: 'connections.errors.loadFailed' }) + ': ' + error.message
+        )
+        setHasLoadedOnce(true)
+      })
+  }, []) // Empty deps - only load once on mount
 
   // Handle redirect when connections are loaded
   useEffect(() => {
@@ -42,8 +49,8 @@ export default function AllConnectionsPage() {
     }
   }, [isLoading, connections, isRedirecting, router, orgId, projectId])
 
-  // Show loading state during initial load OR while redirecting
-  if (isLoading || isRedirecting) {
+  // Show loading state during initial load, while actually loading, OR while redirecting
+  if (!hasLoadedOnce || isLoading || isRedirecting) {
     return (
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
@@ -74,7 +81,7 @@ export default function AllConnectionsPage() {
     )
   }
 
-  // Only show empty state if we're not loading and have no connections
+  // Only show empty state if we've loaded at least once and have no connections
   if (connections.length === 0) {
     return (
       <div className="flex min-h-[600px] items-center justify-center">
@@ -98,14 +105,12 @@ export default function AllConnectionsPage() {
           <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
             <FormattedMessage id="connections.empty.description" />
           </p>
-          <button
-            onClick={() =>
-              router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections/new`)
-            }
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/new`}
             className="btn-primary"
           >
             <FormattedMessage id="connections.empty.createButton" />
-          </button>
+          </Link>
         </div>
       </div>
     )

@@ -72,90 +72,67 @@ export default function ConnectionDetails({
   return (
     <div>
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 space-y-4">
+        {/* Status Badge and Project Name */}
+        <div className="flex items-center gap-4">{getStatusBadge()}</div>
+
+        {/* Title and Description */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">{connection.name}</h1>
           {connection.description && (
             <p className="mt-2 text-foreground-muted">{connection.description}</p>
           )}
-          <div className="mt-4 flex items-center gap-4">
-            {getStatusBadge()}
-            {connection.project_name && (
-              <span className="text-sm text-terminal-green">{connection.project_name}</span>
-            )}
-          </div>
         </div>
 
-        <div className="flex gap-2">
-          {/* Browse Files Button */}
-          <button
-            onClick={onBrowse}
-            disabled={isTestingConnection || isDeletingConnection}
-            className={`rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
-              isTestingConnection || isDeletingConnection
-                ? 'cursor-not-allowed opacity-75'
-                : 'text-foreground hover:bg-background-tertiary'
-            }`}
-          >
-            <FormattedMessage id="connections.actions.browseFiles" />
-          </button>
-
-          {/* Test Button with Loading State */}
-          <button
-            onClick={onTest}
-            disabled={isTestingConnection}
-            className={`relative flex min-w-[120px] items-center justify-center gap-2 rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
-              isTestingConnection
-                ? 'cursor-not-allowed opacity-75'
-                : 'text-foreground hover:bg-background-tertiary'
-            }`}
-          >
-            {isTestingConnection ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground"></div>
-                <span>
-                  <FormattedMessage id="connections.actions.testing" />
-                </span>
-              </>
-            ) : (
-              <FormattedMessage id="connections.actions.test" />
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3">
+            {onBrowse && (
+              <button
+                onClick={onBrowse}
+                className="rounded-lg border border-terminal-green/20 bg-terminal-green/10 px-4 py-2 text-sm font-medium text-terminal-green transition-colors hover:bg-terminal-green/20"
+              >
+                <FormattedMessage id="connections.actions.browse" />
+              </button>
             )}
-          </button>
-
-          {/* Edit Button */}
-          <button
-            onClick={onEdit}
-            disabled={isTestingConnection || isDeletingConnection}
-            className={`rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
-              isTestingConnection || isDeletingConnection
-                ? 'cursor-not-allowed opacity-75'
-                : 'text-foreground hover:bg-background-tertiary'
-            }`}
-          >
-            <FormattedMessage id="connections.actions.edit" />
-          </button>
-
-          {/* Delete Button with Loading State */}
-          <button
-            onClick={onDelete}
-            disabled={isTestingConnection || isDeletingConnection}
-            className={`relative flex min-w-[120px] items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-background-secondary px-4 py-2 text-sm font-medium transition-colors ${
-              isTestingConnection || isDeletingConnection
-                ? 'cursor-not-allowed opacity-75'
-                : 'text-red-500 hover:bg-red-500/10'
-            }`}
-          >
-            {isDeletingConnection ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500/20 border-t-red-500"></div>
-                <span>
-                  <FormattedMessage id="connections.actions.deleting" />
+            <button
+              onClick={onTest}
+              disabled={isTestingConnection}
+              className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isTestingConnection ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3 w-3 animate-spin rounded-full border border-terminal-green/20 border-t-terminal-green" />
+                  <FormattedMessage id="connections.test.inProgress" />
                 </span>
-              </>
-            ) : (
-              <FormattedMessage id="connections.actions.delete" />
-            )}
-          </button>
+              ) : (
+                <FormattedMessage id="connections.actions.test" />
+              )}
+            </button>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onEdit}
+              className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
+            >
+              <FormattedMessage id="connections.actions.edit" />
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={isDeletingConnection}
+              className="rounded-lg border border-red-500/20 bg-background-secondary px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeletingConnection ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3 w-3 animate-spin rounded-full border border-red-500/20 border-t-red-500" />
+                  <FormattedMessage id="common.deleting" />
+                </span>
+              ) : (
+                <FormattedMessage id="connections.actions.delete" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

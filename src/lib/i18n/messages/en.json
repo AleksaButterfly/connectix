@@ -617,7 +617,7 @@
   "connections.edit.error.connectionNotFound.title": "Connection Not Found",
   "connections.edit.error.connectionNotFound.description": "The connection you're looking for doesn't exist or you don't have access to it.",
   "connections.edit.backToConnection": "Back to Connection",
-  "connections.edit.title": "Edit Connection of {connectionName}",
+  "connections.edit.title": "Edit Connection: {connectionName}",
   "connections.edit.subtitle": "Update the SSH connection settings.",
   "audit.loading": "Loading audit logs...",
   "audit.filterBy": "Filter by",
@@ -822,5 +822,11 @@
   "connections.test.failedWithError": "Connection test failed: {error}",
   "connections.notFound.title": "Connection Not Found",
   "connections.notFound.description": "The requested connection could not be found.",
-  "common.unknownError": "Unknown error"
+  "common.unknownError": "Unknown error",
+  "connections.create.success": "Connection created successfully",
+  "connections.update.success": "Connection updated successfully",
+  "connections.edit.loading": "Loading connection...",
+  "connections.edit.error.notFound.description": "The connection you're looking for doesn't exist or you don't have access to it",
+  "connections.edit.backToConnections": "Back to Connections"
+
 }

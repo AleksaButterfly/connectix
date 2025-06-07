@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useConnections } from '@/hooks/useConnections'
@@ -35,7 +35,6 @@ export default function SingleConnectionPage() {
     )
   }
 
-  // ✅ FIXED: Use the updated hook with operationLoadingStates
   const {
     connections,
     isLoading,
@@ -53,15 +52,15 @@ export default function SingleConnectionPage() {
   // Load connections once on mount
   useEffect(() => {
     loadConnections().catch((error) => {
-      console.error('Failed to load connections:', error)
-      toast.error(
-        intl.formatMessage({ id: 'connections.errors.loadFailed' }) + ': ' + error.message
-      )
+      // The error toast is already handled inside loadConnections
     })
-  }, [loadConnections, toast, intl])
+  }, [])
 
   // Find the selected connection from URL - no state needed!
-  const selectedConnection = connections.find((conn) => conn.id === connectionId) || null
+  const selectedConnection = useMemo(
+    () => connections.find((conn) => conn.id === connectionId) || null,
+    [connections, connectionId]
+  )
 
   // If connections are loaded but connection not found, redirect to first
   useEffect(() => {
@@ -128,12 +127,9 @@ export default function SingleConnectionPage() {
     })
   }
 
-  // ✅ FIXED: Use the hook's testConnection method instead of manual API calls
   const handleTest = async (connection: ConnectionWithDetails) => {
     try {
       await testConnection(connection.id)
-      // ✅ Success message and state updates are handled by the hook
-      // ❌ REMOVED: No more loadConnections() call - this was causing the flash!
     } catch (error: any) {
       // ✅ Error handling is already done by the hook
       console.error('Test connection error:', error)
@@ -195,6 +191,39 @@ export default function SingleConnectionPage() {
           <p className="text-foreground-muted">
             <FormattedMessage id="common.loading" />
           </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't show any content until we've loaded connections
+  // This prevents the flash of "connection not found"
+  if (connections.length === 0 && !selectedConnection) {
+    return (
+      <div className="flex min-h-[600px] items-center justify-center">
+        <div className="text-center">
+          <svg
+            className="mx-auto mb-4 h-16 w-16 text-foreground-muted/30"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 002 2z"
+            />
+          </svg>
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="connections.empty.title" />
+          </h2>
+          <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
+            <FormattedMessage id="connections.empty.description" />
+          </p>
+          <button onClick={handleCreateNew} className="btn-primary">
+            <FormattedMessage id="connections.empty.createButton" />
+          </button>
         </div>
       </div>
     )

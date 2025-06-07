@@ -101,26 +101,39 @@ export function useConnections({
 
   const testConnection = useCallback(
     async (connectionId: string) => {
-      // Set loading state
       setOperationLoadingStates((prev) => ({
         ...prev,
         testing: new Set(prev.testing).add(connectionId),
       }))
 
       try {
-        // API call handles database update now
         const result = await connectionService.testExistingConnection(connectionId)
 
-        toast.success(
-          intl.formatMessage(
-            {
-              id: 'connections.test.successWithLatency',
-            },
-            {
-              latency: result.latency_ms || 0,
-            }
+        // Check if the test was successful before showing toast
+        if (result.success) {
+          toast.success(
+            intl.formatMessage(
+              {
+                id: 'connections.test.successWithLatency',
+              },
+              {
+                latency: result.latency_ms || 0,
+              }
+            )
           )
-        )
+        } else {
+          // Show error toast if test failed
+          toast.error(
+            intl.formatMessage(
+              {
+                id: 'connections.test.failedWithError',
+              },
+              {
+                error: result.error || intl.formatMessage({ id: 'connections.errors.testFailed' }),
+              }
+            )
+          )
+        }
 
         setConnections((prev) =>
           prev.map((conn) => {

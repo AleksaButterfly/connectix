@@ -3,51 +3,55 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
-import { connectionService } from '@/lib/connections/connection.service'
+import { useToast } from '@/components/ui/ToastContext'
 import ConnectionForm from '@/components/connections/ConnectionForm'
-import type { Connection } from '@/types/connection'
+import { connectionService } from '@/lib/connections/connection.service'
+import type { ConnectionWithDetails } from '@/types/connection'
 
 export default function EditConnectionPage() {
   const params = useParams()
   const router = useRouter()
   const intl = useIntl()
+  const { toast } = useToast()
 
   const orgId = params.id as string
   const projectId = params.projectId as string
   const connectionId = params.connectionId as string
 
-  const [connection, setConnection] = useState<Connection | null>(null)
+  const [connection, setConnection] = useState<ConnectionWithDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
+  // Load connection data
   useEffect(() => {
     const loadConnection = async () => {
-      if (!connectionId) {
-        setError(intl.formatMessage({ id: 'connections.edit.error.missingConnectionId' }))
-        setIsLoading(false)
+      if (!connectionId || !projectId) {
         return
       }
 
       try {
         setIsLoading(true)
-        const connectionData = await connectionService.getConnection(connectionId)
 
-        if (!connectionData) {
-          setError(intl.formatMessage({ id: 'connections.edit.error.notFound' }))
-          return
+        // Get project connections to find the specific one with all details
+        const connections = await connectionService.getProjectConnections(projectId)
+        const foundConnection = connections.find((c) => c.id === connectionId)
+
+        if (!foundConnection) {
+          throw new Error(intl.formatMessage({ id: 'connections.errors.notFound' }))
         }
 
-        setConnection(connectionData)
-      } catch (err: any) {
-        console.error('Failed to load connection:', err)
-        setError(err.message || intl.formatMessage({ id: 'connections.edit.error.loadFailed' }))
+        setConnection(foundConnection)
+      } catch (error: any) {
+        console.error('Failed to load connection:', error)
+        toast.error(error.message || intl.formatMessage({ id: 'connections.errors.loadFailed' }))
+        // Redirect back to connections list on error
+        router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
       } finally {
         setIsLoading(false)
       }
     }
 
     loadConnection()
-  }, [connectionId, intl])
+  }, [connectionId, projectId, orgId, router, toast, intl])
 
   if (!orgId || !projectId || !connectionId) {
     return (
@@ -60,34 +64,8 @@ export default function EditConnectionPage() {
           <p className="mb-4 text-foreground-muted">
             <FormattedMessage id="connections.edit.error.missingParams.description" />
           </p>
-          <p className="text-sm text-foreground-muted">
-            <FormattedMessage
-              id="connections.edit.error.missingParams.details"
-              values={{
-                orgId: orgId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
-                projectId:
-                  projectId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
-                connectionId:
-                  connectionId || intl.formatMessage({ id: 'connections.edit.error.missing' }),
-              }}
-            />
-          </p>
         </div>
       </div>
-    )
-  }
-
-  const handleComplete = () => {
-    // Navigate back to the edited connection's single page
-    router.push(
-      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
-    )
-  }
-
-  const handleCancel = () => {
-    // Navigate back to the connection's single page
-    router.push(
-      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
     )
   }
 
@@ -115,28 +93,8 @@ export default function EditConnectionPage() {
             />
           </svg>
           <p className="text-foreground-muted">
-            <FormattedMessage id="common.loading" />
+            <FormattedMessage id="connections.edit.loading" />
           </p>
-          <p className="mt-2 text-xs text-foreground-muted">
-            <FormattedMessage id="connections.edit.loadingDetails" />
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-[600px] items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-6xl">❌</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">
-            <FormattedMessage id="connections.edit.error.loadError.title" />
-          </h2>
-          <p className="mb-4 text-foreground-muted">{error}</p>
-          <button onClick={handleCancel} className="btn-primary">
-            <FormattedMessage id="common.back" />
-          </button>
         </div>
       </div>
     )
@@ -146,25 +104,49 @@ export default function EditConnectionPage() {
     return (
       <div className="flex min-h-[600px] items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-6xl">🔍</div>
+          <div className="mb-4 text-6xl">❌</div>
           <h2 className="mb-2 text-xl font-semibold text-foreground">
-            <FormattedMessage id="connections.edit.error.connectionNotFound.title" />
+            <FormattedMessage id="connections.errors.notFound" />
           </h2>
           <p className="mb-4 text-foreground-muted">
-            <FormattedMessage id="connections.edit.error.connectionNotFound.description" />
+            <FormattedMessage id="connections.edit.error.notFound.description" />
           </p>
-          <button onClick={handleCancel} className="btn-primary">
-            <FormattedMessage id="common.back" />
+          <button
+            onClick={() =>
+              router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
+            }
+            className="btn-primary"
+          >
+            <FormattedMessage id="connections.edit.backToConnections" />
           </button>
         </div>
       </div>
     )
   }
 
+  const handleComplete = (connectionId?: string) => {
+    // Navigate back to the connection's single page
+    if (connectionId) {
+      router.push(
+        `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
+      )
+    } else {
+      // Fallback to connections list
+      router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
+    }
+  }
+
+  const handleCancel = () => {
+    // Navigate back to the connection's single page
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
+    )
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="w-full">
-        {/* Back Button - Now properly aligned */}
+        {/* Back Button */}
         <div className="mb-6">
           <button
             onClick={handleCancel}
@@ -185,15 +167,13 @@ export default function EditConnectionPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            <FormattedMessage
-              id="connections.edit.title"
-              values={{
-                connectionName: <span className="text-terminal-green">{connection.name}</span>,
-              }}
-            />
+            <FormattedMessage id="connections.edit.title" />
           </h1>
           <p className="mt-2 text-foreground-muted">
-            <FormattedMessage id="connections.edit.subtitle" />
+            <FormattedMessage
+              id="connections.edit.subtitle"
+              values={{ connectionName: connection.name }}
+            />
           </p>
         </div>
 

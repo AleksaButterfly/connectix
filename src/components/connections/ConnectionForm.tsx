@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { useToast } from '@/components/ui/ToastContext'
 import FormInput from '@/components/ui/FormInput'
 import { connectionService } from '@/lib/connections/connection.service'
 import type {
@@ -29,6 +30,7 @@ export default function ConnectionForm({
   onCancel,
 }: ConnectionFormProps) {
   const intl = useIntl()
+  const { toast } = useToast()
   const isEditing = !!connection
   const [isSaving, setIsSaving] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
@@ -154,6 +156,7 @@ export default function ConnectionForm({
         }
 
         await connectionService.updateConnection(connection.id, updates)
+        toast.success(intl.formatMessage({ id: 'connections.update.success' }))
         onComplete(connection.id)
       } else {
         const input: CreateConnectionInput = {
@@ -181,10 +184,19 @@ export default function ConnectionForm({
         }
 
         const newConnection = await connectionService.createConnection(organizationId, input)
+        toast.success(intl.formatMessage({ id: 'connections.create.success' }))
         onComplete(newConnection.id)
       }
     } catch (error: any) {
       console.error('Failed to save connection:', error)
+
+      // Show user-friendly error message
+      const errorMessage =
+        error.message ||
+        intl.formatMessage({
+          id: isEditing ? 'connections.errors.updateFailed' : 'connections.errors.createFailed',
+        })
+      toast.error(errorMessage)
     } finally {
       setIsSaving(false)
     }
@@ -220,10 +232,31 @@ export default function ConnectionForm({
       const result = await connectionService.testConnection(testInput)
 
       if (result.success) {
-        // Success is handled by the service
+        // Show success toast with latency
+        toast.success(
+          intl.formatMessage(
+            { id: 'connections.test.successWithLatency' },
+            { latency: result.latency_ms || 0 }
+          )
+        )
+      } else {
+        // Show error toast if test failed
+        toast.error(
+          intl.formatMessage(
+            { id: 'connections.test.failedWithError' },
+            { error: result.error || 'Unknown error' }
+          )
+        )
       }
-    } catch (error) {
-      // Error is handled by the service
+    } catch (error: any) {
+      // Show error toast for exceptions
+      console.error('Connection test error:', error)
+      toast.error(
+        intl.formatMessage(
+          { id: 'connections.test.failedWithError' },
+          { error: error.message || 'Connection test failed' }
+        )
+      )
     } finally {
       setIsTesting(false)
     }

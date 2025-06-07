@@ -423,13 +423,7 @@ export default function ProjectOverviewPage() {
             <div className="p-6">
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
-                      hasConnections
-                        ? 'border-terminal-green bg-transparent'
-                        : 'border-terminal-green/30 bg-terminal-green/10'
-                    }`}
-                  >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-terminal-green/30 bg-terminal-green/10">
                     {hasConnections ? (
                       <svg
                         className="h-5 w-5 text-terminal-green"
