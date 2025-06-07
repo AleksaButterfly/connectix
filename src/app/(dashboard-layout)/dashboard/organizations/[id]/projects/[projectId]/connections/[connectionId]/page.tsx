@@ -262,7 +262,6 @@ export default function SingleConnectionPage() {
                 {connections.map((connection) => {
                   const status = getConnectionStatus(connection)
                   const isSelected = selectedConnection?.id === connection.id
-                  // ✅ FIXED: Use the hook's loading states instead of manual state
                   const isTestingThisConnection = operationLoadingStates.testing.has(connection.id)
 
                   return (

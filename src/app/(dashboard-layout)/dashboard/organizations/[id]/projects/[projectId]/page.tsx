@@ -237,7 +237,12 @@ export default function ProjectOverviewPage() {
                       d="M13 10V3L4 14h7v7l9-11h-7z"
                     />
                   </svg>
-                  <span>{totalConnections} SSH connections</span>
+                  <span>
+                    <FormattedMessage
+                      id="projects.overview.connectionsCount"
+                      values={{ count: totalConnections }}
+                    />
+                  </span>
                 </div>
               )}
             </div>
@@ -257,7 +262,7 @@ export default function ProjectOverviewPage() {
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              SSH Connections
+              <FormattedMessage id="projects.overview.sshConnections" />
             </Link>
             {isAdmin && (
               <Link
@@ -333,12 +338,17 @@ export default function ProjectOverviewPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm text-foreground-muted">SSH Connections</p>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="projects.overview.sshConnections" />
+              </p>
               <p className="text-lg font-semibold text-foreground">
                 {totalConnections}
                 {totalConnections > 0 && (
                   <span className="ml-2 text-xs text-terminal-green">
-                    {activeConnections} active
+                    <FormattedMessage
+                      id="projects.overview.activeCount"
+                      values={{ count: activeConnections }}
+                    />
                   </span>
                 )}
               </p>
@@ -367,7 +377,7 @@ export default function ProjectOverviewPage() {
               <p className="text-sm text-foreground-muted">
                 <FormattedMessage id="projects.overview.projectId" />
               </p>
-              <p className="font-mono text-xs text-foreground" title={project.id}>
+              <p className="text-lg font-semibold text-foreground" title={project.id}>
                 {project.id.substring(0, 8)}...
               </p>
             </div>
@@ -392,16 +402,26 @@ export default function ProjectOverviewPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm text-foreground-muted">Connection Health</p>
+              <p className="text-sm text-foreground-muted">
+                <FormattedMessage id="projects.overview.connectionHealth" />
+              </p>
               <p className="text-lg font-semibold text-foreground">
                 {totalConnections === 0 ? (
-                  <span className="text-foreground-muted">No connections</span>
+                  <span className="text-foreground-muted">
+                    <FormattedMessage id="projects.overview.noConnections" />
+                  </span>
                 ) : activeConnections === totalConnections ? (
-                  <span className="text-terminal-green">Excellent</span>
+                  <span className="text-terminal-green">
+                    <FormattedMessage id="projects.overview.healthExcellent" />
+                  </span>
                 ) : activeConnections > totalConnections / 2 ? (
-                  <span className="text-yellow-500">Good</span>
+                  <span className="text-yellow-500">
+                    <FormattedMessage id="projects.overview.healthGood" />
+                  </span>
                 ) : (
-                  <span className="text-red-500">Issues</span>
+                  <span className="text-red-500">
+                    <FormattedMessage id="projects.overview.healthIssues" />
+                  </span>
                 )}
               </p>
             </div>
@@ -443,17 +463,18 @@ export default function ProjectOverviewPage() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">Set up SSH connections</h3>
+                    <h3 className="mb-1 font-medium text-foreground">
+                      <FormattedMessage id="projects.overview.step1Title" />
+                    </h3>
                     <p className="text-sm text-foreground-muted">
-                      Add SSH connections to your servers to start managing files and executing
-                      commands remotely.
+                      <FormattedMessage id="projects.overview.step1Description" />
                     </p>
                     {!hasConnections && (
                       <Link
                         href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
                         className="hover:text-terminal-green-hover mt-2 inline-flex items-center gap-1 text-sm text-terminal-green"
                       >
-                        Add your first connection →
+                        <FormattedMessage id="projects.overview.addFirstConnection" />
                       </Link>
                     )}
                   </div>
@@ -475,10 +496,11 @@ export default function ProjectOverviewPage() {
                     </span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">Browse and manage files</h3>
+                    <h3 className="mb-1 font-medium text-foreground">
+                      <FormattedMessage id="projects.overview.step2Title" />
+                    </h3>
                     <p className="text-sm text-foreground-muted">
-                      Use the built-in file browser to navigate, edit, upload, and download files on
-                      your remote servers.
+                      <FormattedMessage id="projects.overview.step2Description" />
                     </p>
                   </div>
                 </div>
@@ -499,10 +521,11 @@ export default function ProjectOverviewPage() {
                     </span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-1 font-medium text-foreground">Monitor and maintain</h3>
+                    <h3 className="mb-1 font-medium text-foreground">
+                      <FormattedMessage id="projects.overview.step3Title" />
+                    </h3>
                     <p className="text-sm text-foreground-muted">
-                      Keep track of connection status, view activity logs, and ensure your servers
-                      stay healthy.
+                      <FormattedMessage id="projects.overview.step3Description" />
                     </p>
                   </div>
                 </div>
@@ -515,12 +538,14 @@ export default function ProjectOverviewPage() {
             <div className="rounded-lg border border-border bg-background-secondary">
               <div className="border-b border-border px-6 py-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">SSH Connections</h2>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    <FormattedMessage id="projects.overview.sshConnections" />
+                  </h2>
                   <Link
                     href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
                     className="hover:text-terminal-green-hover text-sm text-terminal-green"
                   >
-                    View all →
+                    <FormattedMessage id="projects.overview.viewAll" />
                   </Link>
                 </div>
               </div>
@@ -552,13 +577,16 @@ export default function ProjectOverviewPage() {
                         href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connection.id}/browse`}
                         className="btn-secondary btn-sm"
                       >
-                        Browse
+                        <FormattedMessage id="projects.overview.browse" />
                       </Link>
                     </div>
                   ))}
                   {connections.length > 3 && (
                     <p className="text-center text-sm text-foreground-muted">
-                      and {connections.length - 3} more connections...
+                      <FormattedMessage
+                        id="projects.overview.moreConnections"
+                        values={{ count: connections.length - 3 }}
+                      />
                     </p>
                   )}
                 </div>
@@ -636,13 +664,20 @@ export default function ProjectOverviewPage() {
                   <dd className="mt-1 font-mono text-sm text-foreground">{project.slug}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-foreground-muted">SSH Connections</dt>
+                  <dt className="text-sm text-foreground-muted">
+                    <FormattedMessage id="projects.overview.sshConnections" />
+                  </dt>
                   <dd className="mt-1 text-sm font-medium text-foreground">
                     {totalConnections === 0 ? (
-                      <span className="text-foreground-muted">None configured</span>
+                      <span className="text-foreground-muted">
+                        <FormattedMessage id="projects.overview.noneConfigured" />
+                      </span>
                     ) : (
                       <span>
-                        {totalConnections} total, {activeConnections} healthy
+                        <FormattedMessage
+                          id="projects.overview.connectionStats"
+                          values={{ total: totalConnections, healthy: activeConnections }}
+                        />
                       </span>
                     )}
                   </dd>
@@ -677,7 +712,9 @@ export default function ProjectOverviewPage() {
                       d="M13 10V3L4 14h7v7l9-11h-7z"
                     />
                   </svg>
-                  <span className="text-foreground">SSH Connections</span>
+                  <span className="text-foreground">
+                    <FormattedMessage id="projects.overview.sshConnections" />
+                  </span>
                 </Link>
                 {isAdmin && (
                   <Link

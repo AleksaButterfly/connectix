@@ -64,12 +64,12 @@
   "landing.hero.tagline": "Start free • No credit card required • Set up in 2 minutes",
   "landing.hero.cta.start": "Start your project",
   "landing.hero.cta.demo": "Request a demo",
-  
+
   "landing.trust.soc2": "SOC2 Compliant",
   "landing.trust.encryption": "256-bit Encryption",
   "landing.trust.zeroKnowledge": "Zero-Knowledge Architecture",
   "landing.trust.gdpr": "GDPR Ready",
-  
+
   "landing.terminal.header": "connectix@ssh-manager:~",
   "landing.terminal.helpCommand": "./connectix --help",
   "landing.terminal.title": "Connectix - Complete SSH Management Platform for Teams",
@@ -83,14 +83,14 @@
   "landing.terminal.features.credentials": "Secure credential management",
   "landing.terminal.startCommand": "./connectix --start",
   "landing.terminal.status": "System ready | Version 1.0.0 | Enterprise-grade security",
-  
+
   "landing.features.terminal.title": "Integrated Terminal",
   "landing.features.terminal.description": "Full terminal access right in your browser. Run commands, edit files, manage services.",
   "landing.features.team.title": "Team Collaboration",
   "landing.features.team.description": "Grant specific permissions by folder, server, or project. See who's doing what in real-time.",
   "landing.features.project.title": "Project Organization",
   "landing.features.project.description": "Group servers by client, environment, or team. Switch contexts instantly.",
-  
+
   "landing.stats.teams.value": "500+",
   "landing.stats.teams.label": "Active Teams",
   "landing.stats.servers.value": "10k+",
@@ -99,7 +99,7 @@
   "landing.stats.uptime.label": "Uptime SLA",
   "landing.stats.support.value": "24/7",
   "landing.stats.support.label": "Support",
-  
+
   "landing.comparison.title": "Stop juggling multiple tools",
   "landing.comparison.old.title": "The Old Way",
   "landing.comparison.old.item1": "Terminal app + SFTP client + password manager",
@@ -113,7 +113,7 @@
   "landing.comparison.new.item3": "Complete audit trail with video replay",
   "landing.comparison.new.item4": "Onboard new devs in under 5 minutes",
   "landing.comparison.new.item5": "Real-time visibility and notifications",
-  
+
   "landing.detailedFeatures.title": "Everything your team needs, in one place",
   "landing.detailedFeatures.terminal.title": "Powerful Terminal",
   "landing.detailedFeatures.terminal.item1": "Native terminal experience with xterm.js",
@@ -135,7 +135,7 @@
   "landing.detailedFeatures.audit.item2": "Real-time activity monitoring",
   "landing.detailedFeatures.audit.item3": "Compliance-ready logging",
   "landing.detailedFeatures.audit.item4": "Instant security alerts",
-  
+
   "landing.useCases.title": "Built for modern teams",
   "landing.useCases.dev.role": "Development Teams",
   "landing.useCases.dev.description": "Give developers the access they need without sharing root credentials",
@@ -161,7 +161,7 @@
   "landing.useCases.startups.detail2": "Revoke access instantly when team members leave",
   "landing.useCases.startups.detail3": "Start with simple permissions, add complexity as you grow",
   "landing.useCases.startups.detail4": "Keep infrastructure costs low with efficient resource sharing",
-  
+
   "landing.faq.title": "Frequently asked questions",
   "landing.faq.security.question": "How secure is Connectix?",
   "landing.faq.security.answer": "We use end-to-end encryption, zero-knowledge architecture, and are SOC2 compliant. Your credentials never touch our servers in plain text.",
@@ -175,7 +175,7 @@
   "landing.faq.os.answer": "Connectix works in any modern browser. Your servers can run Linux, Unix, or any SSH-enabled system.",
   "landing.faq.api.question": "Do you offer an API?",
   "landing.faq.api.answer": "Yes! Our REST API lets you automate user provisioning, access management, and audit log exports.",
-  
+
   "landing.cta.title": "Ready to secure your servers?",
   "landing.cta.subtitle": "Join 500+ teams already using Connectix. Get started in minutes.",
   "landing.cta.button.start": "Start Free Today",
@@ -186,24 +186,24 @@
 
   "about.hero.title": "About",
   "about.hero.subtitle": "The complete SSH management platform for modern development teams",
-  
+
   "about.story.problem.title": "The Problem",
   "about.story.problem.description": "Every team faces the same challenges: Terminal apps, SFTP clients, and password managers scattered across devices. SSH keys shared through Slack. No visibility into who accessed what. Hours spent onboarding new developers. We knew there had to be a better way.",
   "about.story.solution.title": "Our Solution",
   "about.story.solution.description": "Connectix unifies terminal access, file management, and team collaboration in one secure, browser-based platform. With end-to-end encryption, granular permissions, and complete audit trails, we've reimagined how teams manage server access.",
   "about.story.different.title": "Why We're Different",
   "about.story.different.description": "Built by developers, for developers. We've experienced the pain firsthand - that's why Connectix focuses on what matters: security without sacrificing speed, collaboration without compromising control, and simplicity without limiting power.",
-  
+
   "about.tabs.mission": "Our Mission",
   "about.tabs.security": "Security First",
   "about.tabs.team": "Built for Teams",
-  
+
   "about.mission.title": "Empowering 500+ Teams Worldwide",
   "about.mission.description": "Our mission is simple: make server management so secure and intuitive that teams can focus on what they do best - building great products. No more juggling tools, no more security nightmares, just seamless collaboration.",
   "about.mission.point1": "Replace multiple tools with one unified platform",
   "about.mission.point2": "Onboard developers in under 5 minutes, not hours",
   "about.mission.point3": "Provide enterprise-grade security for teams of all sizes",
-  
+
   "about.security.title": "Security is Our Foundation",
   "about.security.description": "Managing 10,000+ servers across 500+ teams means security isn't optional - it's everything. That's why we've built Connectix with zero-trust architecture from day one.",
   "about.security.feature1.title": "Zero-Knowledge Architecture",
@@ -214,7 +214,7 @@
   "about.security.feature3.description": "Every command, file change, and access logged",
   "about.security.feature4.title": "Advanced Authentication",
   "about.security.feature4.description": "SSO, 2FA, hardware keys, and biometric support",
-  
+
   "about.team.title": "Collaboration at Scale",
   "about.team.description": "From startups to enterprises, development teams to agencies - Connectix adapts to how you work, not the other way around. Real-time collaboration meets granular control.",
   "about.team.feature1.title": "Role-Based Access Control",
@@ -225,14 +225,14 @@
   "about.team.feature3.description": "Separate clients, environments, and teams. Switch contexts instantly.",
   "about.team.feature4.title": "5-Minute Onboarding",
   "about.team.feature4.description": "Add team members and they're productive immediately. Revoke access just as fast.",
-  
+
   "about.stats.teams.value": "500+",
   "about.stats.teams.label": "Active teams",
   "about.stats.servers.value": "10k+",
   "about.stats.servers.label": "Servers managed",
   "about.stats.uptime.value": "99.9%",
   "about.stats.uptime.label": "Uptime SLA",
-  
+
   "about.values.title": "Our Core Values",
   "about.values.security.title": "Security First",
   "about.values.security.description": "Every feature, every line of code starts with security. Your infrastructure is too important for compromises.",
@@ -240,14 +240,14 @@
   "about.values.experience.description": "Built by developers who feel your pain. If it's not faster than your current workflow, we've failed.",
   "about.values.transparent.title": "Transparent & Fair",
   "about.values.transparent.description": "No hidden fees, no vendor lock-in. Export your data anytime. Self-host if you need to.",
-  
+
   "about.cta.title": "Ready to join 500+ teams already using Connectix?",
   "about.cta.subtitle": "Start managing your servers the modern way. Free for up to 3 team members.",
   "about.cta.button.start": "Start your project",
   "about.cta.button.demo": "Request a demo",
 
   "auth.callback.redirecting": "Redirecting...",
-  
+
   "auth.login.subtitle": "Enter your credentials to access your workspace",
   "auth.login.emailLabel": "Email Address",
   "auth.login.passwordLabel": "Password",
@@ -260,7 +260,7 @@
   "auth.login.noAccount": "Don't have an account?",
   "auth.login.signUp": "Sign up",
   "auth.login.error.unexpected": "An unexpected error occurred. Please try again.",
-  
+
   "auth.register.subtitle": "Join thousands of developers managing servers smarter",
   "auth.register.emailLabel": "Email Address",
   "auth.register.usernameLabel": "Username",
@@ -296,7 +296,7 @@
   "auth.register.success.title": "Account created successfully!",
   "auth.register.success.subtitle": "Check your email to verify your account",
   "auth.register.success.continue": "Continue to Dashboard",
-  
+
   "auth.forgotPassword.subtitle": "No worries, we'll send you reset instructions",
   "auth.forgotPassword.emailLabel": "Email Address",
   "auth.forgotPassword.emailHint": "Enter the email associated with your account",
@@ -311,7 +311,7 @@
   "auth.forgotPassword.success.emailSent": "Email sent successfully",
   "auth.forgotPassword.success.checkSpam": "Check spam folder if not received",
   "auth.forgotPassword.requestAnother": "Request Another Link",
-  
+
   "auth.resetPassword.verifying": "Verifying reset link...",
   "auth.resetPassword.subtitle": "Choose a strong password for your account",
   "auth.resetPassword.newPasswordLabel": "New Password",
@@ -345,7 +345,7 @@
   "auth.resetPassword.password.noMatch": "Passwords don't match",
   "auth.resetPassword.success.title": "Password reset successful!",
   "auth.resetPassword.success.message": "Your password has been successfully updated. You can now continue to your dashboard.",
-  
+
   "auth.verifyEmail.title": "Verify your email",
   "auth.verifyEmail.subtitle": "Please verify your email to continue:",
   "auth.verifyEmail.redirecting": "Redirecting...",
@@ -378,7 +378,7 @@
   "organizations.projectCount": "{count} {projects}",
   "organizations.memberCount": "{count} {members}",
   "organizations.createdDate": "Created {date}",
-  
+
   "organizations.new.title": "New organization",
   "organizations.new.backToOrganizations": "Back to organizations",
   "organizations.new.formTitle": "Create a new organization",
@@ -390,7 +390,7 @@
   "organizations.new.createButton": "Create organization",
   "organizations.new.creating": "Creating...",
   "organizations.new.error.createFailed": "Failed to create organization",
-  
+
   "organization.team.title": "Team",
   "organization.team.loading": "Loading team...",
   "organization.team.filterPlaceholder": "Filter members",
@@ -404,7 +404,7 @@
   "organization.team.role.admin": "Admin",
   "organization.team.role.member": "Member",
   "organization.team.userCount": "{count} {user}",
-  
+
   "organization.settings.title": "Organization Settings",
   "organization.settings.loading": "Loading settings...",
   "organization.settings.general.title": "General settings",
@@ -437,7 +437,7 @@
   "projects.createdDate": "Created {date}",
   "projects.error.loadFailed": "Failed to load projects",
   "projects.error.notFound": "Project not found",
-  
+
   "projects.new.title": "Create New Project",
   "projects.new.backToProjects": "Back to Projects",
   "projects.new.formTitle": "Project Details",
@@ -450,7 +450,7 @@
   "projects.new.creating": "Creating...",
   "projects.new.createButton": "Create Project",
   "projects.new.error.createFailed": "Failed to create project",
-  
+
   "projects.details.title": "Project Details",
   "projects.details.createdBy": "Created by",
   "projects.details.createdAt": "Created",
@@ -463,7 +463,7 @@
   "projects.comingSoon.title": "More features coming soon!",
   "projects.comingSoon.description": "SSH connections, server management, and more will be available here.",
   "projects.backToProjects": "Back to Projects",
-  
+
   "projects.overview.loading": "Loading project...",
   "projects.overview.adminBadge": "Admin",
   "projects.overview.createdToday": "Created today",
@@ -491,7 +491,21 @@
   "projects.overview.quickLinks": "Quick Links",
   "projects.overview.projectSettings": "Project Settings",
   "projects.overview.backToOrganization": "Back to Organization",
-  
+  "projects.overview.sshConnections": "SSH Connections",
+  "projects.overview.connectionsCount": "{count} SSH connections",
+  "projects.overview.activeCount": "{count} active",
+  "projects.overview.connectionHealth": "Connection Health",
+  "projects.overview.noConnections": "No connections",
+  "projects.overview.healthExcellent": "Excellent",
+  "projects.overview.healthGood": "Good",
+  "projects.overview.healthIssues": "Issues",
+  "projects.overview.addFirstConnection": "Add your first connection →",
+  "projects.overview.viewAll": "View all →",
+  "projects.overview.browse": "Browse",
+  "projects.overview.moreConnections": "and {count} more connections...",
+  "projects.overview.noneConfigured": "None configured",
+  "projects.overview.connectionStats": "{total} total, {healthy} healthy",
+
   "project.settings.loading": "Loading project settings...",
   "project.settings.backToProject": "Back to project",
   "project.settings.title": "Project Settings",
@@ -525,7 +539,7 @@
   "connections.list.testStatus.success": "Connected",
   "connections.list.testStatus.failed": "Connection failed",
   "connections.loadingForProject": "Loading connections for project: {projectId}",
-  
+
   "connections.actions.connect": "Connect",
   "connections.actions.test": "Test Connection",
   "connections.actions.edit": "Edit",
@@ -534,7 +548,7 @@
   "connections.actions.browseFiles": "Browse Files",
   "connections.actions.browse": "Browse",
   "connections.actions.testing": "Testing...",
-  
+
   "connections.details.sshCommand": "SSH Command",
   "connections.details.information": "Information",
   "connections.details.createdBy": "Created by",
@@ -543,7 +557,7 @@
   "connections.details.lastUsedBy": "Last used by",
   "connections.details.lastTested": "Last tested",
   "connections.details.lastTestError": "Last test error",
-  
+
   "connections.form.generalSection": "General Information",
   "connections.form.connectionSection": "Connection Details",
   "connections.form.authSection": "Authentication",
@@ -580,12 +594,12 @@
   "connections.form.keepaliveIntervalHint": "Interval in seconds between keepalive messages",
   "connections.form.strictHostCheckingLabel": "Strict Host Key Checking",
   "connections.form.strictHostCheckingHint": "Verify server's host key before connecting",
-  
+
   "connections.create.saveButton": "Create Connection",
   "connections.create.testButton": "Test Connection",
   "connections.create.testing": "Testing...",
   "connections.create.success": "Connection created successfully",
-  
+
   "connections.new.title": "Create New Connection",
   "connections.new.error.missingParams.title": "Missing Parameters",
   "connections.new.error.missingParams.description": "Organization ID or Project ID is missing from the URL.",
@@ -593,7 +607,7 @@
   "connections.new.error.missing": "MISSING",
   "connections.new.backToConnections": "Back to Connections",
   "connections.new.subtitle": "Set up a new SSH connection to manage your servers.",
-  
+
   "connections.edit.saveButton": "Save Changes",
   "connections.edit.saving": "Saving...",
   "connections.edit.error.missingConnectionId": "Connection ID is missing",
@@ -614,19 +628,19 @@
   "connections.edit.subtitle": "Update the SSH connection settings.",
   "connections.edit.loading": "Loading connection...",
   "connections.update.success": "Connection updated successfully",
-  
+
   "connections.delete.title": "Delete Connection",
   "connections.delete.message": "Are you sure you want to delete the connection \"{connectionName}\"? This action cannot be undone.",
   "connections.delete.confirmButton": "Delete Connection",
   "connections.delete.error": "Failed to delete connection",
   "connections.delete.success": "Connection deleted successfully",
-  
+
   "connections.test.success": "Connection successful! Latency: {latency}ms",
   "connections.test.successWithLatency": "Connection test successful! Latency: {latency}ms",
   "connections.test.error": "Connection failed: {error}",
   "connections.test.failedWithError": "Connection test failed: {error}",
   "connections.test.inProgress": "Testing connection...",
-  
+
   "connections.validation.nameRequired": "Connection name is required",
   "connections.validation.nameTooLong": "Connection name must be less than 100 characters",
   "connections.validation.hostRequired": "Host is required",
@@ -636,7 +650,7 @@
   "connections.validation.passwordRequired": "Password is required",
   "connections.validation.privateKeyRequired": "Private key is required",
   "connections.validation.passphraseRequired": "Passphrase is required for this key",
-  
+
   "connections.errors.loadFailed": "Failed to load connections",
   "connections.errors.createFailed": "Failed to create connection",
   "connections.errors.updateFailed": "Failed to update connection",
@@ -663,7 +677,7 @@
   "files.browser.filesSelected": "{count} file(s) selected",
   "files.browser.delete": "Delete",
   "files.browser.clear": "Clear",
-  
+
   "files.list.loadingFiles": "Loading files...",
   "files.list.emptyDirectory": "Empty Directory",
   "files.list.emptyDirectoryDescription": "This directory contains no files or folders.",
@@ -674,7 +688,7 @@
   "files.list.actions.rename": "Rename",
   "files.list.actions.delete": "Delete",
   "files.list.folder": "Folder",
-  
+
   "files.editor.errors.loadFailed": "Failed to load file content",
   "files.editor.errors.saveFailed": "Failed to save file",
   "files.editor.saveSuccess": "File saved successfully",
@@ -689,11 +703,11 @@
   "files.editor.lines": "Lines: {count}",
   "files.editor.characters": "Characters: {count}",
   "files.editor.shortcut": "Ctrl+S to save",
-  
+
   "files.upload.button": "Upload",
   "files.upload.selectFiles": "Select files to upload",
   "files.upload.success": "Files uploaded successfully",
-  
+
   "files.create.title": "Create New",
   "files.create.type": "Type",
   "files.create.file": "File",
@@ -701,7 +715,7 @@
   "files.create.name": "Name",
   "files.create.location": "Location",
   "files.create.confirm": "Create {type}",
-  
+
   "files.createFile.title": "Create New File",
   "files.createFile.nameLabel": "File Name",
   "files.createFile.namePlaceholder": "filename.txt",
@@ -712,7 +726,7 @@
   "files.createFile.creating": "Creating...",
   "files.createFile.createButton": "Create File",
   "files.createFile.success": "File created successfully",
-  
+
   "files.createFolder.title": "Create New Folder",
   "files.createFolder.nameLabel": "Folder Name",
   "files.createFolder.namePlaceholder": "new-folder",
@@ -720,7 +734,7 @@
   "files.createFolder.creating": "Creating...",
   "files.createFolder.createButton": "Create Folder",
   "files.createFolder.success": "Folder created successfully",
-  
+
   "files.rename.fileTitle": "Rename File",
   "files.rename.folderTitle": "Rename Folder",
   "files.rename.currentName": "Current name",
@@ -729,12 +743,12 @@
   "files.rename.renaming": "Renaming...",
   "files.rename.renameButton": "Rename",
   "files.rename.success": "File renamed successfully",
-  
+
   "files.delete.title": "Delete Files",
   "files.delete.message": "Are you sure you want to delete {count} file(s)?",
   "files.delete.confirmButton": "Delete",
   "files.delete.success": "Files deleted successfully",
-  
+
   "files.validation.nameRequired": "Name is required",
   "files.validation.folderNameRequired": "Folder name is required",
   "files.validation.nameTooLong": "Name must be less than 255 characters",
@@ -742,7 +756,7 @@
   "files.validation.invalidName": "Invalid name",
   "files.validation.invalidFolderName": "Invalid folder name",
   "files.validation.sameNameError": "New name must be different from current name",
-  
+
   "files.errors.loadFailed": "Failed to load files",
   "files.errors.deleteFailed": "Failed to delete files",
   "files.errors.uploadFailed": "Failed to upload files",
@@ -761,7 +775,7 @@
   "account.settings.loading": "Loading account settings...",
   "account.settings.tabs.settings": "Account Settings",
   "account.settings.tabs.audit": "Audit Logs",
-  
+
   "account.settings.accountInfo.title": "Account Information",
   "account.settings.usernameLabel": "Username",
   "account.settings.usernameHint": "This is your unique identifier across the platform",
@@ -773,11 +787,11 @@
   "account.settings.saveSuccess": "Account settings updated successfully",
   "account.settings.saveError": "Failed to update account settings",
   "account.settings.error.loadFailed": "Failed to load account settings",
-  
+
   "account.settings.connectedAccounts.title": "Connected Accounts",
   "account.settings.connectedAccounts.connected": "Connected",
   "account.settings.connectedAccounts.active": "Active",
-  
+
   "account.settings.password.title": "Update Password",
   "account.settings.password.currentLabel": "Current Password",
   "account.settings.password.newLabel": "New Password",
@@ -800,7 +814,7 @@
   "account.settings.password.updating": "Updating",
   "account.settings.password.updateSuccess": "Password updated successfully",
   "account.settings.password.updateError": "Failed to update password. Please check your current password.",
-  
+
   "account.settings.danger.title": "DANGER ZONE",
   "account.settings.danger.deleteTitle": "Delete your account",
   "account.settings.danger.deleteDescription": "Once you delete your account, there is no going back. All your data will be permanently removed.",
@@ -818,23 +832,23 @@
   "audit.noLogs": "No audit logs found for the selected period",
   "audit.viewDetails": "View details",
   "audit.showingResults": "Showing {shown} of {total} results",
-  
+
   "audit.filter.allTypes": "All Types",
   "audit.filter.account": "Account",
   "audit.filter.organizations": "Organizations",
   "audit.filter.projects": "Projects",
-  
+
   "audit.dateRange.quickSelect": "Quick Select",
   "audit.dateRange.last7Days": "Last 7 days",
   "audit.dateRange.last30Days": "Last 30 days",
   "audit.dateRange.last90Days": "Last 90 days",
   "audit.dateRange.startDate": "Start Date",
   "audit.dateRange.endDate": "End Date",
-  
+
   "audit.table.action": "Action",
   "audit.table.target": "Target",
   "audit.table.date": "Date",
-  
+
   "audit.action.userSignup": "Account created",
   "audit.action.userLogin": "Logged into account",
   "audit.action.userLogout": "Logged out",
@@ -851,7 +865,7 @@
   "audit.action.projectDeleted": "Deleted project",
   "audit.action.sshKeyCreated": "Added SSH key",
   "audit.action.sshKeyDeleted": "Removed SSH key",
-  
+
   "audit.details.title": "Audit Log Details",
   "audit.details.action": "Action",
   "audit.details.timestamp": "Timestamp",
@@ -865,7 +879,7 @@
 
   "validation.email.invalid": "Invalid email address",
   "validation.email.valid": "Please enter a valid email address",
-  
+
   "validation.password.required": "Password is required",
   "validation.password.minLength": "Password must be at least 8 characters",
   "validation.password.uppercase": "Password must contain at least one uppercase letter",
@@ -874,18 +888,18 @@
   "validation.password.special": "Password must contain at least one special character",
   "validation.password.mismatch": "Passwords don't match",
   "validation.password.currentRequired": "Current password is required",
-  
+
   "validation.username.minLength": "Username must be at least 3 characters",
   "validation.username.maxLength": "Username is too long",
   "validation.username.invalid": "Username can only contain letters, numbers, underscores, and hyphens",
   "validation.username.taken": "This username is already taken",
-  
+
   "validation.organization.nameRequired": "Organization name is required",
   "validation.organization.nameTooLong": "Organization name is too long",
   "validation.organization.slugRequired": "Organization slug is required",
   "validation.organization.slugTooLong": "Slug is too long",
   "validation.organization.slugInvalid": "Slug can only contain lowercase letters, numbers, and hyphens",
-  
+
   "validation.project.nameRequired": "Project name is required",
   "validation.project.nameTooLong": "Project name must be less than 100 characters",
   "validation.project.descriptionTooLong": "Description must be less than 500 characters",

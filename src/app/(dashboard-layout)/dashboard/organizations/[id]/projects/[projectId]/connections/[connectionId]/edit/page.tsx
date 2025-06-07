@@ -51,7 +51,7 @@ export default function EditConnectionPage() {
     }
 
     loadConnection()
-  }, [connectionId, projectId, orgId, router, toast, intl])
+  }, [connectionId, projectId, orgId, router, intl])
 
   if (!orgId || !projectId || !connectionId) {
     return (
@@ -167,13 +167,15 @@ export default function EditConnectionPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            <FormattedMessage id="connections.edit.title" />
+            <FormattedMessage
+              id="connections.edit.title"
+              values={{
+                connectionName: <span className="text-terminal-green">{connection.name}</span>,
+              }}
+            />
           </h1>
           <p className="mt-2 text-foreground-muted">
-            <FormattedMessage
-              id="connections.edit.subtitle"
-              values={{ connectionName: connection.name }}
-            />
+            <FormattedMessage id="connections.edit.subtitle" />
           </p>
         </div>
 
