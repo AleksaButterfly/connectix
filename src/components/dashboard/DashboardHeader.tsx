@@ -18,6 +18,11 @@ const ORGANIZATION_PAGES = [
   '/dashboard/organizations/[id]/projects/new',
   '/dashboard/organizations/[id]/projects/[projectId]',
   '/dashboard/organizations/[id]/projects/[projectId]/settings',
+  '/dashboard/organizations/[id]/projects/[projectId]/connections',
+  '/dashboard/organizations/[id]/projects/[projectId]/connections/[connectionId]',
+  '/dashboard/organizations/[id]/projects/[projectId]/connections/[connectionId]/browse',
+  '/dashboard/organizations/[id]/projects/[projectId]/connections/[connectionId]/edit',
+  '/dashboard/organizations/[id]/projects/[projectId]/connections/new',
 ]
 
 interface BreadcrumbItem {
@@ -116,6 +121,7 @@ export default function DashboardHeader() {
   // Build breadcrumb items based on current path
   const getBreadcrumbs = (): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = []
+    const orgId = getOrgIdFromPath(pathname)
 
     // Always start with logo/home
     items.push({
@@ -144,10 +150,14 @@ export default function DashboardHeader() {
       })
     } else if (isOrganizationPage(pathname)) {
       // Add organization breadcrumb
+      // Make it clickable if we're on any project-related page
+      const isOnProjectRelatedPage = isProjectPage(pathname) || isNewProjectPage(pathname)
+
       items.push({
         label: isLoadingOrg
           ? intl.formatMessage({ id: 'common.loading' })
           : organizationName || intl.formatMessage({ id: 'dashboard.breadcrumb.organization' }),
+        href: isOnProjectRelatedPage && orgId ? `/dashboard/organizations/${orgId}` : undefined,
         icon: (
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -160,7 +170,7 @@ export default function DashboardHeader() {
         ),
       })
 
-      // Add project-specific breadcrumbs
+      // Add project breadcrumb if on project page (but never clickable)
       if (isNewProjectPage(pathname)) {
         items.push({
           label: intl.formatMessage({ id: 'dashboard.breadcrumb.newProject' }),
@@ -200,7 +210,7 @@ export default function DashboardHeader() {
               <div key={index} className="flex items-center">
                 {index > 0 && (
                   <svg
-                    className="mx-4 h-3.5 w-3.5 text-foreground-muted"
+                    className="mx-3 h-3.5 w-3.5 text-foreground-muted"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -214,9 +224,12 @@ export default function DashboardHeader() {
                   </svg>
                 )}
 
-                <div className="flex items-center gap-2 text-foreground">
-                  {item.icon}
-                  {(index > 0 || !item.icon) && (
+                {item.href && (index > 0 || !item.icon) ? (
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-1 rounded-md p-1 text-foreground transition-colors hover:bg-background-secondary"
+                  >
+                    {item.icon}
                     <span className="font-medium">
                       {item.labelId ? (
                         <FormattedMessage id={item.labelId} defaultMessage={item.label} />
@@ -224,8 +237,21 @@ export default function DashboardHeader() {
                         item.label
                       )}
                     </span>
-                  )}
-                </div>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1 rounded-md p-1 text-foreground">
+                    {item.icon}
+                    {(index > 0 || !item.icon) && (
+                      <span className="font-medium">
+                        {item.labelId ? (
+                          <FormattedMessage id={item.labelId} defaultMessage={item.label} />
+                        ) : (
+                          item.label
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </nav>
