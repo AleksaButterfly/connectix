@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FileBrowser } from '@/components/ssh/FileBrowser'
 import { connectionService } from '@/lib/connections/connection.service'
 import { useToast } from '@/components/ui/ToastContext'
+import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { ConnectionWithDetails } from '@/types/connection'
 
 export default function ConnectionBrowsePage() {
+  const intl = useIntl()
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
@@ -22,8 +24,12 @@ export default function ConnectionBrowsePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Prevent duplicate initialization
+  const initializingRef = useRef(false)
+
   useEffect(() => {
-    if (connectionId) {
+    if (connectionId && !initializingRef.current) {
+      initializingRef.current = true
       loadConnectionAndSession()
     }
   }, [connectionId])
@@ -36,21 +42,21 @@ export default function ConnectionBrowsePage() {
       // Load connection details
       const conn = await connectionService.getConnection(connectionId)
       if (!conn) {
-        setError('Connection not found')
+        setError(intl.formatMessage({ id: 'browse.error.connectionNotFound' }))
         return
       }
 
       // Check access
       const hasAccess = await connectionService.checkConnectionAccess(connectionId)
       if (!hasAccess) {
-        setError('Access denied')
+        setError(intl.formatMessage({ id: 'browse.error.accessDenied' }))
         return
       }
 
       setConnection(conn as ConnectionWithDetails)
 
       // Create SSH session
-      const sessionResponse = await fetch(`/api/connections/${connectionId}/session`, {
+      const sessionResponse = await fetch(`/api/connections/${connectionId}/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +68,7 @@ export default function ConnectionBrowsePage() {
 
         try {
           const errorData = await sessionResponse.json()
-          errorMessage = errorData.message || errorData.error || errorMessage
+          errorMessage = errorData.error || errorData.message || errorMessage
         } catch {
           // Response is not JSON, use status text
         }
@@ -74,10 +80,15 @@ export default function ConnectionBrowsePage() {
       setSessionToken(sessionData.sessionToken)
     } catch (err: any) {
       console.error('Failed to load connection or create session:', err)
-      setError(err.message || 'Failed to initialize connection')
-      toast.error(err.message || 'Failed to initialize connection')
+      setError(err.message || intl.formatMessage({ id: 'browse.error.initializeFailed' }))
+
+      // Only show toast for actual errors, not for initial load
+      if (err.message && !err.message.includes('Connection not found')) {
+        toast.error(err.message)
+      }
     } finally {
       setIsLoading(false)
+      initializingRef.current = false
     }
   }
 
@@ -85,8 +96,8 @@ export default function ConnectionBrowsePage() {
     try {
       // Close SSH session
       if (sessionToken) {
-        await fetch(`/api/connections/${connectionId}/session`, {
-          method: 'DELETE',
+        await fetch(`/api/connections/${connectionId}/disconnect`, {
+          method: 'POST',
           headers: {
             'x-session-token': sessionToken,
           },
@@ -101,7 +112,7 @@ export default function ConnectionBrowsePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <svg
             className="mx-auto mb-4 h-8 w-8 animate-spin text-terminal-green"
@@ -122,7 +133,9 @@ export default function ConnectionBrowsePage() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="text-foreground-muted">Connecting to server...</p>
+          <p className="text-foreground-muted">
+            <FormattedMessage id="browse.connecting" />
+          </p>
         </div>
       </div>
     )
@@ -130,18 +143,20 @@ export default function ConnectionBrowsePage() {
 
   if (error || !connection) {
     return (
-      <div className="flex min-h-[600px] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Connection Error</h2>
-          <p className="mb-4 text-foreground-muted">
-            {error || 'Unable to access this SSH connection.'}
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="browse.error.title" />
+          </h2>
+          <p className="mb-6 text-foreground-muted">
+            {error || intl.formatMessage({ id: 'browse.error.unableToAccess' })}
           </p>
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
-            className="btn-primary"
+            className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90"
           >
-            Back to Connections
+            <FormattedMessage id="browse.backToConnections" />
           </Link>
         </div>
       </div>
@@ -150,16 +165,29 @@ export default function ConnectionBrowsePage() {
 
   if (!sessionToken) {
     return (
-      <div className="flex min-h-[600px] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-6xl">🔑</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">Session Required</h2>
-          <p className="mb-4 text-foreground-muted">
-            Failed to establish SSH session. Please try again.
+          <h2 className="mb-2 text-xl font-semibold text-foreground">
+            <FormattedMessage id="browse.sessionRequired.title" />
+          </h2>
+          <p className="mb-6 text-foreground-muted">
+            <FormattedMessage id="browse.sessionRequired.description" />
           </p>
-          <button onClick={loadConnectionAndSession} className="btn-primary">
-            Retry Connection
-          </button>
+          <div className="flex justify-center gap-3">
+            <Link
+              href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
+              className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-background-secondary"
+            >
+              <FormattedMessage id="browse.backToConnections" />
+            </Link>
+            <button
+              onClick={loadConnectionAndSession}
+              className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90"
+            >
+              <FormattedMessage id="browse.retryConnection" />
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -175,7 +203,7 @@ export default function ConnectionBrowsePage() {
               href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
               className="hover:text-terminal-green-hover text-terminal-green"
             >
-              ← Back
+              ← <FormattedMessage id="common.back" />
             </Link>
             <div>
               <h1 className="text-lg font-semibold text-foreground">{connection.name}</h1>
@@ -188,14 +216,8 @@ export default function ConnectionBrowsePage() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-terminal-green/10 px-3 py-1 text-xs font-medium text-terminal-green">
               <span>●</span>
-              Connected
+              <FormattedMessage id="browse.status.connected" />
             </span>
-            <button
-              onClick={handleDisconnect}
-              className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary"
-            >
-              Disconnect
-            </button>
           </div>
         </div>
       </div>

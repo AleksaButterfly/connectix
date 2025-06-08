@@ -1,51 +1,48 @@
 'use client'
 
-import { useState } from 'react'
-import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { useRef } from 'react'
+import { FormattedMessage } from '@/lib/i18n'
 
 interface FileUploadProps {
   onUpload: (files: FileList) => void
+  disabled?: boolean
 }
 
-export function FileUpload({ onUpload }: FileUploadProps) {
-  const intl = useIntl()
-  const [isDragging, setIsDragging] = useState(false)
+export function FileUpload({ onUpload, disabled = false }: FileUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    if (e.dataTransfer.files.length > 0) {
-      onUpload(e.dataTransfer.files)
+  const handleClick = () => {
+    if (!disabled && inputRef.current) {
+      inputRef.current.click()
     }
   }
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      onUpload(e.target.files)
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (files && files.length > 0) {
+      onUpload(files)
+      // Reset input to allow uploading the same file again
+      event.target.value = ''
     }
   }
 
   return (
-    <div
-      className={`relative ${isDragging ? 'opacity-50' : ''}`}
-      onDragOver={(e) => {
-        e.preventDefault()
-        setIsDragging(true)
-      }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-    >
+    <>
       <input
+        ref={inputRef}
         type="file"
         multiple
-        onChange={handleFileInput}
-        className="absolute inset-0 z-10 cursor-pointer opacity-0"
-        aria-label={intl.formatMessage({ id: 'files.upload.selectFiles' })}
+        onChange={handleChange}
+        className="hidden"
+        disabled={disabled}
       />
-      <button className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary">
-        <FormattedMessage id="files.upload.button" />
+      <button
+        onClick={handleClick}
+        disabled={disabled}
+        className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <FormattedMessage id="fileBrowser.upload" />
       </button>
-    </div>
+    </>
   )
 }

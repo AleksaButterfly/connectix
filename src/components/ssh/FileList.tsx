@@ -11,7 +11,7 @@ interface FileListProps {
   viewMode?: 'list' | 'grid'
   selectedFiles?: Set<string>
   onFileSelect?: (filePath: string, isSelected: boolean) => void
-  onFileDoubleClick?: (file: FileInfo) => void
+  onFileOpen?: (file: FileInfo) => void
   onRename?: (file: FileInfo) => void
   onDelete?: (files: FileInfo[]) => void
 }
@@ -22,7 +22,7 @@ export function FileList({
   viewMode = 'list',
   selectedFiles = new Set(),
   onFileSelect,
-  onFileDoubleClick,
+  onFileOpen,
   onRename,
   onDelete,
 }: FileListProps) {
@@ -40,7 +40,7 @@ export function FileList({
       return 0
     }
 
-    // Always put directories first - use 'type' property from your API
+    // Always put directories first
     const aIsDir = a.type === 'directory'
     const bIsDir = b.type === 'directory'
 
@@ -57,7 +57,6 @@ export function FileList({
         comparison = (a.size || 0) - (b.size || 0)
         break
       case 'modified':
-        // Use 'mtime' property from your API
         const aDate = a.mtime || new Date(0)
         const bDate = b.mtime || new Date(0)
         comparison = new Date(aDate).getTime() - new Date(bDate).getTime()
@@ -80,29 +79,30 @@ export function FileList({
     event?.stopPropagation()
 
     switch (action) {
-      case 'open':
-        onFileDoubleClick?.(file)
-        break
       case 'rename':
         onRename?.(file)
         break
       case 'delete':
-        onDelete?.(
-          selectedFiles.has(file.name)
-            ? Array.from(selectedFiles)
-                .map((name) => files.find((f) => f.name === name)!)
-                .filter(Boolean)
-            : [file]
-        )
+        // If file is selected, delete all selected files, otherwise just this file
+        const filesToDelete = selectedFiles.has(file.path)
+          ? Array.from(selectedFiles)
+              .map((path) => files.find((f) => f.path === path)!)
+              .filter(Boolean)
+          : [file]
+        onDelete?.(filesToDelete)
         break
     }
   }
 
-  const handleFileSelect = (fileName: string, event: React.MouseEvent) => {
-    if (!onFileSelect) return
-
+  const handleCheckboxClick = (file: FileInfo, event: React.MouseEvent) => {
     event.stopPropagation()
-    onFileSelect(fileName, !selectedFiles.has(fileName))
+    if (onFileSelect) {
+      onFileSelect(file.path, !selectedFiles.has(file.path))
+    }
+  }
+
+  const handleRowClick = (file: FileInfo) => {
+    onFileOpen?.(file)
   }
 
   if (isLoading) {
@@ -111,7 +111,7 @@ export function FileList({
         <div className="text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
           <p className="text-foreground-muted">
-            <FormattedMessage id="files.list.loadingFiles" />
+            <FormattedMessage id="fileList.loading" />
           </p>
         </div>
       </div>
@@ -124,10 +124,10 @@ export function FileList({
         <div className="text-center">
           <div className="mb-4 text-6xl opacity-50">📁</div>
           <h3 className="mb-2 text-lg font-medium text-foreground">
-            <FormattedMessage id="files.list.emptyDirectory" />
+            <FormattedMessage id="fileList.empty.title" />
           </h3>
           <p className="text-foreground-muted">
-            <FormattedMessage id="files.list.emptyDirectoryDescription" />
+            <FormattedMessage id="fileList.empty.description" />
           </p>
         </div>
       </div>
@@ -136,184 +136,198 @@ export function FileList({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Toolbar */}
-      <div className="border-b border-border bg-background-secondary px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-foreground-muted">
+      {/* File count info */}
+      <div className="border-b border-border bg-background-secondary px-4 py-2">
+        <span className="text-sm text-foreground-muted">
+          <FormattedMessage id="fileList.itemCount" values={{ count: files.length }} />
+          {selectedFiles.size > 0 && (
+            <>
+              {' • '}
               <FormattedMessage
-                id="files.list.itemCount"
-                values={{
-                  count: files.length,
-                  selected: selectedFiles.size > 0 ? selectedFiles.size : null,
-                }}
+                id="fileList.selectedCount"
+                values={{ count: selectedFiles.size }}
               />
-            </span>
-          </div>
-        </div>
+            </>
+          )}
+        </span>
       </div>
 
       {/* File List */}
-      <div className="flex-1 overflow-auto">
-        {viewMode === 'list' ? (
-          <table className="w-full">
-            <thead className="border-b border-border bg-background-secondary">
-              <tr>
-                {onFileSelect && <th className="w-8 px-4 py-3"></th>}
-                <th className="px-4 py-3 text-left">
-                  <button
-                    onClick={() => handleSort('name')}
-                    className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
-                  >
-                    <FormattedMessage id="files.list.columns.name" />
-                    {sortBy === 'name' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                  </button>
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <button
-                    onClick={() => handleSort('size')}
-                    className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
-                  >
-                    <FormattedMessage id="files.list.columns.size" />
-                    {sortBy === 'size' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                  </button>
-                </th>
-                <th className="px-4 py-3 text-left">
-                  <button
-                    onClick={() => handleSort('modified')}
-                    className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
-                  >
-                    <FormattedMessage id="files.list.columns.modified" />
-                    {sortBy === 'modified' && <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>}
-                  </button>
-                </th>
-                <th className="w-24 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedFiles.map((file, index) => {
-                // Safety check for each file
-                if (!file || !file.name) {
-                  return null
-                }
-
-                const isSelected = selectedFiles.has(file.name)
-                return (
-                  <tr
-                    key={file.name}
-                    onClick={() => handleFileAction(file, 'open')}
-                    className={`cursor-pointer border-b border-border hover:bg-background-secondary ${
-                      isSelected ? 'bg-terminal-green/10' : ''
-                    }`}
-                  >
-                    {onFileSelect && (
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleFileSelect(file.name, e as any)}
-                          className="rounded border-border text-terminal-green focus:ring-terminal-green"
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{getFileIcon(file)}</span>
-                        <span className="font-medium text-foreground">{file.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground-muted">
-                      {file.type === 'directory' ? '-' : formatFileSize(file.size)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground-muted">
-                      {formatDate(file.mtime)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => handleFileAction(file, 'rename', e)}
-                          className="rounded p-1 text-xs text-foreground-muted hover:bg-background-tertiary hover:text-foreground"
-                          title={intl.formatMessage({ id: 'files.list.actions.rename' })}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={(e) => handleFileAction(file, 'delete', e)}
-                          className="rounded p-1 text-xs text-foreground-muted hover:bg-red-100 hover:text-red-600"
-                          title={intl.formatMessage({ id: 'files.list.actions.delete' })}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {sortedFiles.map((file, index) => {
-              // Safety check for each file
+      {viewMode === 'list' ? (
+        <table className="w-full">
+          <thead className="sticky top-0 z-10 border-b border-border bg-background-secondary">
+            <tr>
+              {onFileSelect && <th className="w-12 px-4 py-3"></th>}
+              <th className="px-4 py-3 text-left">
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
+                >
+                  <FormattedMessage id="fileList.column.name" />
+                  {sortBy === 'name' && (
+                    <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  onClick={() => handleSort('size')}
+                  className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
+                >
+                  <FormattedMessage id="fileList.column.size" />
+                  {sortBy === 'size' && (
+                    <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left">
+                <button
+                  onClick={() => handleSort('modified')}
+                  className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-terminal-green"
+                >
+                  <FormattedMessage id="fileList.column.modified" />
+                  {sortBy === 'modified' && (
+                    <span className="text-xs">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                  )}
+                </button>
+              </th>
+              <th className="w-24 px-4 py-3">
+                <span className="sr-only">
+                  <FormattedMessage id="fileList.column.actions" />
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedFiles.map((file) => {
               if (!file || !file.name) {
                 return null
               }
 
-              const isSelected = selectedFiles.has(file.name)
+              const isSelected = selectedFiles.has(file.path)
               return (
-                <div
-                  key={file.name}
-                  onClick={() => handleFileAction(file, 'open')}
-                  className={`group relative cursor-pointer rounded-lg border border-border p-3 hover:bg-background-secondary ${
-                    isSelected ? 'border-terminal-green/30 bg-terminal-green/10' : ''
+                <tr
+                  key={file.path}
+                  onClick={() => handleRowClick(file)}
+                  className={`cursor-pointer border-b border-border transition-colors hover:bg-background-secondary ${
+                    isSelected ? 'bg-terminal-green/10' : ''
                   }`}
                 >
                   {onFileSelect && (
+                    <td className="px-4 py-3">
+                      <div
+                        className="flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleCheckboxClick(file, e as any)}
+                          className="h-4 w-4 rounded border-border text-terminal-green focus:ring-1 focus:ring-terminal-green focus:ring-offset-0"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{getFileIcon(file)}</span>
+                      <span className="font-medium text-foreground">{file.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-foreground-muted">
+                    {file.type === 'directory' ? '-' : formatFileSize(file.size)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-foreground-muted">
+                    {formatDate(file.mtime)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={(e) => handleFileAction(file, 'rename', e)}
+                        className="rounded p-1 text-xs text-foreground-muted hover:bg-background-tertiary hover:text-foreground"
+                        title={intl.formatMessage({ id: 'fileList.action.rename' })}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={(e) => handleFileAction(file, 'delete', e)}
+                        className="rounded p-1 text-xs text-foreground-muted hover:bg-red-500/10 hover:text-red-500"
+                        title={intl.formatMessage({ id: 'fileList.action.delete' })}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {sortedFiles.map((file) => {
+            if (!file || !file.name) {
+              return null
+            }
+
+            const isSelected = selectedFiles.has(file.path)
+            return (
+              <div
+                key={file.path}
+                onClick={() => handleRowClick(file)}
+                className={`group relative cursor-pointer rounded-lg border p-4 transition-all hover:shadow-lg ${
+                  isSelected
+                    ? 'border-terminal-green bg-terminal-green/10'
+                    : 'border-border hover:border-terminal-green/50 hover:bg-background-secondary'
+                }`}
+              >
+                {onFileSelect && (
+                  <div className="absolute right-2 top-2" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={(e) => handleFileSelect(file.name, e as any)}
-                      className="absolute right-2 top-2 rounded border-border text-terminal-green focus:ring-terminal-green"
+                      onChange={(e) => handleCheckboxClick(file, e as any)}
+                      className="h-4 w-4 rounded border-border text-terminal-green focus:ring-1 focus:ring-terminal-green focus:ring-offset-0"
                     />
-                  )}
-
-                  <div className="flex flex-col items-center text-center">
-                    <div className="mb-2 text-3xl">{getFileIcon(file)}</div>
-                    <div className="mb-1 truncate text-sm font-medium text-foreground">
-                      {file.name}
-                    </div>
-                    <div className="text-xs text-foreground-muted">
-                      {file.type === 'directory' ? (
-                        <FormattedMessage id="files.list.folder" />
-                      ) : (
-                        formatFileSize(file.size)
-                      )}
-                    </div>
                   </div>
+                )}
 
-                  {/* Action buttons on hover */}
-                  <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      onClick={(e) => handleFileAction(file, 'rename', e)}
-                      className="rounded bg-background p-1 text-xs shadow-md hover:bg-background-secondary"
-                      title={intl.formatMessage({ id: 'files.list.actions.rename' })}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={(e) => handleFileAction(file, 'delete', e)}
-                      className="rounded bg-background p-1 text-xs shadow-md hover:bg-red-100"
-                      title={intl.formatMessage({ id: 'files.list.actions.delete' })}
-                    >
-                      🗑️
-                    </button>
+                <div className="flex flex-col items-center text-center">
+                  <div className="mb-2 text-3xl">{getFileIcon(file)}</div>
+                  <div className="mb-1 w-full truncate text-sm font-medium text-foreground">
+                    {file.name}
+                  </div>
+                  <div className="text-xs text-foreground-muted">
+                    {file.type === 'directory' ? (
+                      <FormattedMessage id="fileList.type.folder" />
+                    ) : (
+                      formatFileSize(file.size)
+                    )}
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+
+                {/* Action buttons on hover */}
+                <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    onClick={(e) => handleFileAction(file, 'rename', e)}
+                    className="rounded bg-background p-1 text-xs shadow-md hover:bg-background-secondary"
+                    title={intl.formatMessage({ id: 'fileList.action.rename' })}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={(e) => handleFileAction(file, 'delete', e)}
+                    className="rounded bg-background p-1 text-xs shadow-md hover:bg-red-500/10"
+                    title={intl.formatMessage({ id: 'fileList.action.delete' })}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
