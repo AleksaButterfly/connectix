@@ -77,6 +77,13 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         type = 'not_found'
         message = message || intl.formatMessage({ id: 'fileBrowser.error.notFound' })
       } else if (
+        response.status === 401 ||
+        message.toLowerCase().includes('session') ||
+        message.toLowerCase().includes('expired')
+      ) {
+        type = 'network'
+        message = intl.formatMessage({ id: 'fileBrowser.error.sessionExpired' })
+      } else if (
         message.toLowerCase().includes('network') ||
         message.toLowerCase().includes('connection')
       ) {
@@ -113,18 +120,14 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         const errorState = await parseError(response)
         setError(errorState)
 
-        if (errorState.type === 'permission') {
-          // Stay on current page but show permission error
-          showToast(
-            intl.formatMessage(
-              { id: 'fileBrowser.error.permissionDeniedPath' },
-              { path: currentPath }
-            )
-          )
+        // Handle different error types
+        if (errorState.type === 'permission' || errorState.message.includes('session')) {
+          // Stay on current page for permission or session errors
+          showToast(errorState.message)
         } else {
           showToast(errorState.message)
           // For other errors, go back to parent directory if not at root
-          if (currentPath !== '/') {
+          if (currentPath !== '/' && errorState.type !== 'not_found') {
             const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
             setCurrentPath(parentPath)
           }
@@ -154,17 +157,27 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
   // Debounced effect to prevent multiple loads
   useEffect(() => {
+    // Don't try to load if we have a persistent error or session issue
+    if (
+      error.type === 'permission' ||
+      error.type === 'not_found' ||
+      (error.type === 'network' && error.message.toLowerCase().includes('session'))
+    ) {
+      return
+    }
+
     if (sessionToken) {
       const timer = setTimeout(() => {
         loadFiles()
       }, 100)
       return () => clearTimeout(timer)
     }
-  }, [sessionToken, currentPath, loadFiles])
+  }, [sessionToken, currentPath, loadFiles, error.type, error.message])
 
   const handleNavigate = (path: string) => {
-    setCurrentPath(path)
+    // Clear any existing errors when navigating to a new path
     setError({ type: 'none', message: '' })
+    setCurrentPath(path)
   }
 
   const handleFileSelect = (filePath: string, isSelected: boolean) => {
@@ -179,8 +192,9 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
   const handleFileOpen = (file: FileInfo) => {
     if (file.type === 'directory') {
-      setCurrentPath(file.path)
+      // Clear any existing errors when opening a new directory
       setError({ type: 'none', message: '' })
+      setCurrentPath(file.path)
     } else {
       setEditingFile(file)
     }
@@ -402,7 +416,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
             <div className="ml-4 flex rounded-lg border border-border">
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 text-sm ${
+                className={`rounded-lg px-3 py-1.5 text-sm ${
                   viewMode === 'list'
                     ? 'bg-terminal-green text-background'
                     : 'text-foreground hover:bg-background-secondary'
@@ -412,7 +426,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 text-sm ${
+                className={`rounded-lg px-3 py-1.5 text-sm ${
                   viewMode === 'grid'
                     ? 'bg-terminal-green text-background'
                     : 'text-foreground hover:bg-background-secondary'
@@ -477,6 +491,24 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
                 }}
               >
                 <FormattedMessage id="fileBrowser.permission.requestAccess" />
+              </button>
+            </div>
+          </div>
+        ) : error.type === 'network' && error.message.toLowerCase().includes('session') ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <div className="mb-4 text-6xl">🔑</div>
+              <h3 className="mb-2 text-lg font-medium text-foreground">
+                <FormattedMessage id="fileBrowser.session.expired.title" />
+              </h3>
+              <p className="mb-4 text-foreground-muted">
+                <FormattedMessage id="fileBrowser.session.expired.description" />
+              </p>
+              <button
+                className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90"
+                onClick={onDisconnect}
+              >
+                <FormattedMessage id="fileBrowser.session.reconnect" />
               </button>
             </div>
           </div>

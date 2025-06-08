@@ -935,6 +935,10 @@
   "fileBrowser.permission.folder": "You don't have permission to view this folder",
   "fileBrowser.permission.requestAccess": "Request Access",
   "fileBrowser.permission.requestAccessComingSoon": "Access request feature coming soon",
+  "fileBrowser.error.sessionExpired": "Session expired or invalid",
+  "fileBrowser.session.expired.title": "Session Expired",
+  "fileBrowser.session.expired.description": "Your SSH session has expired. Please reconnect to continue.",
+  "fileBrowser.session.reconnect": "Reconnect",
   
   "fileList.loading": "Loading files...",
   "fileList.empty.title": "Empty Directory",

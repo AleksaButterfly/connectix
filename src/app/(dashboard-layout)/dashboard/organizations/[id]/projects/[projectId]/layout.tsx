@@ -101,7 +101,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
       <div className={`relative flex-shrink-0 ${isConnectionsPage ? '' : 'w-[56px]'}`}>
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
-          className={`fixed bottom-0 left-0 top-16 z-10 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
+          className={`z-15 fixed bottom-0 left-0 top-16 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
             isCollapsed ? 'w-[56px]' : 'w-64'
           }`}
           onMouseEnter={() => setIsCollapsed(false)}

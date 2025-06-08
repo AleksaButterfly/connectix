@@ -155,7 +155,7 @@ export function FileList({
       {/* File List */}
       {viewMode === 'list' ? (
         <table className="w-full">
-          <thead className="sticky top-0 z-10 border-b border-border bg-background-secondary">
+          <thead className="z-15 sticky top-0 border-b border-border bg-background-secondary">
             <tr>
               {onFileSelect && <th className="w-12 px-4 py-3"></th>}
               <th className="px-4 py-3 text-left">
