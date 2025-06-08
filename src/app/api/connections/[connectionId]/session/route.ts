@@ -28,8 +28,6 @@ export async function POST(
     const params = await context.params
     const { connectionId } = params
 
-    console.log('🔗 SSH CONNECTION START for:', connectionId)
-
     if (!connectionId) {
       return NextResponse.json({ error: 'Connection ID is required' }, { status: 400 })
     }
@@ -58,8 +56,6 @@ export async function POST(
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
 
-    console.log('🔗 Connection found:', connection.name)
-
     // Check if user can access this connection
     const { data: canAccess } = await supabase.rpc('can_access_connection', {
       conn_id: connectionId,
@@ -80,16 +76,9 @@ export async function POST(
         )
       }
 
-      console.log('🔓 Decrypting credentials...')
-
       // Use your working decryptCredentials function (no extra parameters needed)
       decryptedCredentials = decryptCredentials(connection.encrypted_credentials)
-
-      console.log('✅ Credentials decrypted successfully')
-      console.log('  Available credential keys:', Object.keys(decryptedCredentials))
     } catch (decryptError: any) {
-      console.error('❌ Decryption failed:', decryptError.message)
-
       return NextResponse.json(
         {
           error: 'Failed to decrypt credentials',
@@ -131,8 +120,6 @@ export async function POST(
       )
     }
 
-    console.log('🔗 Creating SSH session...')
-
     // Transform to SSH config format
     const sshConfig: SSHConfig = {
       host: connection.host,
@@ -147,8 +134,6 @@ export async function POST(
 
     // Create SSH session
     const sessionToken = await SSHConnectionManager.createSession(connectionId, user.id, sshConfig)
-
-    console.log('✅ SSH session created successfully')
 
     // Update connection usage
     await supabase
@@ -173,7 +158,6 @@ export async function POST(
       },
     })
   } catch (error: any) {
-    console.error('❌ SSH connection error:', error)
     return NextResponse.json(
       {
         error: error.message || 'Failed to create SSH session',

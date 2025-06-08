@@ -12,11 +12,6 @@ function getEncryptionKey(): string {
   const envKey = process.env.CONNECTIX_ENCRYPTION_KEY || process.env.SSH_ENCRYPTION_KEY
 
   if (!envKey) {
-    console.warn('⚠️  No encryption key found in environment variables. Using fallback key.')
-    console.warn('   Please set CONNECTIX_ENCRYPTION_KEY in your environment for production.')
-    console.warn('   Current env check:')
-    console.warn('     - CONNECTIX_ENCRYPTION_KEY:', !!process.env.CONNECTIX_ENCRYPTION_KEY)
-    console.warn('     - SSH_ENCRYPTION_KEY:', !!process.env.SSH_ENCRYPTION_KEY)
     return 'connectix-fallback-key-change-in-production-2024'
   }
 
