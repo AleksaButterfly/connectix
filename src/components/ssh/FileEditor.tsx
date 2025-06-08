@@ -208,7 +208,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
           <p className="text-foreground-muted">
             <FormattedMessage id="fileEditor.loading" />
@@ -311,7 +311,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-4 text-xs text-foreground-muted">
+        <div className="mt-2 flex items-center gap-2 text-xs text-foreground-muted">
           <span>{file.path}</span>
           <span>•</span>
           <span>

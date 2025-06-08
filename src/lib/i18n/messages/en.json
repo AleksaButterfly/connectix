@@ -717,7 +717,6 @@
   "files.editor.errors.saveFailed": "Failed to save file",
   "files.editor.saveSuccess": "File saved successfully",
   "files.editor.unsavedChangesWarning": "You have unsaved changes. Are you sure you want to close?",
-  "files.editor.loadingFile": "Loading file...",
   "files.editor.modified": "Modified",
   "files.editor.saving": "Saving...",
   "files.editor.save": "Save",

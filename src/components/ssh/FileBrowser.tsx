@@ -61,42 +61,45 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   )
 
   // Parse error response and determine error type
-  const parseError = async (response: Response): Promise<ErrorState> => {
-    let message = intl.formatMessage({ id: 'fileBrowser.error.generic' })
-    let type: ErrorState['type'] = 'unknown'
+  const parseError = useCallback(
+    async (response: Response, path?: string): Promise<ErrorState> => {
+      let message = intl.formatMessage({ id: 'fileBrowser.error.generic' })
+      let type: ErrorState['type'] = 'unknown'
 
-    try {
-      const data = await response.json()
-      message = data.error || data.message || message
+      try {
+        const data = await response.json()
+        message = data.error || data.message || message
 
-      // Determine error type based on status code and message
-      if (response.status === 403 || message.toLowerCase().includes('permission')) {
-        type = 'permission'
-        message = message || intl.formatMessage({ id: 'fileBrowser.error.permissionDenied' })
-      } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
-        type = 'not_found'
-        message = message || intl.formatMessage({ id: 'fileBrowser.error.notFound' })
-      } else if (
-        response.status === 401 ||
-        message.toLowerCase().includes('session') ||
-        message.toLowerCase().includes('expired')
-      ) {
-        type = 'network'
-        message = intl.formatMessage({ id: 'fileBrowser.error.sessionExpired' })
-      } else if (
-        message.toLowerCase().includes('network') ||
-        message.toLowerCase().includes('connection')
-      ) {
-        type = 'network'
-        message = message || intl.formatMessage({ id: 'fileBrowser.error.network' })
+        // Determine error type based on status code and message
+        if (response.status === 403 || message.toLowerCase().includes('permission')) {
+          type = 'permission'
+          message = message || intl.formatMessage({ id: 'fileBrowser.error.permissionDenied' })
+        } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
+          type = 'not_found'
+          message = message || intl.formatMessage({ id: 'fileBrowser.error.notFound' })
+        } else if (
+          response.status === 401 ||
+          message.toLowerCase().includes('session') ||
+          message.toLowerCase().includes('expired')
+        ) {
+          type = 'network'
+          message = intl.formatMessage({ id: 'fileBrowser.error.sessionExpired' })
+        } else if (
+          message.toLowerCase().includes('network') ||
+          message.toLowerCase().includes('connection')
+        ) {
+          type = 'network'
+          message = message || intl.formatMessage({ id: 'fileBrowser.error.network' })
+        }
+      } catch {
+        // If response is not JSON, use status text
+        message = response.statusText || intl.formatMessage({ id: 'fileBrowser.error.loadFiles' })
       }
-    } catch {
-      // If response is not JSON, use status text
-      message = response.statusText || intl.formatMessage({ id: 'fileBrowser.error.loadFiles' })
-    }
 
-    return { type, message, path: currentPath }
-  }
+      return { type, message, path: path || '/' }
+    },
+    [intl]
+  )
 
   // Load files with better error handling
   const loadFiles = useCallback(async () => {
@@ -117,20 +120,18 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       )
 
       if (!response.ok) {
-        const errorState = await parseError(response)
+        const errorState = await parseError(response, currentPath)
         setError(errorState)
 
-        // Handle different error types
-        if (errorState.type === 'permission' || errorState.message.includes('session')) {
-          // Stay on current page for permission or session errors
-          showToast(errorState.message)
-        } else {
-          showToast(errorState.message)
-          // For other errors, go back to parent directory if not at root
-          if (currentPath !== '/' && errorState.type !== 'not_found') {
-            const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
-            setCurrentPath(parentPath)
-          }
+        // For other errors, go back to parent directory if not at root
+        if (
+          currentPath !== '/' &&
+          errorState.type !== 'permission' &&
+          errorState.type !== 'not_found' &&
+          !errorState.message.includes('session')
+        ) {
+          const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
+          setCurrentPath(parentPath)
         }
         return
       }
@@ -148,12 +149,11 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         ),
         path: currentPath,
       })
-      showToast(intl.formatMessage({ id: 'fileBrowser.error.networkLoadFiles' }))
     } finally {
       setIsLoading(false)
       loadingRef.current = false
     }
-  }, [sessionToken, currentPath, connectionId, showToast, intl])
+  }, [sessionToken, currentPath, connectionId, intl])
 
   // Debounced effect to prevent multiple loads
   useEffect(() => {
@@ -173,6 +173,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       return () => clearTimeout(timer)
     }
   }, [sessionToken, currentPath, loadFiles, error.type, error.message])
+
+  // No automatic toasts for navigation errors - the UI already shows them clearly
 
   const handleNavigate = (path: string) => {
     // Clear any existing errors when navigating to a new path
@@ -213,15 +215,27 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       variant: 'danger',
       onConfirm: async () => {
         try {
+          let hasPermissionError = false
+
           const results = await Promise.allSettled(
-            filePaths.map((path) =>
-              fetch(`/api/connections/${connectionId}/files${path}`, {
+            filePaths.map(async (path) => {
+              const response = await fetch(`/api/connections/${connectionId}/files${path}`, {
                 method: 'DELETE',
                 headers: {
                   'x-session-token': sessionToken,
                 },
               })
-            )
+
+              if (!response.ok) {
+                const error = await parseError(response)
+                if (error.type === 'permission') {
+                  hasPermissionError = true
+                }
+                throw new Error(error.message)
+              }
+
+              return response
+            })
           )
 
           const failed = results.filter((r) => r.status === 'rejected')
@@ -236,7 +250,10 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
             showToast(intl.formatMessage({ id: 'fileBrowser.delete.success' }), 'success')
           }
 
-          loadFiles()
+          // Only reload if no permission errors
+          if (!hasPermissionError) {
+            loadFiles()
+          }
         } catch (error: any) {
           showToast(error.message || intl.formatMessage({ id: 'fileBrowser.delete.error' }))
         }
@@ -261,7 +278,12 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
       if (!response.ok) {
         const error = await parseError(response)
-        throw new Error(error.message)
+        showToast(error.message || intl.formatMessage({ id: 'fileBrowser.rename.error' }))
+        // Don't reload on permission errors
+        if (error.type !== 'permission') {
+          loadFiles()
+        }
+        return
       }
 
       showToast(intl.formatMessage({ id: 'fileBrowser.rename.success' }), 'success')
@@ -288,7 +310,12 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
       if (!response.ok) {
         const error = await parseError(response)
-        throw new Error(error.message)
+        showToast(error.message || intl.formatMessage({ id: 'fileBrowser.createFile.error' }))
+        // Don't reload on permission errors
+        if (error.type !== 'permission') {
+          loadFiles()
+        }
+        return
       }
 
       showToast(intl.formatMessage({ id: 'fileBrowser.createFile.success' }), 'success')
@@ -315,7 +342,12 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
       if (!response.ok) {
         const error = await parseError(response)
-        throw new Error(error.message)
+        showToast(error.message || intl.formatMessage({ id: 'fileBrowser.createFolder.error' }))
+        // Don't reload on permission errors
+        if (error.type !== 'permission') {
+          loadFiles()
+        }
+        return
       }
 
       showToast(intl.formatMessage({ id: 'fileBrowser.createFolder.success' }), 'success')
@@ -329,6 +361,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
     if (!sessionToken) return
 
     try {
+      let hasPermissionError = false
+
       const uploadPromises = Array.from(files).map(async (file) => {
         const formData = new FormData()
         formData.append('file', file)
@@ -344,6 +378,9 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
         if (!response.ok) {
           const error = await parseError(response)
+          if (error.type === 'permission') {
+            hasPermissionError = true
+          }
           throw new Error(`${file.name}: ${error.message}`)
         }
 
@@ -352,7 +389,11 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
       await Promise.all(uploadPromises)
       showToast(intl.formatMessage({ id: 'fileBrowser.upload.success' }), 'success')
-      loadFiles()
+
+      // Only reload if no permission errors
+      if (!hasPermissionError) {
+        loadFiles()
+      }
     } catch (error: any) {
       showToast(error.message || intl.formatMessage({ id: 'fileBrowser.upload.error' }))
     }
