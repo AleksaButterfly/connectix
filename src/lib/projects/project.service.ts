@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { getErrorMessageKey } from '@/lib/errors/error-messages'
+import { storableError } from '@/lib/errors'
 import type {
   Project,
   ProjectWithDetails,
@@ -16,7 +16,7 @@ export const projectService = {
       org_id: organizationId,
     })
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) throw new Error(storableError(error).message)
     return data || []
   },
 
@@ -27,7 +27,8 @@ export const projectService = {
 
     if (error) {
       if (error.code === 'PGRST116') return null // Not found
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data
@@ -62,7 +63,8 @@ export const projectService = {
 
     if (error) {
       // The error mapping will handle the duplicate slug error
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data
@@ -97,8 +99,8 @@ export const projectService = {
       .single()
 
     if (error) {
-      // The error mapping will handle the duplicate slug error
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data
@@ -108,7 +110,7 @@ export const projectService = {
     const supabase = createClient()
     const { error } = await supabase.from('projects').delete().eq('id', projectId)
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) throw new Error(storableError(error).message)
   },
 
   async checkProjectAccess(projectId: string): Promise<boolean> {

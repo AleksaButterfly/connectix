@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { getErrorMessageKey } from '@/lib/errors/error-messages'
+import { storableError } from '@/lib/errors'
 import type { Organization, OrganizationWithDetails } from '@/types/organization'
 import type { Database } from '@/types/database'
 
@@ -10,7 +10,7 @@ export const organizationService = {
     // Use the new database function to get organizations with counts
     const { data, error } = await supabase.rpc('get_user_organizations')
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) throw new Error(storableError(error).message)
     if (!data) return []
 
     // Map the function results to our OrganizationWithDetails type
@@ -53,7 +53,11 @@ export const organizationService = {
       .select()
       .single()
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) {
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
+    }
+
     return data
   },
 
@@ -63,7 +67,8 @@ export const organizationService = {
 
     if (error) {
       if (error.code === 'PGRST116') return null // Not found
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(error.message)
     }
 
     return data
@@ -92,7 +97,7 @@ export const organizationService = {
       .select()
       .single()
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) throw new Error(storableError(error).message)
     return data
   },
 
@@ -100,7 +105,7 @@ export const organizationService = {
     const supabase = createClient()
     const { error } = await supabase.from('organizations').delete().eq('id', id)
 
-    if (error) throw new Error(getErrorMessageKey(error))
+    if (error) throw new Error(storableError(error).message)
   },
 
   async isOrganizationOwner(organizationId: string): Promise<boolean> {

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { getErrorMessageKey } from '@/lib/errors/error-messages'
+import { storableError } from '@/lib/errors'
 import type {
   Connection,
   ConnectionWithDetails,
@@ -37,7 +37,8 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     // Fetch user details separately since the foreign key might be missing
@@ -92,7 +93,8 @@ export const connectionService = {
       .order('name')
 
     if (error) {
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     // Fetch user details
@@ -141,7 +143,8 @@ export const connectionService = {
         return null // Not found
       }
 
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data
@@ -177,17 +180,14 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        // Check for specific error codes in the response
-        const errorKey = getErrorMessageKey({ message: data.error })
-        throw new Error(errorKey)
+        const apiError = storableError(data.error)
+        throw new Error(apiError.message)
       }
 
       return data
     } catch (error: any) {
-      // If it's already a translation key, use it, otherwise map it
-      const message = error.message || 'connections.error.createFailed'
-      const errorKey = message.includes('.error.') ? message : getErrorMessageKey(error)
-      throw new Error(errorKey)
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
   },
 
@@ -214,16 +214,14 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        const errorKey = getErrorMessageKey({ message: data.error })
-        throw new Error(errorKey)
+        const apiError = storableError(data.error)
+        throw new Error(apiError.message)
       }
 
       return data
     } catch (error: any) {
-      // If it's already a translation key, use it, otherwise map it
-      const message = error.message || 'connections.error.updateFailed'
-      const errorKey = message.includes('.error.') ? message : getErrorMessageKey(error)
-      throw new Error(errorKey)
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
   },
 
@@ -237,7 +235,8 @@ export const connectionService = {
     const { error } = await supabase.from('connections').delete().eq('id', connectionId)
 
     if (error) {
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
   },
 
@@ -256,18 +255,14 @@ export const connectionService = {
       const data = await response.json()
 
       if (!response.ok) {
-        const errorKey = getErrorMessageKey({ message: data.error || data.message })
-        throw new Error(errorKey)
+        const apiError = storableError(data.error)
+        throw new Error(apiError.message)
       }
 
       return data
     } catch (error: any) {
-      const errorKey = getErrorMessageKey(error)
-      return {
-        success: false,
-        message: errorKey,
-        error: errorKey,
-      }
+      const apiError = storableError(error)
+      return apiError
     }
   },
 
@@ -287,7 +282,7 @@ export const connectionService = {
 
     if (!response.ok) {
       const errorData = await response.json()
-      const errorKey = getErrorMessageKey({ message: errorData.error || errorData.message })
+      const errorKey = errorData.error || errorData.message
 
       try {
         const supabase = createClient()
@@ -315,7 +310,7 @@ export const connectionService = {
         .update({
           connection_test_status: result.success ? 'success' : 'failed',
           last_test_at: new Date().toISOString(),
-          last_test_error: result.success ? null : getErrorMessageKey({ message: result.error }),
+          last_test_error: result.success ? null : result.error,
         })
         .eq('id', connectionId)
     } catch (dbError) {
@@ -341,7 +336,8 @@ export const connectionService = {
       .order('started_at', { ascending: false })
 
     if (error) {
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data || []
@@ -366,7 +362,8 @@ export const connectionService = {
       .limit(limit)
 
     if (error) {
-      throw new Error(getErrorMessageKey(error))
+      const apiError = storableError(error)
+      throw new Error(apiError.message)
     }
 
     return data || []

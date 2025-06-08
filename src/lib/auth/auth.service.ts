@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { getErrorMessageKey } from '@/lib/errors/error-messages'
+import { storableError } from '@/lib/errors'
 
 export class AuthService {
   private supabase = createClient()
@@ -45,13 +45,7 @@ export class AuthService {
 
       return { data, error: null }
     } catch (error: any) {
-      // Use the helper to get translation key
-      const messageKey = getErrorMessageKey(error)
-
-      return {
-        data: null,
-        error: { message: messageKey },
-      }
+      return storableError(error)
     }
   }
 
@@ -73,13 +67,7 @@ export class AuthService {
 
       return { data, error: null }
     } catch (error: any) {
-      // Use the helper to get translation key
-      const messageKey = getErrorMessageKey(error)
-
-      return {
-        data: null,
-        error: { message: messageKey },
-      }
+      return storableError(error)
     }
   }
 
