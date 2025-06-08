@@ -90,9 +90,9 @@ export default function OrganizationLayout({ children }: { children: React.React
   return (
     <div className="flex h-full">
       {/* Sidebar Container - Fixed width for collapsed state */}
-      <div className="relative w-[56px] flex-shrink-0">
+      <div className="z-15 relative w-[56px] flex-shrink-0">
         <aside
-          className={`z-15 fixed bottom-0 left-0 top-16 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
+          className={`fixed bottom-0 left-0 top-16 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${
             isCollapsed ? 'w-[56px]' : 'w-64'
           }`}
           onMouseEnter={() => setIsCollapsed(false)}
