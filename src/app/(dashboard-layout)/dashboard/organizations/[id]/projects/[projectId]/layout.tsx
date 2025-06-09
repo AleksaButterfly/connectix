@@ -98,7 +98,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex h-full">
       {/* Sidebar Container - Fixed width for collapsed state, but not for connections pages */}
-      <div className={`z-15 relative flex-shrink-0 ${isConnectionsPage ? '' : 'w-[56px]'}`}>
+      <div className={`relative z-40 flex-shrink-0 ${isConnectionsPage ? '' : 'w-[56px]'}`}>
         {/* Sidebar - Absolute positioning for overlay effect */}
         <aside
           className={`fixed bottom-0 left-0 top-16 border-r border-border bg-background-secondary transition-[width] duration-300 ease-in-out ${

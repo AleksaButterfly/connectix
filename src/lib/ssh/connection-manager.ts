@@ -628,36 +628,56 @@ class SSHConnectionManager {
     }
   ): Promise<any[]> {
     const session = this.getSession(sessionToken)
-
+  
     // This is a basic implementation using find command
     const findType =
       options.type === 'file' ? '-type f' : options.type === 'directory' ? '-type d' : ''
-
+  
+    // Fixed: Use -iname for case-insensitive search
     const namePattern = options.regex
       ? `-regex ".*${options.query}.*"`
-      : `-name "${options.caseSensitive ? '' : '-i'}*${options.query}*"`
-
-    const command = `find "${options.path}" ${findType} ${namePattern} | head -${options.maxResults || 100}`
-
+      : options.caseSensitive 
+        ? `-name "*${options.query}*"`
+        : `-iname "*${options.query}*"`
+  
+    const command = `find "${options.path}" ${findType} ${namePattern} 2>/dev/null | head -${options.maxResults || 100}`
+  
     const result = await this.executeCommand(sessionToken, command)
-
+  
     const files = result.stdout
       .split('\n')
       .filter((line) => line.trim())
       .map((path) => ({
         path: path.trim(),
-        name: path.split('/').pop(),
+        name: path.split('/').pop() || '',
         type: 'unknown', // Would need additional stat calls to determine
       }))
-
+  
+    // Optionally, get file types for better display
+    // This adds extra calls but improves UX
+    const filesWithTypes = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const info = await this.getFileInfo(sessionToken, file.path)
+          return {
+            ...file,
+            type: info.type,
+          }
+        } catch {
+          // If stat fails, keep as unknown
+          return file
+        }
+      })
+    )
+  
     session.lastActivity = new Date()
     this.logActivity(sessionToken, 'file.search', {
       query: options.query,
       path: options.path,
-      resultCount: files.length,
+      resultCount: filesWithTypes.length,
     })
-
-    return files
+  
+    return filesWithTypes
   }
 
   static async getSessionInfo(sessionToken: string): Promise<any> {
