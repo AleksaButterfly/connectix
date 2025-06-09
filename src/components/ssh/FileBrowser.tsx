@@ -360,43 +360,27 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   const handleFileUpload = async (files: FileList) => {
     if (!sessionToken) return
 
-    try {
-      let hasPermissionError = false
+    const uploadPromises = Array.from(files).map(async (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('path', currentPath)
 
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('path', currentPath)
-
-        const response = await fetch(`/api/connections/${connectionId}/files/upload`, {
-          method: 'POST',
-          headers: {
-            'x-session-token': sessionToken,
-          },
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const error = await parseError(response)
-          if (error.type === 'permission') {
-            hasPermissionError = true
-          }
-          throw new Error(`${file.name}: ${error.message}`)
-        }
-
-        return response
+      const response = await fetch(`/api/connections/${connectionId}/files/upload`, {
+        method: 'POST',
+        headers: {
+          'x-session-token': sessionToken,
+        },
+        body: formData,
       })
 
-      await Promise.all(uploadPromises)
-      showToast(intl.formatMessage({ id: 'fileBrowser.upload.success' }), 'success')
-
-      // Only reload if no permission errors
-      if (!hasPermissionError) {
-        loadFiles()
+      if (!response.ok) {
+        throw new Error(`Failed to upload ${file.name}`)
       }
-    } catch (error: any) {
-      showToast(error.message || intl.formatMessage({ id: 'fileBrowser.upload.error' }))
-    }
+
+      return response
+    })
+
+    await Promise.all(uploadPromises)
   }
 
   // Show loading state if no session token yet
@@ -452,7 +436,15 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
             >
               <FormattedMessage id="fileBrowser.newFolder" />
             </button>
-            <FileUpload onUpload={handleFileUpload} disabled={error.type === 'permission'} />
+            <FileUpload
+              onUpload={handleFileUpload}
+              onComplete={() => {
+                // Only refresh files when modal tells us to
+                loadFiles()
+              }}
+              disabled={error.type === 'permission'}
+              currentPath={currentPath}
+            />
 
             <div className="ml-4 flex rounded-lg border border-border">
               <button
