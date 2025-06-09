@@ -18,6 +18,8 @@ interface ErrorState {
   message: string
 }
 
+type FileType = 'text' | 'image' | 'video' | 'pdf' | 'binary'
+
 export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }: FileEditorProps) {
   const intl = useIntl()
   const [content, setContent] = useState('')
@@ -26,9 +28,73 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [error, setError] = useState<ErrorState>({ type: 'none', message: '' })
+  const [fileType, setFileType] = useState<FileType>('text')
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const { toast } = useToast()
   const lastToastMessage = useRef<string>('')
+
+  // Helper to determine file type
+  const getFileType = (filename: string): FileType => {
+    const ext = filename.split('.').pop()?.toLowerCase()
+
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
+    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv']
+    const textExtensions = [
+      'txt',
+      'md',
+      'js',
+      'jsx',
+      'ts',
+      'tsx',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'css',
+      'scss',
+      'html',
+      'py',
+      'php',
+      'java',
+      'cpp',
+      'c',
+      'h',
+      'hpp',
+      'cs',
+      'go',
+      'rs',
+      'rb',
+      'swift',
+      'kt',
+      'scala',
+      'sh',
+      'bash',
+      'zsh',
+      'fish',
+      'sql',
+      'dockerfile',
+      'gitignore',
+      'env',
+      'conf',
+      'config',
+      'ini',
+      'toml',
+      'log',
+      'csv',
+    ]
+
+    if (imageExtensions.includes(ext || '')) return 'image'
+    if (videoExtensions.includes(ext || '')) return 'video'
+    if (ext === 'pdf') return 'pdf'
+    if (textExtensions.includes(ext || '')) return 'text'
+
+    // Check if filename has no extension but might be text
+    if (!ext && filename.startsWith('.')) return 'text'
+
+    return 'binary'
+  }
 
   // Helper to show toast without duplicates
   const showToast = (message: string, type: 'success' | 'error' = 'error') => {
@@ -68,41 +134,106 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
     setHasChanges(content !== originalContent)
   }, [content, originalContent])
 
-  // Add keyboard shortcut for saving
+  // Add keyboard shortcut for saving (only for text files)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (hasChanges && !isSaving && error.type === 'none') {
+        if (hasChanges && !isSaving && error.type === 'none' && fileType === 'text') {
           saveFile()
         }
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hasChanges, isSaving, error.type])
+    if (fileType === 'text') {
+      window.addEventListener('keydown', handleKeyDown)
+      return () => window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [hasChanges, isSaving, error.type, fileType])
+
+  // Download file
+  const downloadFile = async () => {
+    try {
+      setIsDownloading(true)
+
+      const response = await fetch(
+        `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
+        {
+          headers: {
+            'x-session-token': sessionToken,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(intl.formatMessage({ id: 'fileEditor.error.download' }))
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      showToast(intl.formatMessage({ id: 'fileEditor.download.success' }), 'success')
+    } catch (error: any) {
+      showToast(error.message || intl.formatMessage({ id: 'fileEditor.error.download' }))
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   const loadFileContent = async () => {
     try {
       setIsLoading(true)
       setError({ type: 'none', message: '' })
 
-      const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
-        headers: {
-          'x-session-token': sessionToken,
-        },
-      })
+      const type = getFileType(file.name)
+      setFileType(type)
 
-      if (!response.ok) {
-        const errorState = await parseError(response)
-        setError(errorState)
-        return
+      if (type === 'text') {
+        // Load text content as before
+        const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
+          headers: {
+            'x-session-token': sessionToken,
+          },
+        })
+
+        if (!response.ok) {
+          const errorState = await parseError(response)
+          setError(errorState)
+          return
+        }
+
+        const data = await response.text()
+        setContent(data)
+        setOriginalContent(data)
+      } else if (type === 'image' || type === 'video' || type === 'pdf') {
+        // For media files, use the download endpoint
+        const response = await fetch(
+          `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
+          {
+            headers: {
+              'x-session-token': sessionToken,
+            },
+          }
+        )
+
+        if (!response.ok) {
+          const errorState = await parseError(response)
+          setError(errorState)
+          return
+        }
+
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        setMediaUrl(url)
       }
-
-      const data = await response.text()
-      setContent(data)
-      setOriginalContent(data)
+      // For binary files, we just show the download button
     } catch (error: any) {
       setError({
         type: 'network',
@@ -116,9 +247,18 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
   useEffect(() => {
     loadFileContent()
+
+    // Cleanup media URL on unmount
+    return () => {
+      if (mediaUrl) {
+        window.URL.revokeObjectURL(mediaUrl)
+      }
+    }
   }, [])
 
   const saveFile = async () => {
+    if (fileType !== 'text') return
+
     try {
       setIsSaving(true)
       const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
@@ -152,7 +292,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   }
 
   const handleClose = () => {
-    if (hasChanges) {
+    if (fileType === 'text' && hasChanges) {
       if (confirm(intl.formatMessage({ id: 'fileEditor.unsavedChanges' }))) {
         onClose()
       }
@@ -283,25 +423,44 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 className="font-medium text-foreground">{file.name}</h2>
-            {hasChanges && (
+            {fileType === 'text' && hasChanges && (
               <span className="rounded bg-terminal-green/20 px-2 py-1 text-xs text-terminal-green">
                 <FormattedMessage id="fileEditor.modified" />
+              </span>
+            )}
+            {fileType !== 'text' && (
+              <span className="rounded bg-terminal-blue/20 px-2 py-1 text-xs text-terminal-blue">
+                <FormattedMessage id={`fileEditor.fileType.${fileType}`} />
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={saveFile}
-              disabled={!hasChanges || isSaving}
-              className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-3 py-1.5 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSaving ? (
-                <FormattedMessage id="fileEditor.saving" />
-              ) : (
-                <FormattedMessage id="common.save" />
-              )}
-            </button>
+            {fileType === 'text' ? (
+              <button
+                onClick={saveFile}
+                disabled={!hasChanges || isSaving}
+                className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-3 py-1.5 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <FormattedMessage id="fileEditor.saving" />
+                ) : (
+                  <FormattedMessage id="common.save" />
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={downloadFile}
+                disabled={isDownloading}
+                className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-3 py-1.5 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDownloading ? (
+                  <FormattedMessage id="fileEditor.downloading" />
+                ) : (
+                  <FormattedMessage id="fileEditor.download" />
+                )}
+              </button>
+            )}
             <button
               onClick={handleClose}
               className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-background-secondary"
@@ -317,70 +476,147 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           <span>
             <FormattedMessage id="fileEditor.size" values={{ size: file.size.toLocaleString() }} />
           </span>
-          <span>•</span>
-          <span>{getLanguageFromFilename(file.name)}</span>
-          {hasChanges && (
+          {fileType === 'text' && (
             <>
               <span>•</span>
-              <span className="text-terminal-green">
-                <FormattedMessage id="fileEditor.shortcut.save" />
-              </span>
+              <span>{getLanguageFromFilename(file.name)}</span>
+              {hasChanges && (
+                <>
+                  <span>•</span>
+                  <span className="text-terminal-green">
+                    <FormattedMessage id="fileEditor.shortcut.save" />
+                  </span>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="relative flex-1">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="absolute inset-0 h-full w-full resize-none border-none bg-background p-4 font-mono text-sm text-foreground outline-none focus:outline-none"
-          style={{ tabSize: 2 }}
-          spellCheck={false}
-          placeholder={intl.formatMessage({ id: 'fileEditor.placeholder' })}
-        />
+      {/* Content Area */}
+      <div className="relative flex-1 overflow-auto">
+        {fileType === 'text' ? (
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="absolute inset-0 h-full w-full resize-none border-none bg-background p-4 font-mono text-sm text-foreground outline-none focus:outline-none"
+            style={{ tabSize: 2 }}
+            spellCheck={false}
+            placeholder={intl.formatMessage({ id: 'fileEditor.placeholder' })}
+          />
+        ) : fileType === 'image' ? (
+          <div className="flex h-full items-center justify-center p-8">
+            {mediaUrl && (
+              <img
+                src={mediaUrl}
+                alt={file.name}
+                className="max-h-full max-w-full object-contain"
+                style={{ imageRendering: 'high-quality' }}
+              />
+            )}
+          </div>
+        ) : fileType === 'video' ? (
+          <div className="flex h-full items-center justify-center p-8">
+            {mediaUrl && (
+              <video
+                src={mediaUrl}
+                controls
+                className="max-h-full max-w-full"
+                style={{ backgroundColor: '#000' }}
+              >
+                <FormattedMessage id="fileEditor.video.unsupported" />
+              </video>
+            )}
+          </div>
+        ) : fileType === 'pdf' ? (
+          <div className="flex h-full flex-col items-center justify-center p-8">
+            <div className="mb-4 text-6xl">📄</div>
+            <h3 className="mb-2 text-lg font-medium text-foreground">
+              <FormattedMessage id="fileEditor.pdf.title" />
+            </h3>
+            <p className="mb-4 text-center text-foreground-muted">
+              <FormattedMessage id="fileEditor.pdf.description" />
+            </p>
+            <button
+              onClick={downloadFile}
+              disabled={isDownloading}
+              className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDownloading ? (
+                <FormattedMessage id="fileEditor.downloading" />
+              ) : (
+                <FormattedMessage id="fileEditor.pdf.downloadButton" />
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center p-8">
+            <div className="mb-4 text-6xl">📦</div>
+            <h3 className="mb-2 text-lg font-medium text-foreground">
+              <FormattedMessage id="fileEditor.binary.title" />
+            </h3>
+            <p className="mb-4 text-center text-foreground-muted">
+              <FormattedMessage
+                id="fileEditor.binary.description"
+                values={{ fileName: file.name }}
+              />
+            </p>
+            <button
+              onClick={downloadFile}
+              disabled={isDownloading}
+              className="hover:bg-terminal-green-hover rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDownloading ? (
+                <FormattedMessage id="fileEditor.downloading" />
+              ) : (
+                <FormattedMessage id="fileEditor.binary.downloadButton" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Status Bar */}
-      <div className="border-t border-border bg-background-secondary px-4 py-2">
-        <div className="flex items-center justify-between text-xs text-foreground-muted">
-          <div className="flex items-center gap-4">
-            <span>
-              <FormattedMessage
-                id="fileEditor.status.lines"
-                values={{ count: content.split('\n').length }}
-              />
-            </span>
-            <span>•</span>
-            <span>
-              <FormattedMessage
-                id="fileEditor.status.characters"
-                values={{ count: content.length }}
-              />
-            </span>
-            {content !== originalContent && (
-              <>
-                <span>•</span>
-                <span>
-                  <FormattedMessage
-                    id="fileEditor.status.changes"
-                    values={{ count: Math.abs(content.length - originalContent.length) }}
-                  />
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {hasChanges && (
-              <span className="text-terminal-green">
-                <FormattedMessage id="fileEditor.status.unsavedChanges" />
+      {fileType === 'text' && (
+        <div className="border-t border-border bg-background-secondary px-4 py-2">
+          <div className="flex items-center justify-between text-xs text-foreground-muted">
+            <div className="flex items-center gap-4">
+              <span>
+                <FormattedMessage
+                  id="fileEditor.status.lines"
+                  values={{ count: content.split('\n').length }}
+                />
               </span>
-            )}
+              <span>•</span>
+              <span>
+                <FormattedMessage
+                  id="fileEditor.status.characters"
+                  values={{ count: content.length }}
+                />
+              </span>
+              {content !== originalContent && (
+                <>
+                  <span>•</span>
+                  <span>
+                    <FormattedMessage
+                      id="fileEditor.status.changes"
+                      values={{ count: Math.abs(content.length - originalContent.length) }}
+                    />
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {hasChanges && (
+                <span className="text-terminal-green">
+                  <FormattedMessage id="fileEditor.status.unsavedChanges" />
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

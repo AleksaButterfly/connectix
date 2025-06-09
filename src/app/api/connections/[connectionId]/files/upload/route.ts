@@ -21,7 +21,8 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     const buffer = Buffer.from(await file.arrayBuffer())
     const remotePath = path.endsWith('/') ? path + file.name : path + '/' + file.name
 
-    await SSHConnectionManager.writeFile(sessionToken, remotePath, buffer.toString())
+    // Use writeBinaryFile for all uploads (binary safe)
+    await SSHConnectionManager.writeBinaryFile(sessionToken, remotePath, buffer)
 
     return NextResponse.json({
       success: true,

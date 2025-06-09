@@ -7,6 +7,8 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
     const path = searchParams.get('path') || '/'
     const sessionToken = request.headers.get('x-session-token')
 
+    console.log(sessionToken)
+
     if (!sessionToken) {
       return NextResponse.json({ error: 'Session token required' }, { status: 401 })
     }

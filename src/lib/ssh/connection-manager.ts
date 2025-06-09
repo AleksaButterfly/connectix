@@ -212,6 +212,52 @@ class SSHConnectionManager {
     })
   }
 
+  static async readBinaryFile(sessionToken: string, path: string): Promise<Buffer> {
+    const session = this.getSession(sessionToken)
+    if (!session.sftp) throw new Error('SFTP not available')
+
+    return new Promise((resolve, reject) => {
+      session.sftp!.readFile(path, (err, data) => {
+        if (err) {
+          reject(new Error(`Failed to read file: ${err.message}`))
+          return
+        }
+
+        session.lastActivity = new Date()
+        this.logActivity(sessionToken, 'file.read', {
+          path,
+          bytes_affected: data.length,
+        })
+
+        resolve(data)
+      })
+    })
+  }
+
+  static async writeBinaryFile(sessionToken: string, path: string, buffer: Buffer): Promise<void> {
+    const session = this.getSession(sessionToken)
+    if (!session.sftp) throw new Error('SFTP not available')
+
+    return new Promise((resolve, reject) => {
+      const stream = session.sftp!.createWriteStream(path)
+
+      stream.on('error', (err) => {
+        reject(new Error(`Failed to write file: ${err.message}`))
+      })
+
+      stream.on('close', () => {
+        session.lastActivity = new Date()
+        this.logActivity(sessionToken, 'file.write', {
+          path,
+          bytes_affected: buffer.length,
+        })
+        resolve()
+      })
+
+      stream.end(buffer)
+    })
+  }
+
   static async deleteFile(sessionToken: string, path: string): Promise<void> {
     const session = this.getSession(sessionToken)
     if (!session.sftp) throw new Error('SFTP not available')
