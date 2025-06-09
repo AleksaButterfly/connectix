@@ -4,11 +4,12 @@ import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 // Read file content
 export async function GET(
   request: NextRequest,
-  { params }: { params: { connectionId: string; path: string[] } }
+  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
-    const filePath = '/' + params.path.join('/')
+    const { path } = await params
+    const filePath = '/' + path.join('/')
 
     if (!sessionToken) {
       return NextResponse.json({ error: 'Session token required' }, { status: 401 })
@@ -29,11 +30,12 @@ export async function GET(
 // Write/update file content
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { connectionId: string; path: string[] } }
+  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
-    const filePath = '/' + params.path.join('/')
+    const { path } = await params
+    const filePath = '/' + path.join('/')
     const { content } = await request.json()
 
     if (!sessionToken) {
@@ -51,11 +53,12 @@ export async function PUT(
 // Delete file or directory
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { connectionId: string; path: string[] } }
+  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
-    const filePath = '/' + params.path.join('/')
+    const { path } = await params
+    const filePath = '/' + path.join('/')
 
     if (!sessionToken) {
       return NextResponse.json({ error: 'Session token required' }, { status: 401 })
