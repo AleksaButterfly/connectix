@@ -75,7 +75,7 @@ export default function OrganizationTeamPage() {
     }
 
     fetchData()
-  }, [orgId, router, intl])
+  }, [orgId, router])
 
   // Get avatar initials (fallback when no avatar URL)
   const getInitials = (username: string) => {

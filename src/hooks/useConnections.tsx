@@ -67,120 +67,114 @@ export function useConnections({
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, projectId, toast, intl])
+  }, [organizationId, projectId])
 
-  const deleteConnection = useCallback(
-    async (connectionId: string) => {
-      setOperationLoadingStates((prev) => ({
-        ...prev,
-        deleting: new Set(prev.deleting).add(connectionId),
-      }))
+  const deleteConnection = useCallback(async (connectionId: string) => {
+    setOperationLoadingStates((prev) => ({
+      ...prev,
+      deleting: new Set(prev.deleting).add(connectionId),
+    }))
 
-      try {
-        await connectionService.deleteConnection(connectionId)
-        toast.success(intl.formatMessage({ id: 'connections.delete.success' }))
+    try {
+      await connectionService.deleteConnection(connectionId)
+      toast.success(intl.formatMessage({ id: 'connections.delete.success' }))
 
-        // Remove from local state
-        setConnections((prev) => prev.filter((conn) => conn.id !== connectionId))
-      } catch (err: any) {
-        console.error('Error deleting connection:', err)
-        const errorMessage =
-          err.message || intl.formatMessage({ id: 'connections.errors.deleteFailed' })
-        toast.error(errorMessage)
-        throw err
-      } finally {
-        setOperationLoadingStates((prev) => {
-          const newDeleting = new Set(prev.deleting)
-          newDeleting.delete(connectionId)
-          return { ...prev, deleting: newDeleting }
-        })
-      }
-    },
-    [toast, intl]
-  )
+      // Remove from local state
+      setConnections((prev) => prev.filter((conn) => conn.id !== connectionId))
+    } catch (err: any) {
+      console.error('Error deleting connection:', err)
+      const errorMessage =
+        err.message || intl.formatMessage({ id: 'connections.errors.deleteFailed' })
+      toast.error(errorMessage)
+      throw err
+    } finally {
+      setOperationLoadingStates((prev) => {
+        const newDeleting = new Set(prev.deleting)
+        newDeleting.delete(connectionId)
+        return { ...prev, deleting: newDeleting }
+      })
+    }
+  }, [])
 
-  const testConnection = useCallback(
-    async (connectionId: string) => {
-      setOperationLoadingStates((prev) => ({
-        ...prev,
-        testing: new Set(prev.testing).add(connectionId),
-      }))
+  const testConnection = useCallback(async (connectionId: string) => {
+    setOperationLoadingStates((prev) => ({
+      ...prev,
+      testing: new Set(prev.testing).add(connectionId),
+    }))
 
-      try {
-        const result = await connectionService.testExistingConnection(connectionId)
+    try {
+      const result = await connectionService.testExistingConnection(connectionId)
 
-        // Check if the test was successful before showing toast
-        if (result.success) {
-          toast.success(
-            intl.formatMessage(
-              {
-                id: 'connections.test.successWithLatency',
-              },
-              {
-                latency: result.latency_ms || 0,
-              }
-            )
-          )
-        } else {
-          // Show error toast if test failed
-          toast.error(
-            intl.formatMessage(
-              {
-                id: 'connections.test.failedWithError',
-              },
-              {
-                error: result.error || intl.formatMessage({ id: 'connections.errors.testFailed' }),
-              }
-            )
-          )
-        }
-
-        setConnections((prev) =>
-          prev.map((conn) => {
-            if (conn.id === connectionId) {
-              return {
-                ...conn,
-                connection_test_status: result.success ? 'success' : 'failed',
-                last_test_at: new Date().toISOString(),
-                last_test_error: result.success ? null : result.error || null,
-              }
+      // Check if the test was successful before showing toast
+      if (result.success) {
+        toast.success(
+          intl.formatMessage(
+            {
+              id: 'connections.test.successWithLatency',
+            },
+            {
+              latency: result.latency_ms || 0,
             }
-            return conn
-          })
+          )
         )
-      } catch (err: any) {
-        console.error('Error testing connection:', err)
-        const errorMessage =
-          err.message || intl.formatMessage({ id: 'connections.errors.testFailed' })
-        toast.error(errorMessage)
-
-        setConnections((prev) =>
-          prev.map((conn) => {
-            if (conn.id === connectionId) {
-              return {
-                ...conn,
-                connection_test_status: 'failed',
-                last_test_at: new Date().toISOString(),
-                last_test_error:
-                  err.message || intl.formatMessage({ id: 'connections.errors.testFailed' }),
-              }
+      } else {
+        // Show error toast if test failed
+        toast.error(
+          intl.formatMessage(
+            {
+              id: 'connections.test.failedWithError',
+            },
+            {
+              error: result.error || intl.formatMessage({ id: 'connections.errors.testFailed' }),
             }
-            return conn
-          })
+          )
         )
-
-        throw err
-      } finally {
-        // Clear loading state
-        setOperationLoadingStates((prev) => {
-          const newTesting = new Set(prev.testing)
-          newTesting.delete(connectionId)
-          return { ...prev, testing: newTesting }
-        })
       }
-    },
-    [toast, intl]
-  )
+
+      setConnections((prev) =>
+        prev.map((conn) => {
+          if (conn.id === connectionId) {
+            return {
+              ...conn,
+              connection_test_status: result.success ? 'success' : 'failed',
+              last_test_at: new Date().toISOString(),
+              last_test_error: result.success ? null : result.error || null,
+            }
+          }
+          return conn
+        })
+      )
+    } catch (err: any) {
+      console.error('Error testing connection:', err)
+      const errorMessage =
+        err.message || intl.formatMessage({ id: 'connections.errors.testFailed' })
+      toast.error(errorMessage)
+
+      setConnections((prev) =>
+        prev.map((conn) => {
+          if (conn.id === connectionId) {
+            return {
+              ...conn,
+              connection_test_status: 'failed',
+              last_test_at: new Date().toISOString(),
+              last_test_error:
+                err.message || intl.formatMessage({ id: 'connections.errors.testFailed' }),
+            }
+          }
+          return conn
+        })
+      )
+
+      throw err
+    } finally {
+      // Clear loading state
+      setOperationLoadingStates((prev) => {
+        const newTesting = new Set(prev.testing)
+        newTesting.delete(connectionId)
+        return { ...prev, testing: newTesting }
+      })
+    }
+  }, [])
 
   return {
     connections,

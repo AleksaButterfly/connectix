@@ -1,92 +1,130 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
+import archiver from 'archiver'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ connectionId: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
-    const url = new URL(request.url)
-    const filePath = url.searchParams.get('path')
-
     if (!sessionToken) {
       return NextResponse.json({ error: 'Session token required' }, { status: 401 })
     }
 
-    if (!filePath) {
-      return NextResponse.json({ error: 'File path required' }, { status: 400 })
+    const searchParams = request.nextUrl.searchParams
+    const path = searchParams.get('path')
+
+    if (!path) {
+      return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }
 
-    // Get file content as buffer (works for all file types)
-    const buffer = await SSHConnectionManager.readBinaryFile(sessionToken, filePath)
+    // Single file download
+    const result = await SSHConnectionManager.downloadFile(sessionToken, path)
 
-    // Determine content type based on file extension
-    const contentType = getContentType(filePath)
+    // Set appropriate headers
+    const headers = new Headers()
+    headers.set('Content-Disposition', `attachment; filename="${result.filename}"`)
+    if (result.mimeType) {
+      headers.set('Content-Type', result.mimeType)
+    }
 
-    return new Response(buffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': buffer.length.toString(),
-        'Cache-Control': 'no-cache',
-      },
-    })
+    return new NextResponse(result.buffer, { headers })
   } catch (error: any) {
+    console.error('Download error:', error)
     return NextResponse.json({ error: error.message || 'Failed to download file' }, { status: 500 })
   }
 }
 
-function getContentType(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase()
+export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+  try {
+    const sessionToken = request.headers.get('x-session-token')
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
+    }
 
-  const mimeTypes: Record<string, string> = {
-    // Images
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    png: 'image/png',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    svg: 'image/svg+xml',
-    bmp: 'image/bmp',
-    ico: 'image/x-icon',
+    const body = await request.json()
+    const { paths, format } = body
 
-    // Videos
-    mp4: 'video/mp4',
-    webm: 'video/webm',
-    ogg: 'video/ogg',
-    mov: 'video/quicktime',
-    avi: 'video/x-msvideo',
-    mkv: 'video/x-matroska',
+    if (!paths || !Array.isArray(paths) || paths.length === 0) {
+      return NextResponse.json({ error: 'Paths array is required' }, { status: 400 })
+    }
 
-    // Documents
-    pdf: 'application/pdf',
-    doc: 'application/msword',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xls: 'application/vnd.ms-excel',
-    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    ppt: 'application/vnd.ms-powerpoint',
-    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    // Multiple files download as ZIP
+    if (format === 'zip' && paths.length > 1) {
+      // Create a zip archive
+      const archive = archiver('zip', {
+        zlib: { level: 9 }, // Maximum compression
+      })
 
-    // Archives
-    zip: 'application/zip',
-    tar: 'application/x-tar',
-    gz: 'application/gzip',
-    rar: 'application/x-rar-compressed',
-    '7z': 'application/x-7z-compressed',
+      // Create a PassThrough stream to collect the archive data
+      const chunks: Buffer[] = []
 
-    // Audio
-    mp3: 'audio/mpeg',
-    wav: 'audio/wav',
-    m4a: 'audio/mp4',
+      archive.on('data', (chunk) => {
+        chunks.push(chunk)
+      })
 
-    // Text
-    txt: 'text/plain',
-    json: 'application/json',
-    xml: 'application/xml',
-    html: 'text/html',
-    css: 'text/css',
-    js: 'application/javascript',
+      archive.on('error', (err) => {
+        throw err
+      })
+
+      // Download and add each file to the archive
+      for (const path of paths) {
+        try {
+          const fileInfo = await SSHConnectionManager.getFileInfo(sessionToken, path)
+
+          // Skip directories for now
+          if (fileInfo.type === 'directory') {
+            continue
+          }
+
+          const result = await SSHConnectionManager.downloadFile(sessionToken, path)
+          const filename = path.split('/').pop() || 'file'
+
+          // Add file to archive with relative path structure
+          const relativePath = path.startsWith('/') ? path.substring(1) : path
+          archive.append(result.buffer, { name: relativePath })
+        } catch (err) {
+          console.error(`Failed to download ${path}:`, err)
+          // Continue with other files
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize()
+
+      // Wait for all data to be collected
+      await new Promise((resolve) => {
+        archive.on('end', resolve)
+      })
+
+      // Combine all chunks
+      const zipBuffer = Buffer.concat(chunks)
+
+      // Return the zip file
+      const headers = new Headers()
+      headers.set('Content-Type', 'application/zip')
+      headers.set('Content-Disposition', `attachment; filename="files-${Date.now()}.zip"`)
+
+      return new NextResponse(zipBuffer, { headers })
+    }
+
+    // Single file fallback
+    if (paths.length === 1) {
+      const result = await SSHConnectionManager.downloadFile(sessionToken, paths[0])
+
+      const headers = new Headers()
+      headers.set('Content-Disposition', `attachment; filename="${result.filename}"`)
+      if (result.mimeType) {
+        headers.set('Content-Type', result.mimeType)
+      }
+
+      return new NextResponse(result.buffer, { headers })
+    }
+
+    return NextResponse.json({ error: 'Invalid download request' }, { status: 400 })
+  } catch (error: any) {
+    console.error('Download error:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to download files' },
+      { status: 500 }
+    )
   }
-
-  return mimeTypes[ext || ''] || 'application/octet-stream'
 }

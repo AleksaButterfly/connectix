@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         message: intl.formatMessage({ id: 'auth.forgotPassword.error.invalidToken' }),
       })
     }
-  }, [searchParams, setError, intl])
+  }, [searchParams, setError])
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true)

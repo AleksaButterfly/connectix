@@ -1,4 +1,3 @@
-// app/api/connections/[connectionId]/files/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 

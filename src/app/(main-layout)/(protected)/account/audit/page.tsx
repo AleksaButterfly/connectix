@@ -251,7 +251,7 @@ export default function AccountAuditLogsPage() {
       FILTER_OPTIONS.find((option) => option.value === filterType)?.label ||
       intl.formatMessage({ id: 'audit.filter.allTypes' })
     )
-  }, [filterType, FILTER_OPTIONS, intl])
+  }, [filterType, FILTER_OPTIONS])
 
   if (isLoading && logs.length === 0) {
     return (

@@ -51,7 +51,7 @@ export default function EditConnectionPage() {
     }
 
     loadConnection()
-  }, [connectionId, projectId, orgId, router, intl])
+  }, [connectionId, projectId, orgId, router])
 
   if (!orgId || !projectId || !connectionId) {
     return (

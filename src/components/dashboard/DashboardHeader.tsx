@@ -227,7 +227,7 @@ export default function DashboardHeader() {
                 {item.href && (index > 0 || !item.icon) ? (
                   <Link
                     href={item.href}
-                    className="flex items-center gap-1 rounded-md p-1 text-foreground transition-colors hover:bg-background-secondary"
+                    className="flex items-center gap-2 rounded-md p-1 text-foreground transition-colors hover:bg-background-secondary"
                   >
                     {item.icon}
                     <span className="font-medium">
@@ -239,7 +239,7 @@ export default function DashboardHeader() {
                     </span>
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-1 rounded-md p-1 text-foreground">
+                  <div className="flex items-center gap-2 rounded-md p-1 text-foreground">
                     {item.icon}
                     {(index > 0 || !item.icon) && (
                       <span className="font-medium">
