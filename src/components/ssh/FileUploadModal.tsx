@@ -21,6 +21,31 @@ interface FileUploadModalProps {
   currentPath: string
 }
 
+// Security constants
+const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+const MAX_TOTAL_SIZE = 500 * 1024 * 1024 // 500MB total
+
+// Dangerous file extensions to block
+const BLOCKED_EXTENSIONS = [
+  'exe',
+  'bat',
+  'cmd',
+  'com',
+  'scr',
+  'vbs',
+  'vbe',
+  'js',
+  'jse',
+  'wsf',
+  'wsh',
+  'msi',
+  'jar',
+  'app',
+  'dmg',
+  'deb',
+  'rpm',
+]
+
 export function FileUploadModal({
   isOpen,
   onClose,
@@ -34,6 +59,7 @@ export function FileUploadModal({
   const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previewUrlsRef = useRef<Set<string>>(new Set())
 
   // Reset when modal opens
   useEffect(() => {
@@ -41,6 +67,17 @@ export function FileUploadModal({
       setFiles([])
     }
   }, [isOpen])
+
+  // Cleanup preview URLs when component unmounts or files change
+  useEffect(() => {
+    return () => {
+      // Cleanup all preview URLs
+      previewUrlsRef.current.forEach((url) => {
+        URL.revokeObjectURL(url)
+      })
+      previewUrlsRef.current.clear()
+    }
+  }, [])
 
   // File type icons mapping
   const getFileIcon = (filename: string): string => {
@@ -82,14 +119,92 @@ export function FileUploadModal({
     return iconMap[ext || ''] || iconMap.default
   }
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
   const isImageFile = (file: File): boolean => {
     return file.type.startsWith('image/')
   }
 
+  const validateFiles = (
+    filesToValidate: File[]
+  ): { valid: File[]; errors: Map<string, string> } => {
+    const errors = new Map<string, string>()
+    const valid: File[] = []
+
+    let totalSize = files.reduce((sum, f) => sum + f.file.size, 0)
+
+    for (const file of filesToValidate) {
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        errors.set(
+          file.name,
+          intl.formatMessage(
+            { id: 'fileUpload.error.fileTooLarge' },
+            { size: formatFileSize(MAX_FILE_SIZE) }
+          )
+        )
+        continue
+      }
+
+      // Check total size
+      totalSize += file.size
+      if (totalSize > MAX_TOTAL_SIZE) {
+        errors.set(
+          file.name,
+          intl.formatMessage(
+            { id: 'fileUpload.error.totalSizeTooLarge' },
+            { size: formatFileSize(MAX_TOTAL_SIZE) }
+          )
+        )
+        continue
+      }
+
+      // Check file extension
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (ext && BLOCKED_EXTENSIONS.includes(ext)) {
+        errors.set(
+          file.name,
+          intl.formatMessage({ id: 'fileUpload.error.blockedFileType' }, { type: ext })
+        )
+        continue
+      }
+
+      // Validate filename for path traversal attempts
+      if (file.name.includes('../') || file.name.includes('..\\')) {
+        errors.set(file.name, intl.formatMessage({ id: 'fileUpload.error.invalidFilename' }))
+        continue
+      }
+
+      // Check for special characters that might cause issues
+      if (!/^[a-zA-Z0-9._\- ]+$/.test(file.name)) {
+        errors.set(file.name, intl.formatMessage({ id: 'fileUpload.error.specialCharacters' }))
+        continue
+      }
+
+      valid.push(file)
+    }
+
+    return { valid, errors }
+  }
+
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
     const fileArray = Array.from(newFiles)
+    const { valid, errors } = validateFiles(fileArray)
 
-    const newFileObjects: FileWithPreview[] = fileArray.map((file) => {
+    // Show errors for invalid files
+    errors.forEach((error, filename) => {
+      toast.error(`${filename}: ${error}`)
+    })
+
+    if (valid.length === 0) return
+
+    const newFileObjects: FileWithPreview[] = valid.map((file) => {
       const fileObj: FileWithPreview = {
         file,
         id: `${file.name}-${Date.now()}-${Math.random()}`,
@@ -98,14 +213,18 @@ export function FileUploadModal({
       }
 
       // Generate preview for images
-      if (isImageFile(file)) {
+      if (isImageFile(file) && file.size < 5 * 1024 * 1024) {
+        // Only preview images under 5MB
         const reader = new FileReader()
         reader.onload = (e) => {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === fileObj.id ? { ...f, preview: e.target?.result as string } : f
-            )
-          )
+          const url = e.target?.result as string
+          if (url && url.startsWith('blob:')) {
+            previewUrlsRef.current.add(url)
+          }
+          setFiles((prev) => prev.map((f) => (f.id === fileObj.id ? { ...f, preview: url } : f)))
+        }
+        reader.onerror = () => {
+          console.error('Failed to read file for preview')
         }
         reader.readAsDataURL(file)
       }
@@ -154,18 +273,11 @@ export function FileUploadModal({
       // Revoke preview URL if it exists
       if (file?.preview && file.preview.startsWith('blob:')) {
         URL.revokeObjectURL(file.preview)
+        previewUrlsRef.current.delete(file.preview)
       }
       return prev.filter((f) => f.id !== id)
     })
   }, [])
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
   const handleUpload = async () => {
     if (files.length === 0 || isUploading) return
@@ -189,7 +301,7 @@ export function FileUploadModal({
         setFiles((prev) =>
           prev.map((f) => {
             if (f.status === 'uploading' && f.progress < 90) {
-              return { ...f, progress: f.progress + 10 }
+              return { ...f, progress: Math.min(f.progress + 10, 90) }
             }
             return f
           })
@@ -264,7 +376,13 @@ export function FileUploadModal({
       // Mark all uploading files as error
       setFiles((prev) =>
         prev.map((f) =>
-          f.status === 'uploading' ? { ...f, status: 'error', error: 'Upload failed' } : f
+          f.status === 'uploading'
+            ? {
+                ...f,
+                status: 'error',
+                error: intl.formatMessage({ id: 'fileUpload.error.uploadFailed' }),
+              }
+            : f
         )
       )
     } finally {
@@ -307,6 +425,7 @@ export function FileUploadModal({
               onClick={handleClose}
               disabled={isUploading}
               className="rounded-lg p-1 text-foreground-muted hover:bg-background hover:text-foreground disabled:opacity-50"
+              aria-label={intl.formatMessage({ id: 'common.close' })}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -342,6 +461,7 @@ export function FileUploadModal({
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
+                accept="*/*"
               />
 
               <div className="mb-4 text-5xl">📁</div>
@@ -357,6 +477,12 @@ export function FileUploadModal({
               >
                 <FormattedMessage id="fileUpload.selectFiles" />
               </button>
+              <p className="mt-4 text-xs text-foreground-muted">
+                <FormattedMessage
+                  id="fileUpload.maxSize"
+                  values={{ size: formatFileSize(MAX_FILE_SIZE) }}
+                />
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -374,6 +500,7 @@ export function FileUploadModal({
                           src={fileObj.preview}
                           alt={fileObj.file.name}
                           className="h-full w-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="flex h-full flex-col items-center justify-center p-4">
@@ -421,6 +548,10 @@ export function FileUploadModal({
                         <button
                           onClick={() => removeFile(fileObj.id)}
                           className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+                          aria-label={intl.formatMessage(
+                            { id: 'fileUpload.removeFile' },
+                            { name: fileObj.file.name }
+                          )}
                         >
                           <svg
                             className="h-4 w-4"

@@ -34,6 +34,8 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
   const { toast } = useToast()
   const lastToastMessage = useRef<string>('')
+  const mediaUrlRef = useRef<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Helper to determine file type
   const getFileType = (filename: string): FileType => {
@@ -192,6 +194,12 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       setIsLoading(true)
       setError({ type: 'none', message: '' })
 
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      abortControllerRef.current = new AbortController()
+
       const type = getFileType(file.name)
       setFileType(type)
 
@@ -201,6 +209,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           headers: {
             'x-session-token': sessionToken,
           },
+          signal: abortControllerRef.current.signal,
         })
 
         if (!response.ok) {
@@ -213,6 +222,12 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
         setContent(data)
         setOriginalContent(data)
       } else if (type === 'image' || type === 'video' || type === 'pdf') {
+        // Clean up previous media URL if exists
+        if (mediaUrlRef.current) {
+          URL.revokeObjectURL(mediaUrlRef.current)
+          mediaUrlRef.current = null
+        }
+
         // For media files, use the download endpoint
         const response = await fetch(
           `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
@@ -220,6 +235,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
             headers: {
               'x-session-token': sessionToken,
             },
+            signal: abortControllerRef.current.signal,
           }
         )
 
@@ -231,15 +247,18 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
+        mediaUrlRef.current = url
         setMediaUrl(url)
       }
       // For binary files, we just show the download button
     } catch (error: any) {
-      setError({
-        type: 'network',
-        message: intl.formatMessage({ id: 'fileEditor.error.network' }),
-      })
-      showToast(intl.formatMessage({ id: 'fileEditor.error.network' }))
+      if (error.name !== 'AbortError') {
+        setError({
+          type: 'network',
+          message: intl.formatMessage({ id: 'fileEditor.error.network' }),
+        })
+        showToast(intl.formatMessage({ id: 'fileEditor.error.network' }))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -248,13 +267,20 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   useEffect(() => {
     loadFileContent()
 
-    // Cleanup media URL on unmount
+    // Cleanup function
     return () => {
-      if (mediaUrl) {
-        window.URL.revokeObjectURL(mediaUrl)
+      // Cancel any ongoing requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Cleanup media URL on unmount
+      if (mediaUrlRef.current) {
+        URL.revokeObjectURL(mediaUrlRef.current)
+        mediaUrlRef.current = null
       }
     }
-  }, [])
+  }, [file.path]) // Re-load if file path changes
 
   const saveFile = async () => {
     if (fileType !== 'text') return

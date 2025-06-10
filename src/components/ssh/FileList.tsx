@@ -122,7 +122,7 @@ export function FileList({
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
           <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
           <p className="text-foreground-muted">
             <FormattedMessage id="fileList.loading" />

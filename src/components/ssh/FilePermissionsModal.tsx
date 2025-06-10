@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useToast } from '@/components/ui/ToastContext'
 import type { FileInfo } from '@/types/ssh'
@@ -29,6 +29,8 @@ export function FilePermissionsModal({
   const intl = useIntl()
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const previousActiveElement = useRef<HTMLElement | null>(null)
 
   // Parse current permissions from the file
   const parsePermissions = (
@@ -81,11 +83,59 @@ export function FilePermissionsModal({
     setOctalMode(calculateOctal(permissions))
   }, [permissions])
 
+  // Focus management and keyboard handling
+  useEffect(() => {
+    if (file) {
+      // Store current focus
+      previousActiveElement.current = document.activeElement as HTMLElement
+
+      // Focus modal
+      modalRef.current?.focus()
+
+      // Handle keyboard events
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && !isSaving) {
+          onClose()
+        }
+
+        // Trap focus within modal
+        if (e.key === 'Tab') {
+          const focusableElements = modalRef.current?.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+
+          if (!focusableElements || focusableElements.length === 0) return
+
+          const firstElement = focusableElements[0] as HTMLElement
+          const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+          if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault()
+            lastElement.focus()
+          } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault()
+            firstElement.focus()
+          }
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown)
+
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+        // Restore focus
+        previousActiveElement.current?.focus()
+      }
+    }
+  }, [file, isSaving, onClose])
+
   // Parse octal input
   const handleOctalChange = (value: string) => {
-    setOctalMode(value)
+    // Only allow digits 0-7
+    const cleanValue = value.replace(/[^0-7]/g, '').slice(0, 3)
+    setOctalMode(cleanValue)
 
-    if (value.length === 3 && /^[0-7]{3}$/.test(value)) {
+    if (cleanValue.length === 3) {
       const octalToSet = (digit: string): PermissionSet => {
         const num = parseInt(digit, 10)
         return {
@@ -96,9 +146,9 @@ export function FilePermissionsModal({
       }
 
       setPermissions({
-        owner: octalToSet(value[0]),
-        group: octalToSet(value[1]),
-        other: octalToSet(value[2]),
+        owner: octalToSet(cleanValue[0]),
+        group: octalToSet(cleanValue[1]),
+        other: octalToSet(cleanValue[2]),
       })
     }
   }
@@ -118,7 +168,7 @@ export function FilePermissionsModal({
   }
 
   const handleSave = async () => {
-    if (!file) return
+    if (!file || octalMode.length !== 3) return
 
     setIsSaving(true)
     try {
@@ -136,7 +186,7 @@ export function FilePermissionsModal({
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to change permissions')
+        throw new Error(error.error || intl.formatMessage({ id: 'filePermissions.error' }))
       }
 
       toast.success(intl.formatMessage({ id: 'filePermissions.success' }))
@@ -149,44 +199,67 @@ export function FilePermissionsModal({
     }
   }
 
+  const announceChange = (message: string) => {
+    const announcement = document.createElement('div')
+    announcement.setAttribute('role', 'status')
+    announcement.setAttribute('aria-live', 'polite')
+    announcement.className = 'sr-only'
+    announcement.textContent = message
+    document.body.appendChild(announcement)
+    setTimeout(() => document.body.removeChild(announcement), 1000)
+  }
+
   if (!file) return null
 
   const PermissionCheckbox = ({
+    role,
+    type,
     checked,
     onChange,
-    label,
-    disabled = false,
   }: {
+    role: string
+    type: string
     checked: boolean
     onChange: (value: boolean) => void
-    label: string
-    disabled?: boolean
   }) => (
-    <label className="flex items-center gap-2">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        disabled={disabled || isSaving}
-        className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green disabled:opacity-50"
-      />
-      <span className="text-sm text-foreground">{label}</span>
-    </label>
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => {
+        onChange(e.target.checked)
+        announceChange(`${role} ${type} permission ${e.target.checked ? 'granted' : 'removed'}`)
+      }}
+      disabled={isSaving}
+      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green disabled:opacity-50"
+      aria-label={`${role} ${type} permission`}
+    />
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-lg bg-background-secondary shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="permissions-modal-title"
+    >
+      <div
+        ref={modalRef}
+        className="w-full max-w-2xl rounded-lg bg-background-secondary shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+      >
         {/* Header */}
         <div className="border-b border-border px-6 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 id="permissions-modal-title" className="text-lg font-semibold text-foreground">
               <FormattedMessage id="filePermissions.title" />
             </h2>
             <button
               onClick={onClose}
               disabled={isSaving}
               className="rounded-lg p-1 text-foreground-muted hover:bg-background hover:text-foreground disabled:opacity-50"
+              aria-label={intl.formatMessage({ id: 'common.close' })}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -221,19 +294,19 @@ export function FilePermissionsModal({
 
           {/* Permission matrix */}
           <div className="mb-6">
-            <table className="w-full">
+            <table className="w-full" role="table">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="pb-3 text-left text-sm font-medium text-foreground">
+                  <th scope="col" className="pb-3 text-left text-sm font-medium text-foreground">
                     <FormattedMessage id="filePermissions.role" />
                   </th>
-                  <th className="pb-3 text-center text-sm font-medium text-foreground">
+                  <th scope="col" className="pb-3 text-center text-sm font-medium text-foreground">
                     <FormattedMessage id="filePermissions.read" />
                   </th>
-                  <th className="pb-3 text-center text-sm font-medium text-foreground">
+                  <th scope="col" className="pb-3 text-center text-sm font-medium text-foreground">
                     <FormattedMessage id="filePermissions.write" />
                   </th>
-                  <th className="pb-3 text-center text-sm font-medium text-foreground">
+                  <th scope="col" className="pb-3 text-center text-sm font-medium text-foreground">
                     <FormattedMessage id="filePermissions.execute" />
                   </th>
                 </tr>
@@ -244,30 +317,27 @@ export function FilePermissionsModal({
                     <FormattedMessage id="filePermissions.owner" />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="owner"
+                      type="read"
                       checked={permissions.owner.read}
-                      onChange={(e) => handlePermissionChange('owner', 'read', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('owner', 'read', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="owner"
+                      type="write"
                       checked={permissions.owner.write}
-                      onChange={(e) => handlePermissionChange('owner', 'write', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('owner', 'write', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="owner"
+                      type="execute"
                       checked={permissions.owner.execute}
-                      onChange={(e) => handlePermissionChange('owner', 'execute', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('owner', 'execute', value)}
                     />
                   </td>
                 </tr>
@@ -276,30 +346,27 @@ export function FilePermissionsModal({
                     <FormattedMessage id="filePermissions.group" />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="group"
+                      type="read"
                       checked={permissions.group.read}
-                      onChange={(e) => handlePermissionChange('group', 'read', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('group', 'read', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="group"
+                      type="write"
                       checked={permissions.group.write}
-                      onChange={(e) => handlePermissionChange('group', 'write', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('group', 'write', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="group"
+                      type="execute"
                       checked={permissions.group.execute}
-                      onChange={(e) => handlePermissionChange('group', 'execute', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('group', 'execute', value)}
                     />
                   </td>
                 </tr>
@@ -308,30 +375,27 @@ export function FilePermissionsModal({
                     <FormattedMessage id="filePermissions.other" />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="other"
+                      type="read"
                       checked={permissions.other.read}
-                      onChange={(e) => handlePermissionChange('other', 'read', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('other', 'read', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="other"
+                      type="write"
                       checked={permissions.other.write}
-                      onChange={(e) => handlePermissionChange('other', 'write', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('other', 'write', value)}
                     />
                   </td>
                   <td className="py-3 text-center">
-                    <input
-                      type="checkbox"
+                    <PermissionCheckbox
+                      role="other"
+                      type="execute"
                       checked={permissions.other.execute}
-                      onChange={(e) => handlePermissionChange('other', 'execute', e.target.checked)}
-                      disabled={isSaving}
-                      className="rounded border-border bg-background text-terminal-green focus:ring-terminal-green"
+                      onChange={(value) => handlePermissionChange('other', 'execute', value)}
                     />
                   </td>
                 </tr>
@@ -341,18 +405,22 @@ export function FilePermissionsModal({
 
           {/* Octal input */}
           <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-foreground">
+            <label htmlFor="octal-mode" className="mb-2 block text-sm font-medium text-foreground">
               <FormattedMessage id="filePermissions.octalMode" />
             </label>
             <input
+              id="octal-mode"
               type="text"
               value={octalMode}
               onChange={(e) => handleOctalChange(e.target.value)}
               maxLength={3}
+              pattern="[0-7]{3}"
               className="w-32 rounded-lg border border-border bg-background px-4 py-2 font-mono text-foreground focus:border-terminal-green focus:outline-none focus:ring-1 focus:ring-terminal-green"
               placeholder="755"
+              disabled={isSaving}
+              aria-describedby="octal-hint"
             />
-            <p className="mt-2 text-sm text-foreground-muted">
+            <p id="octal-hint" className="mt-2 text-sm text-foreground-muted">
               <FormattedMessage id="filePermissions.octalHint" />
             </p>
           </div>
@@ -362,11 +430,12 @@ export function FilePermissionsModal({
             <p className="mb-2 text-sm font-medium text-foreground">
               <FormattedMessage id="filePermissions.presets" />
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Permission presets">
               <button
                 onClick={() => handleOctalChange('755')}
                 disabled={isSaving}
                 className="rounded bg-background px-3 py-1 text-sm text-foreground hover:bg-background-tertiary disabled:opacity-50"
+                aria-label="Set permissions to 755"
               >
                 755 - <FormattedMessage id="filePermissions.preset755" />
               </button>
@@ -374,6 +443,7 @@ export function FilePermissionsModal({
                 onClick={() => handleOctalChange('644')}
                 disabled={isSaving}
                 className="rounded bg-background px-3 py-1 text-sm text-foreground hover:bg-background-tertiary disabled:opacity-50"
+                aria-label="Set permissions to 644"
               >
                 644 - <FormattedMessage id="filePermissions.preset644" />
               </button>
@@ -381,6 +451,7 @@ export function FilePermissionsModal({
                 onClick={() => handleOctalChange('700')}
                 disabled={isSaving}
                 className="rounded bg-background px-3 py-1 text-sm text-foreground hover:bg-background-tertiary disabled:opacity-50"
+                aria-label="Set permissions to 700"
               >
                 700 - <FormattedMessage id="filePermissions.preset700" />
               </button>
@@ -388,6 +459,7 @@ export function FilePermissionsModal({
                 onClick={() => handleOctalChange('777')}
                 disabled={isSaving}
                 className="rounded bg-background px-3 py-1 text-sm text-foreground hover:bg-background-tertiary disabled:opacity-50"
+                aria-label="Set permissions to 777"
               >
                 777 - <FormattedMessage id="filePermissions.preset777" />
               </button>
@@ -407,7 +479,7 @@ export function FilePermissionsModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || octalMode.length !== 3}
               className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
