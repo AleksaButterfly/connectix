@@ -451,7 +451,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Search */}
+            {/* File Search */}
             <FileSearch
               connectionId={connectionId}
               sessionToken={sessionToken}
