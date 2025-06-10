@@ -29,6 +29,7 @@
   "common.clear": "Clear",
   "common.disconnect": "Disconnect",
   "common.download": "Download",
+  "common.downloading": "Downloading...",
   "common.permissions": "Permissions",
 
   "header.dashboard": "Dashboard",

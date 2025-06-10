@@ -54,15 +54,22 @@ export async function POST(request: NextRequest, { params }: { params: { connect
         zlib: { level: 9 }, // Maximum compression
       })
 
-      // Create a PassThrough stream to collect the archive data
+      // Create arrays to collect data
       const chunks: Buffer[] = []
 
-      archive.on('data', (chunk) => {
-        chunks.push(chunk)
-      })
+      // Set up promise to track when archiving is complete
+      const archivePromise = new Promise<void>((resolve, reject) => {
+        archive.on('data', (chunk) => {
+          chunks.push(chunk)
+        })
 
-      archive.on('error', (err) => {
-        throw err
+        archive.on('error', (err) => {
+          reject(err)
+        })
+
+        archive.on('end', () => {
+          resolve()
+        })
       })
 
       // Download and add each file to the archive
@@ -76,7 +83,6 @@ export async function POST(request: NextRequest, { params }: { params: { connect
           }
 
           const result = await SSHConnectionManager.downloadFile(sessionToken, path)
-          const filename = path.split('/').pop() || 'file'
 
           // Add file to archive with relative path structure
           const relativePath = path.startsWith('/') ? path.substring(1) : path
@@ -90,10 +96,8 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       // Finalize the archive
       await archive.finalize()
 
-      // Wait for all data to be collected
-      await new Promise((resolve) => {
-        archive.on('end', resolve)
-      })
+      // Wait for archive to complete
+      await archivePromise
 
       // Combine all chunks
       const zipBuffer = Buffer.concat(chunks)

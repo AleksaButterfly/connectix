@@ -26,6 +26,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   const [files, setFiles] = useState<FileInfo[]>([])
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [editingFile, setEditingFile] = useState<FileInfo | null>(null)
   const [showCreateFile, setShowCreateFile] = useState(false)
   const [showCreateFolder, setShowCreateFolder] = useState(false)
@@ -258,7 +259,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   }
 
   const handleDownloadFiles = async () => {
-    if (!sessionToken || selectedFiles.size === 0) return
+    if (!sessionToken || selectedFiles.size === 0 || isDownloading) return
 
     const selectedItems = Array.from(selectedFiles)
       .map((path) => files.find((f) => f.path === path))
@@ -271,6 +272,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       toast.error(intl.formatMessage({ id: 'files.tooltips.download.folderSelected' }))
       return
     }
+
+    setIsDownloading(true)
 
     // Single file download
     if (filesToDownload.length === 1) {
@@ -299,6 +302,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         toast.success(intl.formatMessage({ id: 'fileBrowser.download.success' }))
       } catch (error: any) {
         toast.error(error.message || intl.formatMessage({ id: 'fileBrowser.download.failed' }))
+      } finally {
+        setIsDownloading(false)
       }
     }
     // Multiple files download as zip
@@ -332,6 +337,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
         toast.error(
           error.message || intl.formatMessage({ id: 'fileBrowser.download.multiple.failed' })
         )
+      } finally {
+        setIsDownloading(false)
       }
     }
   }
@@ -610,25 +617,39 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
                 <div className="group relative inline-block">
                   <button
                     onClick={handleDownloadFiles}
-                    disabled={!canDownload()}
+                    disabled={!canDownload() || isDownloading}
                     className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                      canDownload()
+                      canDownload() && !isDownloading
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-blue-600/20 text-blue-600/50'
                     }`}
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                      />
-                    </svg>
-                    <FormattedMessage id="common.download" />
-                    {selectedFiles.size > 1 && canDownload() && ' as ZIP'}
+                    {isDownloading ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600/50 border-t-transparent" />
+                        <FormattedMessage id="common.downloading" />
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                          />
+                        </svg>
+                        <FormattedMessage id="common.download" />
+                        {selectedFiles.size > 1 && canDownload() && ' as ZIP'}
+                      </>
+                    )}
                   </button>
-                  {!canDownload() && (
+                  {!canDownload() && !isDownloading && (
                     <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 transform group-hover:block">
                       <div className="whitespace-nowrap rounded bg-gray-900 px-3 py-1.5 text-xs text-white shadow-lg">
                         {getDownloadTooltip()}
