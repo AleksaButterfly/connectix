@@ -27,6 +27,8 @@
   "common.tryAgain": "Try again",
   "common.unknown": "Unknown",
   "common.user": "user",
+  "common.member": "{count, plural, one {member} other {members}}",
+  "common.project": "{count, plural, one {project} other {projects}}",
 
   "header.aboutConnectix": "About Connectix",
   "header.accountSettings": "Account Settings",
@@ -444,6 +446,7 @@
   "browse.sessionRequired.title": "Session Required",
   "browse.status.connected": "Connected",
   
+  "fileBrowser.upload": "Upload",
   "fileBrowser.error.loadFailed": "Failed to load files",
 
   "files.connection.establishing": "Establishing SSH connection...",

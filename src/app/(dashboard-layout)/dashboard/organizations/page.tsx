@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { organizationService } from '@/lib/organizations/organization.service'
 import type { OrganizationWithDetails } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { count } from 'console'
 
 export default function OrganizationsPage() {
   const intl = useIntl()
@@ -187,9 +188,12 @@ function OrganizationCard({ organization }: { organization: OrganizationWithDeta
           id="organizations.projectCount"
           values={{
             count: organization.projectsCount,
-            projects: intl.formatMessage({
-              id: organization.projectsCount === 1 ? 'common.project' : 'common.projects',
-            }),
+            projects: intl.formatMessage(
+              {
+                id: 'common.project',
+              },
+              { count: organization.projectsCount }
+            ),
           }}
         />
       </p>
@@ -200,9 +204,12 @@ function OrganizationCard({ organization }: { organization: OrganizationWithDeta
             id="organizations.memberCount"
             values={{
               count: organization.membersCount,
-              members: intl.formatMessage({
-                id: organization.membersCount === 1 ? 'common.member' : 'common.members',
-              }),
+              members: intl.formatMessage(
+                {
+                  id: 'common.member',
+                },
+                { count: organization.membersCount }
+              ),
             }}
           />
         </span>
