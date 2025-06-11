@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { projectService } from '@/lib/projects/project.service'
 import FormInput from '@/components/ui/FormInput'
 import { useConfirmation } from '@/hooks/useConfirmation'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 import type { Project } from '@/types/project'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
@@ -121,9 +120,10 @@ export default function ProjectSettingsPage() {
 
       // Show success toast
       toast.success(intl.formatMessage({ id: 'project.settings.saveSuccess' }))
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update project:', error)
-      toast.error(error.message || intl.formatMessage({ id: 'project.settings.saveError' }))
+      const errorMessage = error instanceof Error ? error.message : intl.formatMessage({ id: 'project.settings.saveError' })
+      toast.error(errorMessage)
     } finally {
       setIsSaving(false)
     }
@@ -143,9 +143,10 @@ export default function ProjectSettingsPage() {
         try {
           await projectService.deleteProject(projectId)
           router.push(`/dashboard/organizations/${orgId}`)
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to delete project:', error)
-          toast.error(error.message || intl.formatMessage({ id: 'project.settings.delete.error' }))
+          const errorMessage = error instanceof Error ? error.message : intl.formatMessage({ id: 'project.settings.delete.error' })
+          toast.error(errorMessage)
         }
       },
     })

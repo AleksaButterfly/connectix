@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   // WebSocket upgrade for terminal access
   const upgrade = request.headers.get('upgrade')
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
   })
 }
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     const { command } = await request.json()
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       error: result.stderr,
       exitCode: result.code,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to execute command' },
+      { error: error instanceof Error ? error.message : 'Failed to execute command' },
       { status: 500 }
     )
   }

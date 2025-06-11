@@ -1,5 +1,5 @@
 import { Client, ConnectConfig, SFTPWrapper } from 'ssh2'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import { randomBytes } from 'crypto'
 
 interface SSHSession {
@@ -26,6 +26,22 @@ interface SSHConnectionConfig {
   proxy_jump?: string | null
   connection_timeout?: number
   strict_host_checking?: boolean
+}
+
+interface SessionInfo {
+  id: string
+  connectionId: string
+  userId: string
+  isConnected: boolean
+  lastActivity: Date
+  uptime: number
+}
+
+interface DiskUsageInfo {
+  total: number
+  used: number
+  available: number
+  percentage: number
 }
 
 interface FileInfo {
@@ -109,7 +125,7 @@ class SSHConnectionManager {
 
             resolve(sessionToken)
           })
-        } catch (error: any) {
+        } catch (error: unknown) {
           client.end()
           reject(error)
         }
@@ -375,13 +391,13 @@ class SSHConnectionManager {
   private static async logActivity(
     sessionToken: string,
     activityType: string,
-    details: any
+    details: Record<string, unknown>
   ): Promise<void> {
     try {
       const session = this.sessions.get(sessionToken)
       if (!session) return
 
-      const supabase = createClient()
+      const supabase = await createClient()
       await supabase.from('connection_activity_logs').insert({
         connection_id: session.connectionId,
         user_id: session.userId,
@@ -490,7 +506,7 @@ class SSHConnectionManager {
     })
   }
 
-  static async downloadMultipleFiles(sessionToken: string, paths: string[]): Promise<Buffer> {
+  static async downloadMultipleFiles(_sessionToken: string, _paths: string[]): Promise<Buffer> {
     // This would require a zip library like 'archiver'
     // For now, throw an error indicating it needs implementation
     throw new Error('Multiple file download requires zip implementation - install archiver package')
@@ -522,7 +538,7 @@ class SSHConnectionManager {
     })
   }
 
-  static async getFileInfo(sessionToken: string, path: string): Promise<any> {
+  static async getFileInfo(sessionToken: string, path: string): Promise<FileInfo> {
     const session = this.getSession(sessionToken)
     if (!session.sftp) throw new Error('SFTP not available')
 
@@ -564,8 +580,8 @@ class SSHConnectionManager {
       try {
         await this.getFileInfo(sessionToken, destinationPath)
         throw new Error('Destination file already exists')
-      } catch (err: any) {
-        if (!err.message.includes('Failed to get file info')) {
+      } catch (err: unknown) {
+        if (err instanceof Error && !err.message.includes('Failed to get file info')) {
           throw err
         }
         // File doesn't exist, continue with copy
@@ -626,7 +642,7 @@ class SSHConnectionManager {
       regex?: boolean
       maxResults?: number
     }
-  ): Promise<any[]> {
+  ): Promise<FileInfo[]> {
     const session = this.getSession(sessionToken)
 
     // This is a basic implementation using find command
@@ -680,7 +696,7 @@ class SSHConnectionManager {
     return filesWithTypes
   }
 
-  static async getSessionInfo(sessionToken: string): Promise<any> {
+  static async getSessionInfo(sessionToken: string): Promise<SessionInfo> {
     const session = this.sessions.get(sessionToken)
     if (!session) {
       throw new Error('Session not found')
@@ -709,7 +725,7 @@ class SSHConnectionManager {
     }
   }
 
-  static async getDiskUsage(sessionToken: string, path: string): Promise<any> {
+  static async getDiskUsage(sessionToken: string, path: string): Promise<DiskUsageInfo> {
     const session = this.getSession(sessionToken)
 
     try {
@@ -730,7 +746,7 @@ class SSHConnectionManager {
         usePercent: data[4],
         mountPoint: data[5],
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Fallback to du command for directory size
       const result = await this.executeCommand(sessionToken, `du -sh "${path}"`)
       const size = result.stdout.split('\t')[0]

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/client'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const supabase = createClient()
     const sessionToken = request.headers.get('x-session-token')
@@ -51,10 +51,10 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       success: true,
       message: 'SSH connection closed successfully',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('SSH disconnect error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to close SSH connection' },
+      { error: error instanceof Error ? error.message : 'Failed to close SSH connection' },
       { status: 500 }
     )
   }

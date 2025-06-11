@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     const { oldPath, newPath } = await request.json()
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     await SSHConnectionManager.renameFile(sessionToken, oldPath, newPath)
 
     return NextResponse.json({ success: true, message: 'File renamed successfully' })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to rename file' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to rename file' }, { status: 500 })
   }
 }

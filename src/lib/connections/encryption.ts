@@ -68,7 +68,7 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
     let encrypted: EncryptedData
     try {
       encrypted = JSON.parse(encryptedData) as EncryptedData
-    } catch (parseError) {
+    } catch {
       throw new Error('Corrupted encrypted data - invalid JSON format')
     }
 

@@ -157,10 +157,10 @@ export async function POST(
         username: connection.username,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
-        error: error.message || 'Failed to create SSH session',
+        error: error instanceof Error ? error.message : 'Failed to create SSH session',
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
@@ -186,9 +186,9 @@ export async function GET(
       success: true,
       session: sessionInfo,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to get session info' },
+      { error: error instanceof Error ? error.message : 'Failed to get session info' },
       { status: 500 }
     )
   }
@@ -212,9 +212,9 @@ export async function PUT(
       success: true,
       message: 'Session kept alive',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to keep session alive' },
+      { error: error instanceof Error ? error.message : 'Failed to keep session alive' },
       { status: 500 }
     )
   }
@@ -238,10 +238,10 @@ export async function DELETE(
       success: true,
       message: 'SSH session closed successfully',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error closing SSH session:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to close SSH session' },
+      { error: error instanceof Error ? error.message : 'Failed to close SSH session' },
       { status: 500 }
     )
   }

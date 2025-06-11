@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileUploadModal } from './FileUploadModal'
+import { FileUploadModal } from './upload/FileUploadModal'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
 interface FileUploadProps {

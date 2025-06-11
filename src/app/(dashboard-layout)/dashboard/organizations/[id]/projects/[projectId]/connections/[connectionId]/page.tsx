@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import { useConnections } from '@/hooks/useConnections'
 import { useConfirmation } from '@/hooks/useConfirmation'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 import ConnectionDetails from '@/components/connections/ConnectionDetails'
 import type { ConnectionWithDetails } from '@/types/connection'
 
@@ -18,6 +18,46 @@ export default function SingleConnectionPage() {
   const connectionId = params.connectionId as string
 
   const { toast } = useToast()
+
+  // All hooks must be called before any early returns
+  const {
+    connections,
+    isLoading,
+    loadConnections,
+    deleteConnection,
+    testConnection,
+    operationLoadingStates,
+  } = useConnections({
+    organizationId: orgId || '',
+    projectId: projectId || '',
+  })
+
+  const { confirm, ConfirmationModal } = useConfirmation()
+
+  // Load connections once on mount
+  useEffect(() => {
+    if (orgId && projectId) {
+      loadConnections().catch(() => {
+        // The error toast is already handled inside loadConnections
+      })
+    }
+  }, [loadConnections, orgId, projectId])
+
+  // Find the selected connection from URL - no state needed!
+  const selectedConnection = useMemo(
+    () => connections.find((conn) => conn.id === connectionId) || null,
+    [connections, connectionId]
+  )
+
+  // If connections are loaded but connection not found, redirect to first
+  useEffect(() => {
+    if (!isLoading && connections.length > 0 && !selectedConnection && orgId && projectId) {
+      const firstConnection = connections[0]
+      router.replace(
+        `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${firstConnection.id}`
+      )
+    }
+  }, [isLoading, connections, selectedConnection, router, orgId, projectId])
 
   if (!orgId || !projectId || !connectionId) {
     return (
@@ -34,43 +74,6 @@ export default function SingleConnectionPage() {
       </div>
     )
   }
-
-  const {
-    connections,
-    isLoading,
-    loadConnections,
-    deleteConnection,
-    testConnection,
-    operationLoadingStates,
-  } = useConnections({
-    organizationId: orgId,
-    projectId: projectId,
-  })
-
-  const { confirm, ConfirmationModal } = useConfirmation()
-
-  // Load connections once on mount
-  useEffect(() => {
-    loadConnections().catch((error) => {
-      // The error toast is already handled inside loadConnections
-    })
-  }, [])
-
-  // Find the selected connection from URL - no state needed!
-  const selectedConnection = useMemo(
-    () => connections.find((conn) => conn.id === connectionId) || null,
-    [connections, connectionId]
-  )
-
-  // If connections are loaded but connection not found, redirect to first
-  useEffect(() => {
-    if (!isLoading && connections.length > 0 && !selectedConnection) {
-      const firstConnection = connections[0]
-      router.replace(
-        `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${firstConnection.id}`
-      )
-    }
-  }, [isLoading, connections.length, selectedConnection, router, orgId, projectId])
 
   const handleCreateNew = () => {
     router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections/new`)
@@ -119,9 +122,10 @@ export default function SingleConnectionPage() {
               router.replace(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Delete connection error:', error)
-          toast.error(error.message || intl.formatMessage({ id: 'connections.delete.error' }))
+          const errorMessage = error instanceof Error ? error.message : intl.formatMessage({ id: 'connections.delete.error' })
+          toast.error(errorMessage)
         }
       },
     })
@@ -130,8 +134,8 @@ export default function SingleConnectionPage() {
   const handleTest = async (connection: ConnectionWithDetails) => {
     try {
       await testConnection(connection.id)
-    } catch (error: any) {
-      // ✅ Error handling is already done by the hook
+    } catch (error: unknown) {
+      // Error handling is already done by the hook
       console.error('Test connection error:', error)
     }
   }

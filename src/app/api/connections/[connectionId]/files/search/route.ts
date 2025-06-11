@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')
@@ -30,12 +30,12 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
       query,
       searchPath: path,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to search files' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to search files' }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     const {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest, { params }: { params: { connect
         maxResults,
       },
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to search files' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to search files' }, { status: 500 })
   }
 }

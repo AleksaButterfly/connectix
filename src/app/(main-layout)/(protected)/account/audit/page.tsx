@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/auth.store'
 import { format } from 'date-fns'
@@ -21,7 +20,6 @@ interface AuditLog {
 
 export default function AccountAuditLogsPage() {
   const intl = useIntl()
-  const router = useRouter()
   const { user } = useAuthStore()
   const datePickerRef = useRef<HTMLDivElement>(null)
   const filterPickerRef = useRef<HTMLDivElement>(null)

@@ -4,7 +4,7 @@ import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 // Read file content
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
+  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
@@ -22,15 +22,15 @@ export async function GET(
         'Content-Type': 'text/plain; charset=utf-8',
       },
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to read file' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to read file' }, { status: 500 })
   }
 }
 
 // Write/update file content
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
+  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
@@ -45,15 +45,15 @@ export async function PUT(
     await SSHConnectionManager.writeFile(sessionToken, filePath, content)
 
     return NextResponse.json({ success: true, message: 'File saved successfully' })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to save file' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to save file' }, { status: 500 })
   }
 }
 
 // Delete file or directory
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ connectionId: string; path: string[] }> }
+  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
@@ -67,7 +67,7 @@ export async function DELETE(
     await SSHConnectionManager.deleteFile(sessionToken, filePath)
 
     return NextResponse.json({ success: true, message: 'File deleted successfully' })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to delete file' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to delete file' }, { status: 500 })
   }
 }

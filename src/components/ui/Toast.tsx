@@ -11,13 +11,13 @@ export interface ToastProps {
   onClose: (id: string) => void
 }
 
-export default function Toast({
+const Toast = ({
   id,
   message,
   type = 'info',
   duration = 3000,
   onClose,
-}: ToastProps) {
+}: ToastProps) => {
   const intl = useIntl()
 
   useEffect(() => {
@@ -113,3 +113,5 @@ export default function Toast({
     </div>
   )
 }
+
+export { Toast }

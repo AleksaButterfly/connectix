@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import FormInput from '@/components/ui/FormInput'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/stores/auth.store'
@@ -21,11 +21,10 @@ export default function AccountSettingsPage() {
   const { toast } = useToast()
   const { confirm, ConfirmationModal } = useConfirmation()
 
-  const [activeTab, setActiveTab] = useState<'account' | 'audit'>('account')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const [, setProfile] = useState<Record<string, unknown> | null>(null)
   const [identities, setIdentities] = useState<any[]>([])
   const [originalValues, setOriginalValues] = useState<{ username: string; email: string }>({
     username: '',

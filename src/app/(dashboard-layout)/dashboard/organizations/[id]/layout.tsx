@@ -18,7 +18,7 @@ export default function OrganizationLayout({ children }: { children: React.React
   const pathname = usePathname()
   const orgId = params.id as string
   const [isCollapsed, setIsCollapsed] = useState(true)
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [, setOrganization] = useState<Organization | null>(null)
 
   useEffect(() => {
     const fetchOrganization = async () => {

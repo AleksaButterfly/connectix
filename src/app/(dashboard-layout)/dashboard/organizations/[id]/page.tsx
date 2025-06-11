@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { organizationService } from '@/lib/organizations/organization.service'
@@ -14,16 +14,16 @@ export default function OrganizationProjectsPage() {
   const params = useParams()
   const router = useRouter()
   const orgId = params.id as string
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [, setOrganization] = useState<Organization | null>(null)
   const [projects, setProjects] = useState<ProjectWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     fetchData()
-  }, [orgId])
+  }, [orgId, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true)
       setError('')
@@ -39,13 +39,14 @@ export default function OrganizationProjectsPage() {
       // Fetch projects
       const projectsList = await projectService.getOrganizationProjects(orgId)
       setProjects(projectsList)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch data:', err)
-      setError(err.message || intl.formatMessage({ id: 'projects.error.loadFailed' }))
+      const errorMessage = err instanceof Error ? err.message : intl.formatMessage({ id: 'projects.error.loadFailed' })
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [orgId, router, intl, setOrganization])
 
   const handleNewProject = () => {
     router.push(`/dashboard/organizations/${orgId}/projects/new`)

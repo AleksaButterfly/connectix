@@ -1,3 +1,5 @@
+'use client'
+
 export { I18nProvider } from './provider'
 export {
   FormattedMessage,

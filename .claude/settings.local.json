@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "WebFetch(domain:nextjs.org)",
+      "Bash(rm:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(rg:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

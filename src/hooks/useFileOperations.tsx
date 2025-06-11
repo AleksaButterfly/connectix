@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 import { useIntl } from '@/lib/i18n'
-import type { FileInfo, FileOperationResponse, ApiResponseError } from '@/types/ssh'
+import type { FileInfo, FileOperationResponse } from '@/types/ssh'
+import { ApiResponseError } from '@/types/ssh'
 import { apiCall } from '@/types/ssh'
 
 interface UseFileOperationsOptions {

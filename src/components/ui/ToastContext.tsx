@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode } from 'react'
-import Toast, { ToastProps } from '@/components/ui/Toast'
+import { Toast, ToastProps } from '@/components/ui/Toast'
 
 interface ToastContextType {
   toast: {
@@ -12,7 +12,7 @@ interface ToastContextType {
   }
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined)
+export const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Omit<ToastProps, 'onClose'>[]>([])

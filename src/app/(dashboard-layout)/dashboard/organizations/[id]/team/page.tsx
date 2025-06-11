@@ -22,7 +22,7 @@ export default function OrganizationTeamPage() {
   const router = useRouter()
   const orgId = params.id as string
 
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [, setOrganization] = useState<Organization | null>(null)
   const [currentUser, setCurrentUser] = useState<TeamMember | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -75,7 +75,7 @@ export default function OrganizationTeamPage() {
     }
 
     fetchData()
-  }, [orgId, router])
+  }, [orgId, router, intl])
 
   // Get avatar initials (fallback when no avatar URL)
   const getInitials = (username: string) => {

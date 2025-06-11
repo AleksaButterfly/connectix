@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: { connect
       filename: file.name,
       path: remotePath,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to upload file' }, { status: 500 })
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to upload file' }, { status: 500 })
   }
 }

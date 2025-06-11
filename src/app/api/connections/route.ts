@@ -1,28 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { encryptCredentials, decryptCredentials } from '@/lib/connections/encryption'
+import { encryptCredentials } from '@/lib/connections/encryption'
 import type { CreateConnectionInput } from '@/types/connection'
+import { createAuthenticatedRoute, ApiErrorResponse } from '@/lib/api/middleware'
+import { successResponse } from '@/lib/api/response'
+import { ErrorCodes } from '@/lib/api/errorCodes'
 
-export async function POST(request: NextRequest) {
-  try {
+export const POST = createAuthenticatedRoute(async (request, _context, { user, supabase }) => {
     const body = await request.json()
     const { organizationId, input }: { organizationId: string; input: CreateConnectionInput } = body
 
     if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID is required!' }, { status: 400 })
+      throw new ApiErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Organization ID is required!',
+        400
+      )
     }
 
     if (!input.project_id) {
-      return NextResponse.json({ error: 'Project ID is required!' }, { status: 400 })
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      throw new ApiErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Project ID is required!',
+        400
+      )
     }
 
     // Get the active encryption key for the organization
@@ -33,9 +32,10 @@ export async function POST(request: NextRequest) {
 
     if (keyError || !encryptionKeyId) {
       console.error('Encryption key error:', keyError)
-      return NextResponse.json(
-        { error: 'No active encryption key found for organization' },
-        { status: 400 }
+      throw new ApiErrorResponse(
+        ErrorCodes.INTERNAL_ERROR,
+        'No active encryption key found for organization',
+        400
       )
     }
 
@@ -64,18 +64,24 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating connection:', error)
       if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'A connection with this name already exists' },
-          { status: 409 }
+        throw new ApiErrorResponse(
+          ErrorCodes.DUPLICATE_ERROR,
+          'A connection with this name already exists',
+          409
         )
       }
       if (error.code === '42501') {
-        return NextResponse.json(
-          { error: 'Permission denied - make sure you are an admin of this organization' },
-          { status: 403 }
+        throw new ApiErrorResponse(
+          ErrorCodes.PERMISSION_DENIED,
+          'Permission denied - make sure you are an admin of this organization',
+          403
         )
       }
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      throw new ApiErrorResponse(
+        ErrorCodes.DATABASE_ERROR,
+        error.message,
+        400
+      )
     }
 
     // Fetch the created connection
@@ -91,15 +97,12 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) {
       console.error('Error fetching created connection:', fetchError)
-      return NextResponse.json({ error: fetchError.message }, { status: 400 })
+      throw new ApiErrorResponse(
+        ErrorCodes.DATABASE_ERROR,
+        fetchError.message,
+        400
+      )
     }
 
-    return NextResponse.json(connection)
-  } catch (error: any) {
-    console.error('Server-side connection creation error:', error)
-    return NextResponse.json(
-      { error: 'Failed to create connection: ' + error.message },
-      { status: 500 }
-    )
-  }
-}
+    return successResponse(connection, { action: 'created' }, 201)
+})

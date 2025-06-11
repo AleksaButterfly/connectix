@@ -63,8 +63,8 @@ export function isApiError(error: unknown): error is ApiError {
     error !== null &&
     'error' in error &&
     'message' in error &&
-    typeof (error as any).error === 'string' &&
-    typeof (error as any).message === 'string'
+    typeof (error as ApiError).error === 'string' &&
+    typeof (error as ApiError).message === 'string'
   )
 }
 
@@ -77,11 +77,11 @@ export function isFileInfo(obj: unknown): obj is FileInfo {
     'type' in obj &&
     'size' in obj &&
     'permissions' in obj &&
-    typeof (obj as any).path === 'string' &&
-    typeof (obj as any).name === 'string' &&
-    ['file', 'directory', 'symlink', 'unknown'].includes((obj as any).type) &&
-    typeof (obj as any).size === 'number' &&
-    typeof (obj as any).permissions === 'string'
+    typeof (obj as FileInfo).path === 'string' &&
+    typeof (obj as FileInfo).name === 'string' &&
+    ['file', 'directory', 'symlink', 'unknown'].includes((obj as FileInfo).type) &&
+    typeof (obj as FileInfo).size === 'number' &&
+    typeof (obj as FileInfo).permissions === 'string'
   )
 }
 

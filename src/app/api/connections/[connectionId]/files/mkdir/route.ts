@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     const { path } = await request.json()
@@ -17,9 +17,9 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     await SSHConnectionManager.createDirectory(sessionToken, path)
 
     return NextResponse.json({ success: true, message: 'Directory created successfully' })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to create directory' },
+      { error: error instanceof Error ? error.message : 'Failed to create directory' },
       { status: 500 }
     )
   }

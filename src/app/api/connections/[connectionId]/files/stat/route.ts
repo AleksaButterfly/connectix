@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const { searchParams } = new URL(request.url)
     const path = searchParams.get('path')
@@ -22,9 +22,9 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
       success: true,
       fileInfo,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error.message || 'Failed to get file information' },
+      { error: error instanceof Error ? error.message : 'Failed to get file information' },
       { status: 500 }
     )
   }

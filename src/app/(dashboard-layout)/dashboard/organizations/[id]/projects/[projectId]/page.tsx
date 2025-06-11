@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { projectService } from '@/lib/projects/project.service'
 import { organizationService } from '@/lib/organizations/organization.service'
@@ -9,7 +9,7 @@ import { useConnections } from '@/hooks/useConnections'
 import type { ProjectWithDetails } from '@/types/project'
 import type { Organization } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 
 export default function ProjectOverviewPage() {
   const intl = useIntl()
@@ -31,17 +31,7 @@ export default function ProjectOverviewPage() {
     projectId: projectId,
   })
 
-  useEffect(() => {
-    fetchData()
-  }, [orgId, projectId])
-
-  useEffect(() => {
-    if (orgId && projectId) {
-      loadConnections()
-    }
-  }, [orgId, projectId, loadConnections])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true)
       setError('')
@@ -85,13 +75,24 @@ export default function ProjectOverviewPage() {
       }
 
       setOrganization(org)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to fetch project:', err)
-      setError(err.message || intl.formatMessage({ id: 'projects.error.loadFailed' }))
+      const errorMessage = err instanceof Error ? err.message : intl.formatMessage({ id: 'projects.error.loadFailed' })
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [projectId, router, orgId, intl])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    if (orgId && projectId) {
+      loadConnections()
+    }
+  }, [orgId, projectId, loadConnections])
 
   const handleCopyProjectId = () => {
     if (project?.id) {

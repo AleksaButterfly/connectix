@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { organizationService } from '@/lib/organizations/organization.service'
 import FormInput from '@/components/ui/FormInput'
 import { useConfirmation } from '@/hooks/useConfirmation'
-import { useToast } from '@/components/ui/ToastContext'
+import { useToast } from '@/components/ui'
 import type { Organization } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 
@@ -48,8 +48,7 @@ export default function OrganizationSettingsPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isDirty },
-    setError,
+    formState: { errors },
     setValue,
     watch,
     reset,
@@ -138,9 +137,10 @@ export default function OrganizationSettingsPage() {
 
       // Show success toast
       toast.success(intl.formatMessage({ id: 'organization.settings.saveSuccess' }))
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update organization:', error)
-      toast.error(error.message || intl.formatMessage({ id: 'organization.settings.saveError' }))
+      const errorMessage = error instanceof Error ? error.message : intl.formatMessage({ id: 'organization.settings.saveError' })
+      toast.error(errorMessage)
     } finally {
       setIsSaving(false)
     }
@@ -160,8 +160,10 @@ export default function OrganizationSettingsPage() {
         try {
           await organizationService.deleteOrganization(orgId)
           router.push('/dashboard/organizations')
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to delete organization:', error)
+          const errorMessage = error instanceof Error ? error.message : intl.formatMessage({ id: 'organization.settings.delete.error' })
+          toast.error(errorMessage)
         }
       },
     })

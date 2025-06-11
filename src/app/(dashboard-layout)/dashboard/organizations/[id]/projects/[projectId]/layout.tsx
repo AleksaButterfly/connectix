@@ -20,7 +20,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
   const orgId = params.id as string
   const projectId = params.projectId as string
   const [isCollapsed, setIsCollapsed] = useState(true)
-  const [project, setProject] = useState<Project | null>(null)
+  const [, setProject] = useState<Project | null>(null)
 
   useEffect(() => {
     const fetchProject = async () => {

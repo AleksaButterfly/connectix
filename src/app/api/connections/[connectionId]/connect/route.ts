@@ -111,7 +111,7 @@ export async function POST(
         username: connection.username,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('SSH connection error:', error)
 
     // Update connection test status on failure
@@ -123,7 +123,7 @@ export async function POST(
         .update({
           connection_test_status: 'failed',
           last_test_at: new Date().toISOString(),
-          last_test_error: error.message,
+          last_test_error: error instanceof Error ? error.message : "An error occurred",
         })
         .eq('id', params.connectionId)
     } catch (updateError) {
@@ -131,7 +131,7 @@ export async function POST(
     }
 
     return NextResponse.json(
-      { error: error.message || 'Failed to establish SSH connection' },
+      { error: error instanceof Error ? error.message : 'Failed to establish SSH connection' },
       { status: 500 }
     )
   }

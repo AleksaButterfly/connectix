@@ -1,35 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { organizationService } from '@/lib/organizations/organization.service'
 import type { OrganizationWithDetails } from '@/types/organization'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
-import { count } from 'console'
-
 export default function OrganizationsPage() {
   const intl = useIntl()
-  const router = useRouter()
   const [organizations, setOrganizations] = useState<OrganizationWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadOrganizations()
-  }, [])
-
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
       setIsLoading(true)
       const orgs = await organizationService.getOrganizations()
       setOrganizations(orgs)
-    } catch (err: any) {
-      setError(err.message || intl.formatMessage({ id: 'organizations.error.loadFailed' }))
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : intl.formatMessage({ id: 'organizations.error.loadFailed' })
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [intl])
+
+  useEffect(() => {
+    loadOrganizations()
+  }, [loadOrganizations])
 
   if (isLoading) {
     return (

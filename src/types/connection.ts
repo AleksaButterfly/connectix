@@ -14,7 +14,7 @@ export interface Connection {
   connection_timeout: number
   keepalive_interval: number
   strict_host_checking: boolean
-  custom_options: Record<string, any> | null
+  custom_options: Record<string, unknown> | null
   created_by: string | null
   last_used_at: string | null
   last_used_by: string | null
@@ -51,7 +51,7 @@ export interface CreateConnectionInput {
   connection_timeout?: number
   keepalive_interval?: number
   strict_host_checking?: boolean
-  custom_options?: Record<string, any> | null
+  custom_options?: Record<string, unknown> | null
 }
 
 // For updating an existing connection
@@ -71,7 +71,7 @@ export interface UpdateConnectionInput {
   connection_timeout?: number
   keepalive_interval?: number
   strict_host_checking?: boolean
-  custom_options?: Record<string, any> | null
+  custom_options?: Record<string, unknown> | null
 }
 
 // Connection session
@@ -116,7 +116,7 @@ export interface ConnectionActivityLog {
     | 'directory.list'
     | 'command.execute'
     | 'error.occurred'
-  details: Record<string, any> | null
+  details: Record<string, unknown> | null
   ip_address: string | null
   duration_ms: number | null
   bytes_affected: number | null

@@ -95,12 +95,12 @@ async function testSSHConnection(config: {
 
     try {
       client.connect(connectConfig)
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeout)
       resolve({
         success: false,
-        error: error.message,
-        message: 'Failed to initiate connection: ' + error.message,
+        error: error instanceof Error ? error.message : "An error occurred",
+        message: 'Failed to initiate connection: ' + error instanceof Error ? error.message : "An error occurred",
       })
     }
   })
@@ -230,14 +230,14 @@ export async function POST(
     })
 
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         success: false,
         error: 'UNEXPECTED_ERROR',
         message: 'An unexpected error occurred during connection test',
         debug: {
-          originalError: error.message,
+          originalError: error instanceof Error ? error.message : "An error occurred",
           stack: error.stack,
         },
       },

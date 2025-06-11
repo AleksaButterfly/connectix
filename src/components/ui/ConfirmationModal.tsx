@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { Button } from './Button'
+import { Modal } from './Modal'
+import { Icon } from './Icon'
 
 interface ConfirmationModalProps {
   isOpen: boolean
@@ -15,7 +17,7 @@ interface ConfirmationModalProps {
   isLoading?: boolean
 }
 
-export default function ConfirmationModal({
+const ConfirmationModal = ({
   isOpen,
   onClose,
   onConfirm,
@@ -25,163 +27,75 @@ export default function ConfirmationModal({
   cancelText,
   variant = 'danger',
   isLoading = false,
-}: ConfirmationModalProps) {
+}: ConfirmationModalProps) => {
   const intl = useIntl()
-  const modalRef = useRef<HTMLDivElement>(null)
 
   // Use provided text or default translations
   const confirmButtonText = confirmText || intl.formatMessage({ id: 'common.confirm' })
   const cancelButtonText = cancelText || intl.formatMessage({ id: 'common.cancel' })
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isLoading) {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose, isLoading])
-
-  // Handle click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node) && !isLoading) {
-        onClose()
-      }
-    }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen, onClose, isLoading])
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
-
-  if (!isOpen) return null
-
-  const variantStyles = {
+  const variantConfig = {
     danger: {
-      icon: (
-        <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-          />
-        </svg>
-      ),
+      icon: 'exclamation' as const,
+      iconColor: 'danger' as const,
       iconBg: 'bg-red-500/10',
-      confirmButton: 'bg-red-500 hover:bg-red-600 text-white',
+      confirmVariant: 'danger' as const,
     },
     warning: {
-      icon: (
-        <svg
-          className="h-6 w-6 text-terminal-yellow"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-          />
-        </svg>
-      ),
+      icon: 'exclamation' as const,
+      iconColor: 'warning' as const,
       iconBg: 'bg-terminal-yellow/10',
-      confirmButton: 'bg-terminal-yellow hover:bg-terminal-yellow/90 text-black',
+      confirmVariant: 'secondary' as const, // We'll style this manually
     },
     info: {
-      icon: (
-        <svg
-          className="h-6 w-6 text-terminal-green"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
+      icon: 'info' as const,
+      iconColor: 'primary' as const,
       iconBg: 'bg-terminal-green/10',
-      confirmButton: 'bg-terminal-green hover:bg-terminal-green/90 text-black',
+      confirmVariant: 'primary' as const,
     },
   }
 
-  const styles = variantStyles[variant]
+  const config = variantConfig[variant]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-      {/* Modal */}
-      <div
-        ref={modalRef}
-        className="animate-in fade-in zoom-in-95 relative w-full max-w-md duration-200"
-      >
-        <div className="rounded-lg border border-border bg-background-secondary shadow-lg">
-          {/* Modal Header */}
-          <div className="flex items-start gap-4 p-6 pb-4">
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${styles.iconBg}`}
-            >
-              {styles.icon}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-              <p className="mt-2 text-sm text-foreground-muted">{message}</p>
-            </div>
-          </div>
-
-          {/* Modal Footer */}
-          <div className="flex justify-end gap-3 border-t border-border bg-background-tertiary/50 px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {cancelButtonText}
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={isLoading}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles.confirmButton}`}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="animate-pulse">
-                    <FormattedMessage id="common.processing" />
-                  </span>
-                  <span className="animate-terminal-blink">_</span>
-                </span>
-              ) : (
-                confirmButtonText
-              )}
-            </button>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeOnOverlayClick={!isLoading}
+      closeOnEscape={!isLoading}
+      size="sm"
+    >
+      <div className="flex items-start gap-4 mb-6">
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${config.iconBg}`}>
+          <Icon name={config.icon} size="lg" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          <p className="mt-2 text-sm text-foreground-muted">{message}</p>
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="secondary"
+          onClick={onClose}
+          disabled={isLoading}
+        >
+          {cancelButtonText}
+        </Button>
+        <Button
+          variant={config.confirmVariant}
+          onClick={onConfirm}
+          disabled={isLoading}
+          loading={isLoading}
+        >
+          {confirmButtonText}
+        </Button>
+      </div>
+    </Modal>
   )
 }
+
+export { ConfirmationModal }
+export default ConfirmationModal
+

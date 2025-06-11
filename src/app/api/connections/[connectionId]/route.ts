@@ -68,7 +68,7 @@ export async function PATCH(
 
     if (error) {
       console.error('Error updating connection:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 400 })
     }
 
     // Fetch the updated connection
@@ -84,9 +84,9 @@ export async function PATCH(
     }
 
     return NextResponse.json(connection)
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: 'Failed to update connection: ' + error.message },
+      { error: 'Failed to update connection: ' + error instanceof Error ? error.message : "An error occurred" },
       { status: 500 }
     )
   }

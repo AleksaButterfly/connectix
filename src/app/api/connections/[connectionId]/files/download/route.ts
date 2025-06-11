@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 import archiver from 'archiver'
 
-export async function GET(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     if (!sessionToken) {
@@ -27,13 +27,13 @@ export async function GET(request: NextRequest, { params }: { params: { connecti
     }
 
     return new NextResponse(result.buffer, { headers })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Download error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to download file' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to download file' }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     if (!sessionToken) {
@@ -124,10 +124,10 @@ export async function POST(request: NextRequest, { params }: { params: { connect
     }
 
     return NextResponse.json({ error: 'Invalid download request' }, { status: 400 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Download error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to download files' },
+      { error: error instanceof Error ? error.message : 'Failed to download files' },
       { status: 500 }
     )
   }
