@@ -75,7 +75,17 @@ async function testSSHConnection(config: {
       })
     })
 
-    const connectConfig: any = {
+    const connectConfig: {
+      host: string
+      port: number
+      username: string
+      readyTimeout: number
+      hostHash?: string
+      hostVerifier?: () => boolean
+      password?: string
+      privateKey?: string
+      passphrase?: string
+    } = {
       host: config.host,
       port: config.port,
       username: config.username,
@@ -163,7 +173,7 @@ export async function POST(
       if (!parsedData.data || !parsedData.iv || !parsedData.salt || !parsedData.tag) {
         throw new Error('Missing required encryption fields')
       }
-    } catch (parseError) {
+    } catch {
       // ❌ REMOVED: Database update that causes page flash
       // Only return the error, let frontend handle database updates
       return NextResponse.json(

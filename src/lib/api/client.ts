@@ -1,23 +1,23 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: {
     code: string
     message: string
-    details?: any
+    details?: unknown
   }
   metadata?: {
     requestId?: string
     timestamp?: string
-    [key: string]: any
+    [key: string]: unknown
   }
 }
 
 export class ApiClientError extends Error {
   code: string
-  details?: any
+  details?: unknown
 
-  constructor(code: string, message: string, details?: any) {
+  constructor(code: string, message: string, details?: unknown) {
     super(message)
     this.name = 'ApiClientError'
     this.code = code
@@ -25,23 +25,24 @@ export class ApiClientError extends Error {
   }
 }
 
-export async function apiCall<T = any>(url: string, options?: RequestInit): Promise<T> {
+export async function apiCall<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
     },
   })
 
-  let data: any
+  let data: unknown
   const contentType = response.headers.get('content-type')
 
   if (contentType?.includes('application/json')) {
     data = await response.json()
   } else if (response.ok) {
     // For non-JSON responses (like file downloads), return the response directly
-    return response as any
+    return response as T
   } else {
     throw new ApiClientError('INVALID_RESPONSE', `Expected JSON response but got ${contentType}`)
   }

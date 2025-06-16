@@ -67,7 +67,7 @@ export const organizationService = {
 
     if (error) {
       if (error.code === 'PGRST116') return null // Not found
-      const apiError = storableError(error)
+      storableError(error)
       throw new Error(error.message)
     }
 

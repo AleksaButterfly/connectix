@@ -56,10 +56,11 @@ export default function NewProjectPage() {
       })
       // Redirect to the new project page
       router.push(`/dashboard/organizations/${organizationId}/projects/${project.id}`)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create project:', err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
       setError('root', {
-        message: err.message || intl.formatMessage({ id: 'projects.new.error.createFailed' }),
+        message: errorMessage || intl.formatMessage({ id: 'projects.new.error.createFailed' }),
       })
       setIsLoading(false)
     }

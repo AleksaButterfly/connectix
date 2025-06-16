@@ -65,8 +65,8 @@ export default function FileModals({
   }
 
   // Enhanced rename handler
-  const handleRename = (oldPath: string, newName: string) => {
-    fileOps.renameFile(oldPath, newName)
+  const handleRename = async (oldPath: string, newName: string) => {
+    await fileOps.renameFile(oldPath, newName)
     setRenameFile(null)
   }
 

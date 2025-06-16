@@ -45,10 +45,11 @@ export default function NewOrganizationPage() {
       const org = await organizationService.createOrganization(data.name)
       // Redirect to the new organization page using ID
       router.push(`/dashboard/organizations/${org.id}`)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create organization:', err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
       setError('root', {
-        message: err.message || intl.formatMessage({ id: 'organizations.new.error.createFailed' }),
+        message: errorMessage || intl.formatMessage({ id: 'organizations.new.error.createFailed' }),
       })
       setIsLoading(false)
     }

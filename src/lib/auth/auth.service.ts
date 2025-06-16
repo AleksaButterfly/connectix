@@ -44,7 +44,7 @@ export class AuthService {
       }
 
       return { data, error: null }
-    } catch (error: any) {
+    } catch (error) {
       return storableError(error)
     }
   }
@@ -66,7 +66,7 @@ export class AuthService {
       }
 
       return { data, error: null }
-    } catch (error: any) {
+    } catch (error) {
       return storableError(error)
     }
   }

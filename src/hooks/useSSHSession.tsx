@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useIntl } from '@/lib/i18n'
 import { useToast } from '@/components/ui/ToastContext'
+import { useIntl } from '@/lib/i18n'
 
 interface UseSSHSessionProps {
   connectionId: string
@@ -30,24 +30,43 @@ export function useSSHSession({
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const intl = useIntl()
   const { toast } = useToast()
-
-  // Use refs to access latest values without causing re-renders
-  const intlRef = useRef(intl)
-  const toastRef = useRef(toast)
-
-  // Update refs when they change
-  useEffect(() => {
-    intlRef.current = intl
-  }, [intl])
-
-  useEffect(() => {
-    toastRef.current = toast
-  }, [toast])
+  const intl = useIntl()
 
   // Keep-alive interval reference
   const keepAliveIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Refs for callbacks to avoid dependency issues
+  const onConnectRef = useRef(onConnect)
+  const onDisconnectRef = useRef(onDisconnect)
+  const onErrorRef = useRef(onError)
+
+  useEffect(() => {
+    onConnectRef.current = onConnect
+    onDisconnectRef.current = onDisconnect
+    onErrorRef.current = onError
+  }, [onConnect, onDisconnect, onError])
+
+  // Keep session alive
+  const keepAlive = useCallback(async () => {
+    if (!sessionToken) return
+
+    try {
+      const response = await fetch(`/api/connections/${connectionId}/session`, {
+        method: 'PUT',
+        headers: {
+          'x-session-token': sessionToken,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Keep-alive failed')
+      }
+    } catch (err) {
+      console.error('Keep-alive error:', err)
+      // Don't show error toast for keep-alive failures
+    }
+  }, [connectionId, sessionToken])
 
   // Connect to SSH
   const connect = useCallback(async () => {
@@ -57,7 +76,7 @@ export function useSSHSession({
     setError(null)
 
     try {
-      const response = await fetch(`/api/connections/${connectionId}/connect`, {
+      const response = await fetch(`/api/connections/${connectionId}/session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,59 +94,44 @@ export function useSSHSession({
       setSessionToken(token)
       setIsConnected(true)
 
-      // Use ref to access latest toast
-      toastRef.current.success('Connected successfully')
+      toast.success(intl.formatMessage({ id: 'ssh.session.connected' }))
 
-      if (onConnect) {
-        onConnect(token)
+      if (onConnectRef.current) {
+        onConnectRef.current(token)
       }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      const finalMessage = errorMessage || 'Connection failed'
+      setError(finalMessage)
 
-      // Start keep-alive interval
-      keepAliveIntervalRef.current = setInterval(
-        () => {
-          keepAlive(token)
-        },
-        30000 // 30 seconds
-      )
-    } catch (err: any) {
-      const errorMessage = err.message || 'Connection failed'
-      setError(errorMessage)
+      toast.error(finalMessage)
 
-      // Use ref to access latest toast
-      toastRef.current.error(errorMessage)
-
-      if (onError) {
-        onError(errorMessage)
+      if (onErrorRef.current) {
+        onErrorRef.current(errorMessage)
       }
     } finally {
       setIsConnecting(false)
     }
-  }, [connectionId, isConnecting, isConnected, onConnect, onError])
+  }, [connectionId, isConnecting, isConnected])
 
-  // Keep session alive
-  const keepAlive = useCallback(
-    async (token?: string) => {
-      const currentToken = token || sessionToken
-      if (!currentToken) return
+  // Start keep-alive interval when connected
+  useEffect(() => {
+    if (!sessionToken) {
+      return
+    }
 
-      try {
-        const response = await fetch(`/api/connections/${connectionId}/session/keepalive`, {
-          method: 'POST',
-          headers: {
-            'x-session-token': currentToken,
-          },
-        })
+    // Start keep-alive interval
+    keepAliveIntervalRef.current = setInterval(() => {
+      keepAlive()
+    }, 30000) // 30 seconds
 
-        if (!response.ok) {
-          throw new Error('Keep-alive failed')
-        }
-      } catch (err) {
-        console.error('Keep-alive error:', err)
-        // Don't show error toast for keep-alive failures
+    return () => {
+      if (keepAliveIntervalRef.current) {
+        clearInterval(keepAliveIntervalRef.current)
+        keepAliveIntervalRef.current = null
       }
-    },
-    [connectionId, sessionToken]
-  )
+    }
+  }, [sessionToken, keepAlive])
 
   // Disconnect from SSH
   const disconnect = useCallback(() => {
@@ -140,8 +144,8 @@ export function useSSHSession({
     }
 
     // Send disconnect request
-    fetch(`/api/connections/${connectionId}/disconnect`, {
-      method: 'POST',
+    fetch(`/api/connections/${connectionId}/session`, {
+      method: 'DELETE',
       headers: {
         'x-session-token': sessionToken,
       },
@@ -153,13 +157,12 @@ export function useSSHSession({
     setIsConnected(false)
     setError(null)
 
-    // Use ref to access latest toast
-    toastRef.current.info('Disconnected')
+    toast.info(intl.formatMessage({ id: 'ssh.session.disconnected' }))
 
-    if (onDisconnect) {
-      onDisconnect()
+    if (onDisconnectRef.current) {
+      onDisconnectRef.current()
     }
-  }, [connectionId, sessionToken, onDisconnect])
+  }, [connectionId, sessionToken])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -169,8 +172,8 @@ export function useSSHSession({
       }
       // Disconnect when component unmounts
       if (sessionToken) {
-        fetch(`/api/connections/${connectionId}/disconnect`, {
-          method: 'POST',
+        fetch(`/api/connections/${connectionId}/session`, {
+          method: 'DELETE',
           headers: {
             'x-session-token': sessionToken,
           },
@@ -188,6 +191,6 @@ export function useSSHSession({
     error,
     connect,
     disconnect,
-    keepAlive: () => keepAlive(),
+    keepAlive,
   }
 }

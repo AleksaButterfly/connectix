@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { apiCall } from '@/lib/api/client'
 import { useToast } from '@/components/ui'
 
@@ -20,46 +20,53 @@ interface UseApiReturn<T> {
   reset: () => void
 }
 
-export const useApi = <T = any>(options: UseApiOptions<T> = {}): UseApiReturn<T> => {
+export const useApi = <T = unknown,>(options: UseApiOptions<T> = {}): UseApiReturn<T> => {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const { toast } = useToast()
 
-  const execute = useCallback(async (url: string, requestOptions?: RequestInit): Promise<T | null> => {
-    setLoading(true)
-    setError(null)
+  // Use refs to avoid re-creating the execute function
+  const optionsRef = useRef(options)
+  optionsRef.current = options
 
-    try {
-      const result = await apiCall<T>(url, requestOptions)
-      setData(result)
-      
-      if (options.onSuccess) {
-        options.onSuccess(result)
+  const execute = useCallback(
+    async (url: string, requestOptions?: RequestInit): Promise<T | null> => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const result = await apiCall<T>(url, requestOptions)
+        setData(result)
+
+        if (optionsRef.current.onSuccess) {
+          optionsRef.current.onSuccess(result)
+        }
+
+        if (optionsRef.current.showSuccessToast && optionsRef.current.successMessage) {
+          toast.success(optionsRef.current.successMessage)
+        }
+
+        return result
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('An unexpected error occurred')
+        setError(error)
+
+        if (optionsRef.current.onError) {
+          optionsRef.current.onError(error)
+        }
+
+        if (optionsRef.current.showErrorToast) {
+          toast.error(error.message)
+        }
+
+        return null
+      } finally {
+        setLoading(false)
       }
-      
-      if (options.showSuccessToast && options.successMessage) {
-        toast.success(options.successMessage)
-      }
-      
-      return result
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An unexpected error occurred')
-      setError(error)
-      
-      if (options.onError) {
-        options.onError(error)
-      }
-      
-      if (options.showErrorToast) {
-        toast.error(error.message)
-      }
-      
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }, [options, toast])
+    },
+    []
+  )
 
   const reset = useCallback(() => {
     setData(null)
@@ -72,6 +79,6 @@ export const useApi = <T = any>(options: UseApiOptions<T> = {}): UseApiReturn<T>
     loading,
     error,
     execute,
-    reset
+    reset,
   }
 }

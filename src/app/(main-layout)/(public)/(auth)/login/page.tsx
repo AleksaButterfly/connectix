@@ -55,7 +55,7 @@ export default function LoginPage() {
 
       // Then redirect to intended destination
       router.push(from)
-    } catch (error) {
+    } catch {
       setError('root', {
         message: intl.formatMessage({ id: 'auth.login.error.unexpected' }),
       })

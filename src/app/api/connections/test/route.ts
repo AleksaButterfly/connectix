@@ -95,12 +95,13 @@ async function testSSHConnection(config: {
 
     try {
       client.connect(connectConfig)
-    } catch (error: any) {
+    } catch (error) {
       clearTimeout(timeout)
+      const errorMessage = error instanceof Error ? error.message : String(error)
       resolve({
         success: false,
-        error: error.message,
-        message: 'Failed to initiate connection: ' + error.message,
+        error: errorMessage,
+        message: 'Failed to initiate connection: ' + errorMessage,
       })
     }
   })

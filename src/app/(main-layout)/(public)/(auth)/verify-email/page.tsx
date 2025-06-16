@@ -63,10 +63,11 @@ export default function VerifyEmailPage() {
 
       // Clear success message after 5 seconds
       setTimeout(() => setResendSuccess(false), 5000)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error resending email:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
       setResendError(
-        error.message || intl.formatMessage({ id: 'auth.verifyEmail.error.resendFailed' })
+        errorMessage || intl.formatMessage({ id: 'auth.verifyEmail.error.resendFailed' })
       )
 
       // Clear error message after 5 seconds

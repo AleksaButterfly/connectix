@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useIntl } from '@/lib/i18n'
 import { connectionService } from '@/lib/connections/connection.service'
 import { useToast } from '@/components/ui/ToastContext'
@@ -38,8 +38,15 @@ export function useConnections({
   const { toast } = useToast()
   const intl = useIntl()
 
+  // Use refs to avoid recreating callbacks
+  const organizationIdRef = useRef(organizationId)
+  const projectIdRef = useRef(projectId)
+
+  organizationIdRef.current = organizationId
+  projectIdRef.current = projectId
+
   const loadConnections = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationIdRef.current) {
       setError(intl.formatMessage({ id: 'connections.errors.organizationRequired' }))
       return
     }
@@ -50,24 +57,27 @@ export function useConnections({
 
       let connectionsData: ConnectionWithDetails[]
 
-      if (projectId) {
-        connectionsData = await connectionService.getProjectConnections(projectId)
+      if (projectIdRef.current) {
+        connectionsData = await connectionService.getProjectConnections(projectIdRef.current)
       } else {
-        connectionsData = await connectionService.getOrganizationConnections(organizationId)
+        connectionsData = await connectionService.getOrganizationConnections(
+          organizationIdRef.current
+        )
       }
 
       setConnections(connectionsData)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading connections:', err)
-      const errorMessage =
-        err.message || intl.formatMessage({ id: 'connections.errors.loadFailed' })
-      setError(errorMessage)
-      toast.error(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      const finalMessage =
+        errorMessage || intl.formatMessage({ id: 'connections.errors.loadFailed' })
+      setError(finalMessage)
+      toast.error(finalMessage)
       setConnections([])
     } finally {
       setIsLoading(false)
     }
-  }, [organizationId, projectId])
+  }, [])
 
   const deleteConnection = useCallback(async (connectionId: string) => {
     setOperationLoadingStates((prev) => ({
@@ -81,11 +91,12 @@ export function useConnections({
 
       // Remove from local state
       setConnections((prev) => prev.filter((conn) => conn.id !== connectionId))
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting connection:', err)
-      const errorMessage =
-        err.message || intl.formatMessage({ id: 'connections.errors.deleteFailed' })
-      toast.error(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      const finalMessage =
+        errorMessage || intl.formatMessage({ id: 'connections.errors.deleteFailed' })
+      toast.error(finalMessage)
       throw err
     } finally {
       setOperationLoadingStates((prev) => {
@@ -144,11 +155,12 @@ export function useConnections({
           return conn
         })
       )
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error testing connection:', err)
-      const errorMessage =
-        err.message || intl.formatMessage({ id: 'connections.errors.testFailed' })
-      toast.error(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      const finalMessage =
+        errorMessage || intl.formatMessage({ id: 'connections.errors.testFailed' })
+      toast.error(finalMessage)
 
       setConnections((prev) =>
         prev.map((conn) => {
@@ -158,7 +170,7 @@ export function useConnections({
               connection_test_status: 'failed',
               last_test_at: new Date().toISOString(),
               last_test_error:
-                err.message || intl.formatMessage({ id: 'connections.errors.testFailed' }),
+                errorMessage || intl.formatMessage({ id: 'connections.errors.testFailed' }),
             }
           }
           return conn

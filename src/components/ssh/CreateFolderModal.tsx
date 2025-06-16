@@ -44,9 +44,10 @@ export function CreateFolderModal({ onClose, onCreate }: CreateFolderModalProps)
     try {
       await onCreate(data.name.trim())
       onClose()
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
       setError('root', {
-        message: error.message || intl.formatMessage({ id: 'files.errors.createFolderFailed' }),
+        message: errorMessage || intl.formatMessage({ id: 'files.errors.createFolderFailed' }),
       })
     }
   }

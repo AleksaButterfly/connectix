@@ -19,39 +19,51 @@ export const FormActions = ({
   isEditing 
 }: FormActionsProps) => {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-      <Button
+    <>
+      <button
         type="button"
-        variant="outline"
         onClick={onTest}
-        loading={isTesting}
-        disabled={isSaving}
-        className="order-2 sm:order-1"
+        disabled={isTesting}
+        className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <FormattedMessage id="connections.form.testConnection" />
-      </Button>
+        {isTesting ? (
+          <FormattedMessage id="connections.create.testing" />
+        ) : (
+          <FormattedMessage id="connections.create.testButton" />
+        )}
+      </button>
 
-      <div className="flex gap-3 order-1 sm:order-2">
-        <Button
+      <div className="align-center flex gap-3">
+        <button
           type="button"
-          variant="ghost"
           onClick={onCancel}
-          disabled={isSaving || isTesting}
+          className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
         >
           <FormattedMessage id="common.cancel" />
-        </Button>
-        <Button
+        </button>
+        <button
           type="submit"
-          loading={isSaving}
-          disabled={isTesting}
+          disabled={isSaving}
+          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isEditing ? (
-            <FormattedMessage id="connections.form.updateConnection" />
+          {isSaving ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-pulse">
+                {isEditing ? (
+                  <FormattedMessage id="connections.edit.saving" />
+                ) : (
+                  <FormattedMessage id="common.creating" />
+                )}
+              </span>
+              <span className="animate-terminal-blink">_</span>
+            </span>
+          ) : isEditing ? (
+            <FormattedMessage id="connections.edit.saveButton" />
           ) : (
-            <FormattedMessage id="connections.form.createConnection" />
+            <FormattedMessage id="connections.create.saveButton" />
           )}
-        </Button>
+        </button>
       </div>
-    </div>
+    </>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { organizationService } from '@/lib/organizations/organization.service'
 import { createClient } from '@/lib/supabase/client'
 import type { Organization } from '@/types/organization'
@@ -75,7 +76,7 @@ export default function OrganizationTeamPage() {
     }
 
     fetchData()
-  }, [orgId, router, intl])
+  }, [orgId, router])
 
   // Get avatar initials (fallback when no avatar URL)
   const getInitials = (username: string) => {
@@ -211,9 +212,11 @@ export default function OrganizationTeamPage() {
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
                     {currentUser.avatarUrl ? (
-                      <img
+                      <Image
                         src={currentUser.avatarUrl}
                         alt={currentUser.username}
+                        width={40}
+                        height={40}
                         className="h-10 w-10 rounded-full object-cover"
                       />
                     ) : (

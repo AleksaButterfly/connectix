@@ -30,7 +30,6 @@ export function FileSearch({
   className = '',
 }: FileSearchProps) {
   const intl = useIntl()
-  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
@@ -45,6 +44,20 @@ export function FileSearch({
   const searchRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Define handleClose early so it can be used in useEffects
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+    setQuery('')
+    setResults([])
+    setSearchError(null)
+    setShowAdvanced(false)
+    
+    // Cancel any ongoing search
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+  }, [])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,7 +70,7 @@ export function FileSearch({
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isOpen])
+  }, [isOpen, handleClose])
 
   // Focus input when opening
   useEffect(() => {
@@ -78,7 +91,7 @@ export function FileSearch({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
+  }, [isOpen, handleClose])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -117,7 +130,7 @@ export function FileSearch({
             if (options.useRegex) {
               try {
                 new RegExp(searchQuery)
-              } catch (e) {
+              } catch {
                 setSearchError(intl.formatMessage({ id: 'fileSearch.error.invalidRegex' }))
                 setIsSearching(false)
                 return
@@ -145,31 +158,32 @@ export function FileSearch({
               throw new Error(intl.formatMessage({ id: 'fileSearch.error.searchFailed' }))
             }
 
-            const data = await response.json()
-            setResults(data.results || [])
+            const responseData = await response.json()
+            
+            // Handle the API response structure: {success: true, data: {results: [...]}}
+            const results = responseData?.data?.results || responseData?.results || []
+            
+            setResults(results)
             setSearchError(null)
             setIsSearching(false)
 
-            if (data.results && data.results.length === 0) {
+            if (results.length === 0) {
               setSearchError(intl.formatMessage({ id: 'fileSearch.noResults' }))
             }
-          } catch (error: any) {
-            if (error.name !== 'AbortError') {
+          } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
               console.error('Search error:', error)
               setResults([])
               setSearchError(
                 error.message || intl.formatMessage({ id: 'fileSearch.error.searchFailed' })
               )
-            }
-          } finally {
-            if (error?.name !== 'AbortError') {
               setIsSearching(false)
             }
           }
         },
         300
       ),
-    [intl]
+    []
   )
 
   // Handle search
@@ -219,20 +233,6 @@ export function FileSearch({
     debouncedSearch,
   ])
 
-  const handleClose = useCallback(() => {
-    setIsOpen(false)
-    setQuery('')
-    setResults([])
-    setIsSearching(false)
-    setSearchError(null)
-    setShowAdvanced(false)
-
-    // Cancel any ongoing search
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    debouncedSearch.cancel()
-  }, [debouncedSearch])
 
   const handleResultClick = useCallback(
     (result: SearchResult) => {

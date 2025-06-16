@@ -81,7 +81,7 @@ export function FilePermissionsModal({
   // Update octal mode when permissions change
   useEffect(() => {
     setOctalMode(calculateOctal(permissions))
-  }, [permissions])
+  }, [permissions, calculateOctal])
 
   // Focus management and keyboard handling
   useEffect(() => {

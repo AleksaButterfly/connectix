@@ -1,4 +1,3 @@
-import type { FileInfo } from '@/types/ssh'
 
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -41,7 +40,7 @@ export function formatDate(date: Date | string | undefined): string {
 }
 
 // FIXED: Make more flexible to handle any object structure
-export function getFileIcon(file: any): string {
+export function getFileIcon(file: { type?: string; name?: string }): string {
   // Safety check
   if (!file) return '📄'
 

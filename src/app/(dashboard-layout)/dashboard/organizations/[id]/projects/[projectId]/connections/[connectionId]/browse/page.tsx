@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FileBrowser } from '@/components/ssh/FileBrowser'
@@ -27,14 +27,7 @@ export default function ConnectionBrowsePage() {
   // Prevent duplicate initialization
   const initializingRef = useRef(false)
 
-  useEffect(() => {
-    if (connectionId && !initializingRef.current) {
-      initializingRef.current = true
-      loadConnectionAndSession()
-    }
-  }, [connectionId])
-
-  const loadConnectionAndSession = async () => {
+  const loadConnectionAndSession = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -56,7 +49,7 @@ export default function ConnectionBrowsePage() {
       setConnection(conn as ConnectionWithDetails)
 
       // Create SSH session
-      const sessionResponse = await fetch(`/api/connections/${connectionId}/connect`, {
+      const sessionResponse = await fetch(`/api/connections/${connectionId}/session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,42 +70,58 @@ export default function ConnectionBrowsePage() {
       }
 
       const sessionData = await sessionResponse.json()
-      setSessionToken(sessionData.sessionToken)
-    } catch (err: any) {
+      if (sessionData.sessionToken) {
+        setSessionToken(sessionData.sessionToken)
+      } else {
+        throw new Error('No session token received')
+      }
+    } catch (err) {
       console.error('Failed to load connection or create session:', err)
-      setError(err.message || intl.formatMessage({ id: 'browse.error.initializeFailed' }))
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage || intl.formatMessage({ id: 'browse.error.initializeFailed' }))
 
       // Only show toast for actual errors, not for initial load
-      if (err.message && !err.message.includes('Connection not found')) {
-        toast.error(err.message)
+      if (errorMessage && !errorMessage.includes('Connection not found')) {
+        toast.error(errorMessage)
       }
     } finally {
       setIsLoading(false)
       initializingRef.current = false
     }
-  }
+  }, [connectionId])
 
-  const handleDisconnect = async () => {
-    try {
-      // Close SSH session
+  useEffect(() => {
+    if (connectionId && !initializingRef.current) {
+      initializingRef.current = true
+      loadConnectionAndSession()
+    }
+  }, [connectionId])
+
+  useEffect(() => {
+    // Cleanup session on unmount
+    return () => {
       if (sessionToken) {
-        await fetch(`/api/connections/${connectionId}/disconnect`, {
-          method: 'POST',
-          headers: {
-            'x-session-token': sessionToken,
-          },
+        fetch(`/api/connections/${connectionId}/session`, {
+          method: 'DELETE',
+          headers: { 'x-session-token': sessionToken },
+        }).catch((err) => {
+          console.error('Failed to cleanup session:', err)
         })
       }
-    } catch (err) {
-      console.error('Error closing session:', err)
-    } finally {
-      router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
     }
-  }
+  }, [connectionId, sessionToken])
 
+  const handleDisconnect = useCallback(() => {
+    setSessionToken(null)
+    router.push(
+      `/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`
+    )
+  }, [router, orgId, projectId, connectionId])
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <svg
             className="mx-auto mb-4 h-8 w-8 animate-spin text-terminal-green"
@@ -134,101 +143,82 @@ export default function ConnectionBrowsePage() {
             />
           </svg>
           <p className="text-foreground-muted">
-            <FormattedMessage id="browse.connecting" />
+            <FormattedMessage id="browse.loading" />
           </p>
         </div>
       </div>
     )
   }
 
+  // Error state
   if (error || !connection) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-6xl">⚠️</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">
-            <FormattedMessage id="browse.error.title" />
-          </h2>
-          <p className="mb-6 text-foreground-muted">
-            {error || intl.formatMessage({ id: 'browse.error.unableToAccess' })}
-          </p>
-          <Link
-            href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
-            className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90"
+          <svg
+            className="mx-auto mb-4 h-16 w-16 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <FormattedMessage id="browse.backToConnections" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <h3 className="mb-2 text-lg font-medium text-foreground">
+            <FormattedMessage id="browse.error.title" />
+          </h3>
+          <p className="mb-6 text-sm text-foreground-muted">{error}</p>
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`}
+            className="btn-primary"
+          >
+            <FormattedMessage id="browse.error.goBack" />
           </Link>
         </div>
       </div>
     )
   }
 
-  if (!sessionToken) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-6xl">🔑</div>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">
-            <FormattedMessage id="browse.sessionRequired.title" />
-          </h2>
-          <p className="mb-6 text-foreground-muted">
-            <FormattedMessage id="browse.sessionRequired.description" />
-          </p>
-          <div className="flex justify-center gap-3">
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
-              className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-background-secondary"
-            >
-              <FormattedMessage id="browse.backToConnections" />
-            </Link>
-            <button
-              onClick={loadConnectionAndSession}
-              className="rounded-lg bg-terminal-green px-4 py-2 text-sm font-medium text-background hover:bg-terminal-green/90"
-            >
-              <FormattedMessage id="browse.retryConnection" />
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // Main content
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-border bg-background-secondary px-6 py-4">
+      <div className="border-b border-border bg-background px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections`}
-              className="hover:text-terminal-green-hover text-terminal-green"
-            >
-              ← <FormattedMessage id="common.back" />
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold text-foreground">{connection.name}</h1>
-              <p className="text-sm text-foreground-muted">
-                {connection.username}@{connection.host}:{connection.port}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">{connection.name}</h1>
+            <p className="mt-1 text-sm text-foreground-muted">
+              {connection.username}@{connection.host}:{connection.port}
+            </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-terminal-green/10 px-3 py-1 text-xs font-medium text-terminal-green">
-              <span>●</span>
-              <FormattedMessage id="browse.status.connected" />
-            </span>
-          </div>
+          <Link
+            href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/${connectionId}`}
+            className="rounded-lg border border-border bg-background-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-tertiary"
+          >
+            <FormattedMessage id="files.navigation.back" />
+          </Link>
         </div>
       </div>
 
       {/* File Browser */}
       <div className="flex-1 overflow-hidden">
-        <FileBrowser
-          connectionId={connectionId}
-          sessionToken={sessionToken}
-          onDisconnect={handleDisconnect}
-        />
+        {sessionToken ? (
+          <FileBrowser
+            connectionId={connectionId}
+            sessionToken={sessionToken}
+            onDisconnect={handleDisconnect}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-foreground-muted">
+              <FormattedMessage id="browse.error.noSession" />
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

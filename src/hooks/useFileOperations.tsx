@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useToast } from '@/components/ui'
 import { useIntl } from '@/lib/i18n'
 import type { FileInfo, FileOperationResponse } from '@/types/ssh'
@@ -20,27 +20,46 @@ export function useFileOperations({
   const intl = useIntl()
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const handleApiError = useCallback(
-    (error: unknown, defaultMessage: string) => {
-      if (error instanceof ApiResponseError) {
-        toast.error(error.message)
-      } else if (error instanceof Error) {
-        toast.error(error.message)
-      } else {
-        toast.error(defaultMessage)
-      }
-    },
-    [toast]
-  )
+  // Use refs to avoid unnecessary re-renders
+  const connectionIdRef = useRef(connectionId)
+  const sessionTokenRef = useRef(sessionToken)
+  const onRefreshRef = useRef(onRefresh)
+
+  connectionIdRef.current = connectionId
+  sessionTokenRef.current = sessionToken
+  onRefreshRef.current = onRefresh
+
+  const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
+    // Handle session expired error specifically
+    if (
+      (error instanceof ApiResponseError && error.code === 'SESSION_EXPIRED') ||
+      (error instanceof Error &&
+        (error.message.includes('SESSION_EXPIRED') ||
+          error.message.includes('SSH session expired')))
+    ) {
+      toast.error(intl.formatMessage({ id: 'fileBrowser.error.sessionExpired' }))
+      // Note: We can't call onDisconnect from here as it's not available
+      // The FileBrowser will handle the session expiry
+      return
+    }
+
+    if (error instanceof ApiResponseError) {
+      toast.error(error.message)
+    } else if (error instanceof Error) {
+      toast.error(error.message)
+    } else {
+      toast.error(defaultMessage)
+    }
+  }, [])
 
   const deleteFiles = useCallback(
     async (filePaths: string[]) => {
       try {
         await Promise.all(
           filePaths.map((path) =>
-            apiCall(`/api/connections/${connectionId}/files${path}`, {
+            apiCall(`/api/connections/${connectionIdRef.current}/files${path}`, {
               method: 'DELETE',
-              headers: { 'x-session-token': sessionToken },
+              headers: { 'x-session-token': sessionTokenRef.current },
             })
           )
         )
@@ -48,12 +67,12 @@ export function useFileOperations({
         toast.success(
           intl.formatMessage({ id: 'files.delete.success' }, { count: filePaths.length })
         )
-        await onRefresh()
+        await onRefreshRef.current()
       } catch (error) {
         handleApiError(error, intl.formatMessage({ id: 'files.delete.error' }))
       }
     },
-    [connectionId, sessionToken, onRefresh, handleApiError]
+    [handleApiError]
   )
 
   const renameFile = useCallback(
@@ -61,73 +80,76 @@ export function useFileOperations({
       try {
         const newPath = oldPath.substring(0, oldPath.lastIndexOf('/') + 1) + newName
 
-        await apiCall<FileOperationResponse>(`/api/connections/${connectionId}/files/rename`, {
-          method: 'POST',
-          headers: { 'x-session-token': sessionToken },
-          body: JSON.stringify({ oldPath, newPath }),
-        })
+        await apiCall<FileOperationResponse>(
+          `/api/connections/${connectionIdRef.current}/files/rename`,
+          {
+            method: 'POST',
+            headers: { 'x-session-token': sessionTokenRef.current },
+            body: JSON.stringify({ oldPath, newPath }),
+          }
+        )
 
         toast.success(intl.formatMessage({ id: 'files.rename.success' }))
-        await onRefresh()
+        await onRefreshRef.current()
       } catch (error) {
         handleApiError(error, intl.formatMessage({ id: 'files.rename.error' }))
       }
     },
-    [connectionId, sessionToken, onRefresh, handleApiError]
+    [handleApiError]
   )
 
   const createFile = useCallback(
     async (path: string, content: string = '') => {
       try {
-        await apiCall(`/api/connections/${connectionId}/files${path}`, {
+        await apiCall(`/api/connections/${connectionIdRef.current}/files${path}`, {
           method: 'PUT',
-          headers: { 'x-session-token': sessionToken },
+          headers: { 'x-session-token': sessionTokenRef.current },
           body: JSON.stringify({ content }),
         })
 
         toast.success(intl.formatMessage({ id: 'files.create.success' }))
-        await onRefresh()
+        await onRefreshRef.current()
       } catch (error) {
         handleApiError(error, intl.formatMessage({ id: 'files.create.error' }))
       }
     },
-    [connectionId, sessionToken, onRefresh, handleApiError]
+    [handleApiError]
   )
 
   const createFolder = useCallback(
     async (path: string) => {
       try {
-        await apiCall(`/api/connections/${connectionId}/files/mkdir`, {
+        await apiCall(`/api/connections/${connectionIdRef.current}/files/mkdir`, {
           method: 'POST',
-          headers: { 'x-session-token': sessionToken },
+          headers: { 'x-session-token': sessionTokenRef.current },
           body: JSON.stringify({ path }),
         })
 
         toast.success(intl.formatMessage({ id: 'files.createFolder.success' }))
-        await onRefresh()
+        await onRefreshRef.current()
       } catch (error) {
         handleApiError(error, intl.formatMessage({ id: 'files.createFolder.error' }))
       }
     },
-    [connectionId, sessionToken, onRefresh, handleApiError]
+    [handleApiError]
   )
 
   const changePermissions = useCallback(
     async (path: string, mode: string) => {
       try {
-        await apiCall(`/api/connections/${connectionId}/files/chmod`, {
+        await apiCall(`/api/connections/${connectionIdRef.current}/files/chmod`, {
           method: 'POST',
-          headers: { 'x-session-token': sessionToken },
+          headers: { 'x-session-token': sessionTokenRef.current },
           body: JSON.stringify({ path, mode }),
         })
 
         toast.success(intl.formatMessage({ id: 'files.permissions.success' }))
-        await onRefresh()
+        await onRefreshRef.current()
       } catch (error) {
         handleApiError(error, intl.formatMessage({ id: 'files.permissions.error' }))
       }
     },
-    [connectionId, sessionToken, onRefresh, handleApiError]
+    [handleApiError]
   )
 
   const downloadFiles = useCallback(
@@ -148,8 +170,11 @@ export function useFileOperations({
         if (selectedFiles.length === 1) {
           // Single file download
           const response = await fetch(
-            `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(selectedFiles[0].path)}`,
-            { headers: { 'x-session-token': sessionToken } }
+            `/api/connections/${connectionIdRef.current}/files/download?path=${encodeURIComponent(selectedFiles[0].path)}`,
+            {
+              headers: { 'x-session-token': sessionTokenRef.current },
+              credentials: 'include',
+            }
           )
 
           if (!response.ok) throw new Error('Download failed')
@@ -159,17 +184,21 @@ export function useFileOperations({
           toast.success(intl.formatMessage({ id: 'files.download.success' }))
         } else {
           // Multiple files as zip
-          const response = await fetch(`/api/connections/${connectionId}/files/download`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-session-token': sessionToken,
-            },
-            body: JSON.stringify({
-              paths: selectedFiles.map((f) => f.path),
-              format: 'zip',
-            }),
-          })
+          const response = await fetch(
+            `/api/connections/${connectionIdRef.current}/files/download`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-session-token': sessionTokenRef.current,
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                paths: selectedFiles.map((f) => f.path),
+                format: 'zip',
+              }),
+            }
+          )
 
           if (!response.ok) throw new Error('Download failed')
 
@@ -188,7 +217,7 @@ export function useFileOperations({
         setIsDownloading(false)
       }
     },
-    [connectionId, sessionToken, isDownloading, handleApiError]
+    [isDownloading, handleApiError]
   )
 
   return {

@@ -20,7 +20,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
 
     // Handle credential updates with SERVER-SIDE encryption
     if (updates.credentials) {

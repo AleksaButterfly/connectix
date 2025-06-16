@@ -15,7 +15,7 @@ interface UseAsyncOperationReturn<T> {
   reset: () => void
 }
 
-export const useAsyncOperation = <T = any>(
+export const useAsyncOperation = <T = unknown>(
   options: UseAsyncOperationOptions<T> = {}
 ): UseAsyncOperationReturn<T> => {
   const [data, setData] = useState<T | null>(null)

@@ -22,11 +22,11 @@ export default function OrganizationsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [intl])
+  }, [])
 
   useEffect(() => {
     loadOrganizations()
-  }, [loadOrganizations])
+  }, [])
 
   if (isLoading) {
     return (

@@ -11,10 +11,9 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import { useIntl, FormattedMessage } from '@/lib/i18n'
+import { FormattedMessage } from '@/lib/i18n'
 
 export default function NotFound() {
-  const intl = useIntl()
   const pathname = usePathname() || '/404'
 
   useEffect(() => {

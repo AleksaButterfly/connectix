@@ -1,14 +1,14 @@
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
-import { withErrorHandler, withSession } from '@/lib/api/middleware'
+import { createSSHAuthenticatedRoute } from '@/lib/api/middleware/ssh-auth'
 import { successResponse } from '@/lib/api/response'
 
-export const GET = withErrorHandler(
-  withSession(async (request, { params: _params }: { params: { connectionId: string } }, { sessionToken }) => {
+export const GET = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
     const { searchParams } = new URL(request.url)
     const path = searchParams.get('path') || '/'
 
-    const files = await SSHConnectionManager.listFiles(sessionToken, path)
+    const files = await SSHConnectionManager.listFiles(sshSessionToken, path)
 
     return successResponse({ files, currentPath: path })
-  })
+  }
 )

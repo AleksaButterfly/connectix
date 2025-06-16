@@ -28,7 +28,6 @@ interface FileBrowserToolbarProps {
   onNavigate: (path: string) => void
   onGoBack: () => void
   onGoForward: () => void
-  onGoUp: () => void
   onViewModeChange: (mode: 'list' | 'grid') => void
   onCreateFile: () => void
   onCreateFolder: () => void
@@ -55,7 +54,6 @@ export function FileBrowserToolbar({
   onNavigate,
   onGoBack,
   onGoForward,
-  onGoUp,
   onViewModeChange,
   onCreateFile,
   onCreateFolder,

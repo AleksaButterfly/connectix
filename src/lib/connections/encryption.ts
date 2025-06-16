@@ -99,32 +99,33 @@ export function decryptCredentials(encryptedData: string, customKey?: string): R
 
     let decrypted: Buffer
     try {
-      let decryptedPart = decipher.update(data)
+      const decryptedPart = decipher.update(data)
       const final = decipher.final()
       decrypted = Buffer.concat([decryptedPart, final])
-    } catch (decipherError: any) {
+    } catch (decipherError) {
+      const errorMessage = decipherError instanceof Error ? decipherError.message : String(decipherError)
       if (
-        decipherError.message?.includes('Unsupported state') ||
-        decipherError.message?.includes('Invalid tag') ||
-        decipherError.message?.includes('bad decrypt')
+        errorMessage?.includes('Unsupported state') ||
+        errorMessage?.includes('Invalid tag') ||
+        errorMessage?.includes('bad decrypt')
       ) {
         throw new Error('Failed to decrypt credentials - authentication failed')
       }
 
-      throw new Error('Failed to decrypt credentials - cipher error: ' + decipherError.message)
+      throw new Error('Failed to decrypt credentials - cipher error: ' + errorMessage)
     }
 
     let jsonString: string
     try {
       jsonString = decrypted.toString('utf8')
-    } catch (utf8Error) {
+    } catch {
       throw new Error('Failed to decrypt credentials - invalid character encoding')
     }
 
-    let result: Record<string, any>
+    let result: Record<string, unknown>
     try {
       result = JSON.parse(jsonString)
-    } catch (jsonParseError) {
+    } catch {
       throw new Error('Failed to decrypt credentials - decrypted data is not valid JSON')
     }
 
@@ -195,7 +196,7 @@ export function testEncryption(customKey?: string): boolean {
     const passed = originalJson === decryptedJson
 
     return passed
-  } catch (error) {
+  } catch {
     return false
   }
 }

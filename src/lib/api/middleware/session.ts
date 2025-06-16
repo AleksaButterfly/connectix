@@ -4,14 +4,14 @@ export interface SessionContext {
   sessionToken: string;
 }
 
-export type SessionHandler<T = any> = (
+export type SessionHandler<T = Record<string, unknown>> = (
   req: NextRequest,
-  context: any,
+  context: { params: Promise<Record<string, string | string[]>> },
   extra: T & SessionContext
 ) => Promise<NextResponse>;
 
-export function withSession<T = {}>(handler: SessionHandler<T>) {
-  return async (req: NextRequest, context: any, extra?: T) => {
+export function withSession<T = Record<string, unknown>>(handler: SessionHandler<T>) {
+  return async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }, extra?: T) => {
     const sessionToken = req.headers.get('x-session-token');
 
     if (!sessionToken) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react'
 import { FileList } from './FileList'
 import { FileEditor } from './FileEditor'
 import { FileBrowserToolbar } from './FileBrowserToolbar'
@@ -11,8 +11,9 @@ import { useFileOperations } from '@/hooks/useFileOperations'
 import { useFileSelection } from '@/hooks/useFileSelection'
 import { useFileNavigation } from '@/hooks/useFileNavigation'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
-import { apiCall } from '@/types/ssh'
-import type { FileInfo, FileListResponse } from '@/types/ssh'
+import { apiCall, ApiResponseError } from '@/types/ssh'
+import type { FileInfo } from '@/types/ssh'
+import type { ApiSuccessResponse } from '@/lib/api/response'
 
 // Lazy load modals for better performance
 const CreateFileModal = lazy(() =>
@@ -46,6 +47,12 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   // Hooks
   const { toast } = useToast()
   const intl = useIntl()
+  const onDisconnectRef = useRef(onDisconnect)
+
+  // Update refs when they change
+  useEffect(() => {
+    onDisconnectRef.current = onDisconnect
+  }, [onDisconnect])
   const { confirm, ConfirmationModal } = useConfirmation()
 
   // Custom hooks
@@ -66,18 +73,19 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
 
     setIsLoading(true)
     try {
-      const response = await apiCall<FileListResponse>(
+      const response = await apiCall<ApiSuccessResponse<{ files: FileInfo[]; currentPath: string }>>(
         `/api/connections/${connectionId}/files?path=${encodeURIComponent(currentPath)}`,
         {
           headers: { 'x-session-token': sessionToken },
         }
       )
 
-      setFiles(response.files || [])
+      setFiles(response.data.files || [])
       clearSelection()
     } catch (error) {
-      toast.error(intl.formatMessage({ id: 'fileBrowser.error.loadFailed' }))
       console.error('Failed to load files:', error)
+      // Only show one error message
+      toast.error(intl.formatMessage({ id: 'fileBrowser.error.loadFailed' }))
     } finally {
       setIsLoading(false)
     }
@@ -153,6 +161,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
           const response = await fetch(`/api/connections/${connectionId}/files/upload`, {
             method: 'POST',
             headers: { 'x-session-token': sessionToken },
+            credentials: 'include',
             body: formData,
           })
 
@@ -294,8 +303,8 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
           <RenameModal
             file={renameFile}
             onClose={() => setRenameFile(null)}
-            onRename={(oldPath, newName) => {
-              fileOps.renameFile(oldPath, newName)
+            onRename={async (oldPath, newName) => {
+              await fileOps.renameFile(oldPath, newName)
               setRenameFile(null)
             }}
           />

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const createConnectionSchema = (intl: any) => z
+export const createConnectionSchema = (intl: { formatMessage: (opts: { id: string }) => string }) => z
   .object({
     name: z
       .string()

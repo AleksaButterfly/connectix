@@ -185,7 +185,7 @@ export const connectionService = {
       }
 
       return data
-    } catch (error: any) {
+    } catch (error) {
       const apiError = storableError(error)
       throw new Error(apiError.message)
     }
@@ -219,7 +219,7 @@ export const connectionService = {
       }
 
       return data
-    } catch (error: any) {
+    } catch (error) {
       const apiError = storableError(error)
       throw new Error(apiError.message)
     }
@@ -260,7 +260,7 @@ export const connectionService = {
       }
 
       return data
-    } catch (error: any) {
+    } catch (error) {
       const apiError = storableError(error)
       return apiError
     }

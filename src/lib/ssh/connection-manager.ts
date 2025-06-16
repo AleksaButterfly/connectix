@@ -56,13 +56,28 @@ interface FileInfo {
   group: string
 }
 
+// Use global to persist sessions across module reloads in development
+const globalForSessions = globalThis as unknown as {
+  sshSessions: Map<string, SSHSession> | undefined
+}
+
 class SSHConnectionManager {
-  private static sessions = new Map<string, SSHSession>()
+  private static get sessions(): Map<string, SSHSession> {
+    if (!globalForSessions.sshSessions) {
+      globalForSessions.sshSessions = new Map<string, SSHSession>()
+    }
+    return globalForSessions.sshSessions
+  }
+  
   private static cleanupInterval: NodeJS.Timeout | null = null
+  private static initialized = false
 
   static {
-    // Start cleanup interval
-    this.startCleanup()
+    if (!this.initialized) {
+      // Start cleanup interval
+      this.startCleanup()
+      this.initialized = true
+    }
   }
 
   static async createSession(
@@ -116,6 +131,9 @@ class SSHConnectionManager {
             }
 
             this.sessions.set(sessionToken, session)
+            
+            console.log('Session created successfully:', sessionToken)
+            console.log('Total active sessions:', this.sessions.size)
 
             // Log session start
             this.logActivity(sessionToken, 'session.started', {
@@ -354,20 +372,55 @@ class SSHConnectionManager {
     })
   }
 
-  static closeSession(sessionToken: string): void {
+  static async closeSession(sessionToken: string): Promise<void> {
     const session = this.sessions.get(sessionToken)
     if (session) {
       session.client.end()
       this.sessions.delete(sessionToken)
     }
+    
+    // Also mark as disconnected in database
+    try {
+      const supabase = await createClient()
+      await supabase
+        .from('connection_sessions')
+        .update({ 
+          status: 'disconnected',
+          ended_at: new Date().toISOString(),
+          termination_reason: 'Manual disconnect'
+        })
+        .eq('session_token', sessionToken)
+    } catch (error) {
+      console.error('Error updating session status in database:', error)
+    }
   }
 
   private static getSession(sessionToken: string): SSHSession {
     const session = this.sessions.get(sessionToken)
-    if (!session || !session.isConnected) {
-      throw new Error('Invalid or expired session')
+    if (!session) {
+      throw new Error('SSH session not found. Please refresh the page to reconnect.')
+    }
+    if (!session.isConnected) {
+      throw new Error('SSH session is not connected. Please refresh the page to reconnect.')
     }
     return session
+  }
+  
+  static async validateSession(sessionToken: string): Promise<boolean> {
+    if (!sessionToken) {
+      return false
+    }
+    
+    // Check in-memory first
+    const memorySession = this.sessions.get(sessionToken)
+    if (memorySession && memorySession.isConnected) {
+      // Update last activity for in-memory session
+      memorySession.lastActivity = new Date()
+      return true
+    }
+    
+    // If not in memory, session is invalid (sessions are in-memory only for security)
+    return false
   }
 
   private static getFileType(mode: number): 'file' | 'directory' | 'symlink' {
@@ -506,7 +559,7 @@ class SSHConnectionManager {
     })
   }
 
-  static async downloadMultipleFiles(_sessionToken: string, _paths: string[]): Promise<Buffer> {
+  static async downloadMultipleFiles(): Promise<Buffer> {
     // This would require a zip library like 'archiver'
     // For now, throw an error indicating it needs implementation
     throw new Error('Multiple file download requires zip implementation - install archiver package')
@@ -624,7 +677,7 @@ class SSHConnectionManager {
     // Then delete the source
     await this.deleteFile(sessionToken, sourcePath)
 
-    const session = this.getSession(sessionToken)
+    this.getSession(sessionToken)
     this.logActivity(sessionToken, 'file.move', {
       sourcePath,
       destinationPath,
@@ -649,18 +702,28 @@ class SSHConnectionManager {
     const findType =
       options.type === 'file' ? '-type f' : options.type === 'directory' ? '-type d' : ''
 
+    // Escape special characters in query to prevent command injection
+    const escapedQuery = options.query.replace(/["'\\]/g, '\\$&')
+    
     // Fixed: Use -iname for case-insensitive search
     const namePattern = options.regex
-      ? `-regex ".*${options.query}.*"`
+      ? `-regex ".*${escapedQuery}.*"`
       : options.caseSensitive
-        ? `-name "*${options.query}*"`
-        : `-iname "*${options.query}*"`
+        ? `-name "*${escapedQuery}*"`
+        : `-iname "*${escapedQuery}*"`
 
-    const command = `find "${options.path}" ${findType} ${namePattern} 2>/dev/null | head -${options.maxResults || 100}`
-
+    // Construct command parts
+    const commandParts = ['find', `"${options.path}"`]
+    if (findType) commandParts.push(findType)
+    commandParts.push(namePattern)
+    commandParts.push('2>/dev/null')
+    commandParts.push('|', 'head', `-${options.maxResults || 100}`)
+    
+    const command = commandParts.join(' ')
+    
     const result = await this.executeCommand(sessionToken, command)
 
-    const files = result.stdout
+    let files = result.stdout
       .split('\n')
       .filter((line) => line.trim())
       .map((path) => ({
@@ -668,6 +731,36 @@ class SSHConnectionManager {
         name: path.split('/').pop() || '',
         type: 'unknown', // Would need additional stat calls to determine
       }))
+
+    // If no results with find, try a simpler ls-based approach as fallback
+    if (files.length === 0 && !options.regex) {
+      try {
+        const lsCommand = `ls -la "${options.path}" | grep -i "${escapedQuery}"`
+        const lsResult = await this.executeCommand(sessionToken, lsCommand)
+        
+        const lsFiles = lsResult.stdout
+          .split('\n')
+          .filter((line) => line.trim() && !line.startsWith('total'))
+          .map((line) => {
+            const parts = line.trim().split(/\s+/)
+            if (parts.length >= 9) {
+              const name = parts.slice(8).join(' ')
+              const fullPath = options.path.endsWith('/') ? `${options.path}${name}` : `${options.path}/${name}`
+              return {
+                path: fullPath,
+                name,
+                type: line.startsWith('d') ? 'directory' : 'file',
+              }
+            }
+            return null
+          })
+          .filter((file): file is NonNullable<typeof file> => file !== null)
+        
+        files = lsFiles
+      } catch (error) {
+        // Fallback failed, keep original empty results
+      }
+    }
 
     // Optionally, get file types for better display
     // This adds extra calls but improves UX
@@ -702,14 +795,16 @@ class SSHConnectionManager {
       throw new Error('Session not found')
     }
 
+    const startTime = new Date(session.lastActivity.getTime() - 30 * 60 * 1000) // Approximate
+    const uptime = Date.now() - startTime.getTime()
+
     return {
       id: session.id,
       connectionId: session.connectionId,
       userId: session.userId,
       isConnected: session.isConnected,
       lastActivity: session.lastActivity,
-      host: session.config.host,
-      username: session.config.username,
+      uptime,
     }
   }
 
@@ -720,13 +815,13 @@ class SSHConnectionManager {
     // Send a simple command to keep the connection alive
     try {
       await this.executeCommand(sessionToken, 'echo "keepalive"')
-    } catch (error) {
+    } catch {
       // Ignore errors for keepalive
     }
   }
 
   static async getDiskUsage(sessionToken: string, path: string): Promise<DiskUsageInfo> {
-    const session = this.getSession(sessionToken)
+    this.getSession(sessionToken)
 
     try {
       const result = await this.executeCommand(sessionToken, `df -h "${path}"`)
@@ -737,14 +832,18 @@ class SSHConnectionManager {
       }
 
       const data = lines[1].split(/\s+/)
+      
+      // Parse sizes to bytes for consistency
+      const sizeStr = data[1]
+      const usedStr = data[2]
+      const availableStr = data[3]
+      const percentStr = data[4].replace('%', '')
 
       return {
-        filesystem: data[0],
-        size: data[1],
-        used: data[2],
-        available: data[3],
-        usePercent: data[4],
-        mountPoint: data[5],
+        total: this.parseSize(sizeStr),
+        used: this.parseSize(usedStr),
+        available: this.parseSize(availableStr),
+        percentage: parseInt(percentStr, 10),
       }
     } catch (error: unknown) {
       // Fallback to du command for directory size
@@ -752,11 +851,22 @@ class SSHConnectionManager {
       const size = result.stdout.split('\t')[0]
 
       return {
-        path,
-        size,
-        type: 'directory',
+        total: this.parseSize(size),
+        used: this.parseSize(size),
+        available: 0,
+        percentage: 100,
       }
     }
+  }
+
+  private static parseSize(sizeStr: string): number {
+    const units = { B: 1, K: 1024, M: 1024 ** 2, G: 1024 ** 3, T: 1024 ** 4 }
+    const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*([BKMGT]?)/)
+    if (!match) return 0
+    
+    const value = parseFloat(match[1])
+    const unit = match[2] || 'B'
+    return Math.round(value * (units[unit as keyof typeof units] || 1))
   }
 
   private static getMimeType(filename: string): string | null {

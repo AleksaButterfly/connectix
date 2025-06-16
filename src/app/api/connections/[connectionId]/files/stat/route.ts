@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const path = searchParams.get('path')

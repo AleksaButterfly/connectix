@@ -53,7 +53,7 @@ interface FileBrowserContextValue extends FileBrowserState, FileBrowserActions {
   // Selection
   selectedFiles: Set<string>
   selectedItems: FileInfo[]
-  selectionStats: any
+  selectionStats: { count: number; totalSize: number }
   handleFileSelect: (filePath: string, isSelected: boolean) => void
   clearSelection: () => void
   selectAll: () => void

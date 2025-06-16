@@ -12,11 +12,7 @@ interface UseFileUploadOptions {
   maxFiles?: number
 }
 
-export const useFileUpload = ({ 
-  onUpload, 
-  onComplete,
-  maxFiles = 10 
-}: UseFileUploadOptions) => {
+export const useFileUpload = ({ onUpload, onComplete, maxFiles = 10 }: UseFileUploadOptions) => {
   const intl = useIntl()
   const { toast } = useToast()
   const [files, setFiles] = useState<FileWithPreview[]>([])
@@ -36,156 +32,150 @@ export const useFileUpload = ({
     })
   }, [])
 
-  const validateFiles = useCallback((newFiles: File[]): { valid: File[]; errors: string[] } => {
-    const valid: File[] = []
-    const errors: string[] = []
+  const validateFiles = useCallback(
+    (newFiles: File[]): { valid: File[]; errors: string[] } => {
+      const valid: File[] = []
+      const errors: string[] = []
 
-    // Check if adding these files would exceed the max
-    if (files.length + newFiles.length > maxFiles) {
-      errors.push(
-        intl.formatMessage(
-          { id: 'files.upload.validation.tooManyFiles' },
-          { max: maxFiles }
-        )
-      )
-      return { valid, errors }
-    }
-
-    let totalSize = files.reduce((sum, f) => sum + f.file.size, 0)
-
-    for (const file of newFiles) {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
+      // Check if adding these files would exceed the max
+      if (files.length + newFiles.length > maxFiles) {
         errors.push(
-          intl.formatMessage(
-            { id: 'files.upload.validation.fileTooLarge' },
-            { name: file.name, size: '100MB' }
-          )
+          intl.formatMessage({ id: 'files.upload.validation.tooManyFiles' }, { max: maxFiles })
         )
-        continue
+        return { valid, errors }
       }
 
-      // Check total size
-      if (totalSize + file.size > MAX_TOTAL_SIZE) {
-        errors.push(
-          intl.formatMessage(
-            { id: 'files.upload.validation.totalSizeTooLarge' },
-            { size: '500MB' }
+      let totalSize = files.reduce((sum, f) => sum + f.file.size, 0)
+
+      for (const file of newFiles) {
+        // Check file size
+        if (file.size > MAX_FILE_SIZE) {
+          errors.push(
+            intl.formatMessage(
+              { id: 'files.upload.validation.fileTooLarge' },
+              { name: file.name, size: '100MB' }
+            )
           )
-        )
-        break
-      }
-
-      // Check file extension
-      if (!isFileAllowed(file.name)) {
-        errors.push(
-          intl.formatMessage(
-            { id: 'files.upload.validation.fileTypeNotAllowed' },
-            { name: file.name }
-          )
-        )
-        continue
-      }
-
-      // Check for duplicates
-      const isDuplicate = files.some(f => 
-        f.file.name === file.name && f.file.size === file.size
-      )
-      if (isDuplicate) {
-        errors.push(
-          intl.formatMessage(
-            { id: 'files.upload.validation.duplicateFile' },
-            { name: file.name }
-          )
-        )
-        continue
-      }
-
-      valid.push(file)
-      totalSize += file.size
-    }
-
-    return { valid, errors }
-  }, [files, maxFiles, intl])
-
-  const addFiles = useCallback(async (newFiles: File[]) => {
-    const { valid, errors } = validateFiles(newFiles)
-
-    // Show validation errors
-    errors.forEach(error => toast.error(error))
-
-    if (valid.length === 0) return
-
-    // Create file objects with previews
-    const fileObjects: FileWithPreview[] = await Promise.all(
-      valid.map(async (file) => {
-        const preview = await createPreview(file)
-        return {
-          file,
-          id: `${file.name}-${file.size}-${Date.now()}`,
-          preview,
-          status: 'pending' as const,
-          progress: 0,
+          continue
         }
-      })
-    )
 
-    setFiles(prev => [...prev, ...fileObjects])
-  }, [validateFiles, createPreview, toast])
+        // Check total size
+        if (totalSize + file.size > MAX_TOTAL_SIZE) {
+          errors.push(
+            intl.formatMessage(
+              { id: 'files.upload.validation.totalSizeTooLarge' },
+              { size: '500MB' }
+            )
+          )
+          break
+        }
+
+        // Check file extension
+        if (!isFileAllowed(file.name)) {
+          errors.push(
+            intl.formatMessage(
+              { id: 'files.upload.validation.fileTypeNotAllowed' },
+              { name: file.name }
+            )
+          )
+          continue
+        }
+
+        // Check for duplicates
+        const isDuplicate = files.some(
+          (f) => f.file.name === file.name && f.file.size === file.size
+        )
+        if (isDuplicate) {
+          errors.push(
+            intl.formatMessage({ id: 'files.upload.validation.duplicateFile' }, { name: file.name })
+          )
+          continue
+        }
+
+        valid.push(file)
+        totalSize += file.size
+      }
+
+      return { valid, errors }
+    },
+    [files, maxFiles, intl]
+  )
+
+  const addFiles = useCallback(
+    async (newFiles: File[]) => {
+      const { valid, errors } = validateFiles(newFiles)
+
+      // Show validation errors
+      errors.forEach((error) => toast.error(error))
+
+      if (valid.length === 0) return
+
+      // Create file objects with previews
+      const fileObjects: FileWithPreview[] = await Promise.all(
+        valid.map(async (file) => {
+          const preview = await createPreview(file)
+          return {
+            file,
+            id: `${file.name}-${file.size}-${Date.now()}`,
+            preview,
+            status: 'pending' as const,
+            progress: 0,
+          }
+        })
+      )
+
+      setFiles((prev) => [...prev, ...fileObjects])
+    },
+    [validateFiles, createPreview]
+  )
 
   const removeFile = useCallback((id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id))
+    setFiles((prev) => prev.filter((f) => f.id !== id))
   }, [])
 
   const startUpload = useCallback(async () => {
-    const pendingFiles = files.filter(f => f.status === 'pending')
+    const pendingFiles = files.filter((f) => f.status === 'pending')
     if (pendingFiles.length === 0) return
 
     setIsUploading(true)
 
     try {
       // Set all files to uploading
-      setFiles(prev => prev.map(f => 
-        f.status === 'pending' 
-          ? { ...f, status: 'uploading' as const, progress: 0 }
-          : f
-      ))
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.status === 'pending' ? { ...f, status: 'uploading' as const, progress: 0 } : f
+        )
+      )
 
       // Upload files
-      const results = await onUpload(pendingFiles.map(f => f.file))
+      const results = await onUpload(pendingFiles.map((f) => f.file))
 
       // Update file statuses based on results
-      setFiles(prev => prev.map(f => {
-        const result = results.find(r => r.file === f.file)
-        if (!result) return f
+      setFiles((prev) =>
+        prev.map((f) => {
+          const result = results.find((r) => r.file === f.file)
+          if (!result) return f
 
-        return {
-          ...f,
-          status: result.success ? 'success' as const : 'error' as const,
-          progress: 100,
-          error: result.error,
-        }
-      }))
+          return {
+            ...f,
+            status: result.success ? ('success' as const) : ('error' as const),
+            progress: 100,
+            error: result.error,
+          }
+        })
+      )
 
-      const successCount = results.filter(r => r.success).length
-      const errorCount = results.filter(r => !r.success).length
+      const successCount = results.filter((r) => r.success).length
+      const errorCount = results.filter((r) => !r.success).length
 
       if (successCount > 0) {
         toast.success(
-          intl.formatMessage(
-            { id: 'files.upload.successCount' },
-            { count: successCount }
-          )
+          intl.formatMessage({ id: 'files.upload.successCount' }, { count: successCount })
         )
       }
 
       if (errorCount > 0) {
-        toast.error(
-          intl.formatMessage(
-            { id: 'files.upload.errorCount' },
-            { count: errorCount }
-          )
-        )
+        toast.error(intl.formatMessage({ id: 'files.upload.errorCount' }, { count: errorCount }))
       }
 
       if (errorCount === 0 && onComplete) {
@@ -194,20 +184,20 @@ export const useFileUpload = ({
     } catch (error) {
       console.error('Upload failed:', error)
       toast.error(intl.formatMessage({ id: 'files.upload.generalError' }))
-      
+
       // Mark all uploading files as failed
-      setFiles(prev => prev.map(f => 
-        f.status === 'uploading' 
-          ? { ...f, status: 'error' as const, error: 'Upload failed' }
-          : f
-      ))
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.status === 'uploading' ? { ...f, status: 'error' as const, error: 'Upload failed' } : f
+        )
+      )
     } finally {
       setIsUploading(false)
     }
-  }, [files, onUpload, onComplete, intl, toast])
+  }, [files, onUpload, onComplete])
 
   const clearCompleted = useCallback(() => {
-    setFiles(prev => prev.filter(f => f.status !== 'success'))
+    setFiles((prev) => prev.filter((f) => f.status !== 'success'))
   }, [])
 
   const reset = useCallback(() => {
@@ -215,9 +205,9 @@ export const useFileUpload = ({
     setIsUploading(false)
   }, [])
 
-  const canUpload = files.some(f => f.status === 'pending') && !isUploading
-  const hasCompleted = files.some(f => f.status === 'success')
-  const hasErrors = files.some(f => f.status === 'error')
+  const canUpload = files.some((f) => f.status === 'pending') && !isUploading
+  const hasCompleted = files.some((f) => f.status === 'success')
+  const hasErrors = files.some((f) => f.status === 'error')
 
   return {
     files,

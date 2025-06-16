@@ -12,8 +12,6 @@ interface FileActionsProps {
 }
 
 export default function FileActions({
-  connectionId,
-  sessionToken,
   onDisconnect
 }: FileActionsProps) {
   const intl = useIntl()
@@ -46,7 +44,7 @@ export default function FileActions({
 
   const handleDownload = () => {
     if (selectedFiles.size === 0) return
-    fileOps.downloadFiles(selectionStats.allFiles ? Array.from(selectedFiles).map(path => ({ path, type: 'file' } as any)) : [], selectedFiles)
+    fileOps.downloadFiles(selectionStats.allFiles ? Array.from(selectedFiles).map(path => ({ path, type: 'file' as const })) : [], selectedFiles)
   }
 
   const handlePermissions = () => {

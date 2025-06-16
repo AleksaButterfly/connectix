@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
 
-export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
+export async function POST(request: NextRequest) {
   try {
     const sessionToken = request.headers.get('x-session-token')
     const { sourcePath, destinationPath, overwrite = false } = await request.json()

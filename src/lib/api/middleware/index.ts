@@ -1,7 +1,7 @@
 import { withAuth, AuthenticatedHandler } from './auth';
 import { withErrorHandler } from './error';
 import { withSession, SessionHandler } from './session';
-import { AuthContext, SessionContext } from './types';
+import { AuthContext } from './types';
 
 export * from './auth';
 export * from './error';

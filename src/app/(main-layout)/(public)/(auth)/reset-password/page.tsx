@@ -109,11 +109,12 @@ export default function ResetPasswordPage() {
 
       // Clear any URL params
       window.history.replaceState({}, document.title, '/reset-password')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
       setError('root', {
         message:
-          error?.message || intl.formatMessage({ id: 'auth.resetPassword.error.unexpected' }),
+          errorMessage || intl.formatMessage({ id: 'auth.resetPassword.error.unexpected' }),
       })
       setIsLoading(false)
     }

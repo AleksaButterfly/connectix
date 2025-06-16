@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useErrorHandler } from '@/lib/utils/error'
 import { apiCall } from '@/lib/api/client'
 
@@ -10,20 +10,24 @@ interface UseApiCallOptions {
   maxRetries?: number
 }
 
-interface UseApiCallState {
+interface UseApiCallState<T> {
   isLoading: boolean
-  error: any
-  data: any
+  error: unknown
+  data: T | null
 }
 
-export function useApiCall<T = any>(options?: UseApiCallOptions) {
-  const [state, setState] = useState<UseApiCallState>({
+export function useApiCall<T = unknown>(options?: UseApiCallOptions) {
+  const [state, setState] = useState<UseApiCallState<T>>({
     isLoading: false,
     error: null,
     data: null
   })
   
   const { handleError } = useErrorHandler()
+  
+  // Use ref to avoid re-creating execute function when options change
+  const optionsRef = useRef(options)
+  optionsRef.current = options
 
   const execute = useCallback(async (
     url: string,
@@ -36,16 +40,10 @@ export function useApiCall<T = any>(options?: UseApiCallOptions) {
       
       setState(prev => ({ ...prev, data, isLoading: false }))
       
-      // Show success toast if requested
-      if (options?.showSuccessToast && options?.successMessage) {
-        // Note: We would need to access toast here, but for now we'll skip this
-        // The handleError already has toast access
-      }
-      
       return data
     } catch (error) {
       const parsedError = handleError(error, {
-        showToast: options?.showErrorToast ?? true
+        showToast: optionsRef.current?.showErrorToast ?? true
       })
       
       setState(prev => ({ 
@@ -56,7 +54,7 @@ export function useApiCall<T = any>(options?: UseApiCallOptions) {
       
       return null
     }
-  }, [handleError, options])
+  }, [handleError])
 
   const reset = useCallback(() => {
     setState({

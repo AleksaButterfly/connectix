@@ -14,7 +14,7 @@ interface ProjectHeaderProps {
   orgId: string
 }
 
-export const ProjectHeader = ({ project, organization, isAdmin, orgId }: ProjectHeaderProps) => {
+export const ProjectHeader = ({ project, isAdmin, orgId }: ProjectHeaderProps) => {
   const [isCopied, setIsCopied] = useState(false)
   const { toast } = useToast()
 

@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
+import { createSSHAuthenticatedRoute } from '@/lib/api/middleware/ssh-auth'
 import archiver from 'archiver'
 
-export async function GET(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
-  try {
-    const sessionToken = request.headers.get('x-session-token')
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
-    }
-
+export const GET = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
     const searchParams = request.nextUrl.searchParams
     const path = searchParams.get('path')
 
@@ -17,7 +13,7 @@ export async function GET(request: NextRequest, { params: _params }: { params: {
     }
 
     // Single file download
-    const result = await SSHConnectionManager.downloadFile(sessionToken, path)
+    const result = await SSHConnectionManager.downloadFile(sshSessionToken, path)
 
     // Set appropriate headers
     const headers = new Headers()
@@ -27,19 +23,11 @@ export async function GET(request: NextRequest, { params: _params }: { params: {
     }
 
     return new NextResponse(result.buffer, { headers })
-  } catch (error: unknown) {
-    console.error('Download error:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to download file' }, { status: 500 })
   }
-}
+)
 
-export async function POST(request: NextRequest, { params: _params }: { params: { connectionId: string } }) {
-  try {
-    const sessionToken = request.headers.get('x-session-token')
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
-    }
-
+export const POST = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
     const body = await request.json()
     const { paths, format } = body
 
@@ -75,14 +63,14 @@ export async function POST(request: NextRequest, { params: _params }: { params: 
       // Download and add each file to the archive
       for (const path of paths) {
         try {
-          const fileInfo = await SSHConnectionManager.getFileInfo(sessionToken, path)
+          const fileInfo = await SSHConnectionManager.getFileInfo(sshSessionToken, path)
 
           // Skip directories for now
           if (fileInfo.type === 'directory') {
             continue
           }
 
-          const result = await SSHConnectionManager.downloadFile(sessionToken, path)
+          const result = await SSHConnectionManager.downloadFile(sshSessionToken, path)
 
           // Add file to archive with relative path structure
           const relativePath = path.startsWith('/') ? path.substring(1) : path
@@ -112,7 +100,7 @@ export async function POST(request: NextRequest, { params: _params }: { params: 
 
     // Single file fallback
     if (paths.length === 1) {
-      const result = await SSHConnectionManager.downloadFile(sessionToken, paths[0])
+      const result = await SSHConnectionManager.downloadFile(sshSessionToken, paths[0])
 
       const headers = new Headers()
       headers.set('Content-Disposition', `attachment; filename="${result.filename}"`)
@@ -123,12 +111,6 @@ export async function POST(request: NextRequest, { params: _params }: { params: 
       return new NextResponse(result.buffer, { headers })
     }
 
-    return NextResponse.json({ error: 'Invalid download request' }, { status: 400 })
-  } catch (error: unknown) {
-    console.error('Download error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to download files' },
-      { status: 500 }
-    )
+    return Response.json({ error: 'Invalid download request' }, { status: 400 })
   }
-}
+)

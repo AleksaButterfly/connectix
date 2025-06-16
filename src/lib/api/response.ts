@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 
-export interface ApiSuccessResponse<T = any> {
+export interface ApiSuccessResponse<T = unknown> {
   success: true;
   data: T;
   meta?: {
     timestamp?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -13,12 +13,12 @@ export interface ApiErrorResponse {
   success: false;
   error: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
-export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-export function successResponse<T = any>(
+export function successResponse<T = unknown>(
   data: T,
   meta?: ApiSuccessResponse['meta'],
   status: number = 200
@@ -40,7 +40,7 @@ export function errorResponse(
   error: string,
   message: string,
   status: number = 500,
-  details?: any
+  details?: unknown
 ): NextResponse {
   return NextResponse.json<ApiErrorResponse>(
     {

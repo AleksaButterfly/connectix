@@ -56,7 +56,7 @@ export default function AccountAuditLogsPage() {
       'ssh_key.created': intl.formatMessage({ id: 'audit.action.sshKeyCreated' }),
       'ssh_key.deleted': intl.formatMessage({ id: 'audit.action.sshKeyDeleted' }),
     }),
-    [intl]
+    []
   )
 
   // Filter options
@@ -75,7 +75,7 @@ export default function AccountAuditLogsPage() {
         icon: 'project',
       },
     ],
-    [intl]
+    []
   )
 
   // Memoized getters
@@ -227,7 +227,7 @@ export default function AccountAuditLogsPage() {
       { label: intl.formatMessage({ id: 'audit.dateRange.last30Days' }), days: 30 },
       { label: intl.formatMessage({ id: 'audit.dateRange.last90Days' }), days: 90 },
     ],
-    [intl]
+    []
   )
 
   const applyPresetRange = useCallback((days: number) => {
@@ -249,7 +249,7 @@ export default function AccountAuditLogsPage() {
       FILTER_OPTIONS.find((option) => option.value === filterType)?.label ||
       intl.formatMessage({ id: 'audit.filter.allTypes' })
     )
-  }, [filterType, FILTER_OPTIONS])
+  }, [filterType, FILTER_OPTIONS, intl])
 
   if (isLoading && logs.length === 0) {
     return (

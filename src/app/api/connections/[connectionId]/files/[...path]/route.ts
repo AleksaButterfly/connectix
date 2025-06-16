@@ -1,73 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { SSHConnectionManager } from '@/lib/ssh/connection-manager'
+import { createSSHAuthenticatedRoute } from '@/lib/api/middleware/ssh-auth'
+import { successResponse } from '@/lib/api/response'
 
 // Read file content
-export async function GET(
-  request: NextRequest,
-  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
-) {
-  try {
-    const sessionToken = request.headers.get('x-session-token')
-    const { path } = await params
+export const GET = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
+    const params = await context.params
+    const path = params.path as string[]
     const filePath = '/' + path.join('/')
 
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
-    }
+    const content = await SSHConnectionManager.readFile(sshSessionToken, filePath)
 
-    const content = await SSHConnectionManager.readFile(sessionToken, filePath)
-
-    return new Response(content, {
+    return new NextResponse(content, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
       },
     })
-  } catch (error: unknown) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to read file' }, { status: 500 })
   }
-}
+)
 
 // Write/update file content
-export async function PUT(
-  request: NextRequest,
-  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
-) {
-  try {
-    const sessionToken = request.headers.get('x-session-token')
-    const { path } = await params
+export const PUT = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
+    const params = await context.params
+    const path = params.path as string[]
     const filePath = '/' + path.join('/')
     const { content } = await request.json()
 
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
-    }
+    await SSHConnectionManager.writeFile(sshSessionToken, filePath, content)
 
-    await SSHConnectionManager.writeFile(sessionToken, filePath, content)
-
-    return NextResponse.json({ success: true, message: 'File saved successfully' })
-  } catch (error: unknown) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to save file' }, { status: 500 })
+    return successResponse({ message: 'File saved successfully' })
   }
-}
+)
 
 // Delete file or directory
-export async function DELETE(
-  request: NextRequest,
-  { params: _params }: { params: Promise<{ connectionId: string; path: string[] }> }
-) {
-  try {
-    const sessionToken = request.headers.get('x-session-token')
-    const { path } = await params
+export const DELETE = createSSHAuthenticatedRoute(
+  async (request, context, { sshSessionToken }) => {
+    const params = await context.params
+    const path = params.path as string[]
     const filePath = '/' + path.join('/')
 
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'Session token required' }, { status: 401 })
-    }
+    await SSHConnectionManager.deleteFile(sshSessionToken, filePath)
 
-    await SSHConnectionManager.deleteFile(sessionToken, filePath)
-
-    return NextResponse.json({ success: true, message: 'File deleted successfully' })
-  } catch (error: unknown) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to delete file' }, { status: 500 })
+    return successResponse({ message: 'File deleted successfully' })
   }
-}
+)

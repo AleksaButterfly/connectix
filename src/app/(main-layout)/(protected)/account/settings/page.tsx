@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,7 +25,7 @@ export default function AccountSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [, setProfile] = useState<Record<string, unknown> | null>(null)
-  const [identities, setIdentities] = useState<any[]>([])
+  const [identities, setIdentities] = useState<Array<{ provider: string; [key: string]: unknown }>>([])
   const [originalValues, setOriginalValues] = useState<{ username: string; email: string }>({
     username: '',
     email: '',
@@ -79,7 +79,6 @@ export default function AccountSettingsPage() {
     handleSubmit,
     formState: { errors },
     setError,
-    setValue,
     watch,
     reset,
   } = useForm<AccountSettingsFormData>({
@@ -156,11 +155,7 @@ export default function AccountSettingsPage() {
   const allRequirementsMet = Object.values(passwordRequirements).every((req) => req)
   const passwordsMatch = password && confirmPassword && password === confirmPassword
 
-  useEffect(() => {
-    fetchUserData()
-  }, [])
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setIsLoading(true)
       const supabase = createClient()
@@ -204,13 +199,17 @@ export default function AccountSettingsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router, intl, toast, reset])
+
+  useEffect(() => {
+    fetchUserData()
+  }, [fetchUserData])
 
   const checkUsernameAvailability = async (username: string): Promise<boolean> => {
     if (username === originalValues.username) return true
 
     const supabase = createClient()
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
       .select('id')
       .eq('username', username)
@@ -277,9 +276,10 @@ export default function AccountSettingsPage() {
       reset(data)
       await refreshUser()
       toast.success(intl.formatMessage({ id: 'account.settings.saveSuccess' }))
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update account:', error)
-      toast.error(error.message || intl.formatMessage({ id: 'account.settings.saveError' }))
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      toast.error(errorMessage || intl.formatMessage({ id: 'account.settings.saveError' }))
     } finally {
       setIsSaving(false)
     }
@@ -298,9 +298,10 @@ export default function AccountSettingsPage() {
           // When implemented, add audit log:
           // await authService.logUserAction('user.account_deleted', 'user', user?.id || null)
           toast.error(intl.formatMessage({ id: 'account.settings.delete.notImplemented' }))
-        } catch (error: any) {
+        } catch (error) {
           console.error('Failed to delete account:', error)
-          toast.error(error.message || intl.formatMessage({ id: 'account.settings.delete.error' }))
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          toast.error(errorMessage || intl.formatMessage({ id: 'account.settings.delete.error' }))
         }
       },
     })
@@ -326,7 +327,6 @@ export default function AccountSettingsPage() {
   const onPasswordSubmit = async (data: PasswordUpdateFormData) => {
     try {
       setIsUpdatingPassword(true)
-      const supabase = createClient()
 
       // Update password using the AuthService method which includes logging
       const { error } = await authService.updatePassword(data.newPassword)
@@ -336,11 +336,12 @@ export default function AccountSettingsPage() {
       // Reset form
       handlePasswordCancel()
       toast.success(intl.formatMessage({ id: 'account.settings.password.updateSuccess' }))
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update password:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
       setPasswordError('root', {
         message:
-          error.message || intl.formatMessage({ id: 'account.settings.password.updateError' }),
+          errorMessage || intl.formatMessage({ id: 'account.settings.password.updateError' }),
       })
     } finally {
       setIsUpdatingPassword(false)

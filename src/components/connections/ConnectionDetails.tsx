@@ -21,7 +21,6 @@ export default function ConnectionDetails({
   onBrowse,
 }: ConnectionDetailsProps) {
   const intl = useIntl()
-  const [showCredentials, setShowCredentials] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
 
   const formatDate = (dateString: string | null) => {

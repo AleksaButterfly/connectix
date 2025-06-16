@@ -78,7 +78,7 @@ export async function POST(
 
       // Use your working decryptCredentials function (no extra parameters needed)
       decryptedCredentials = decryptCredentials(connection.encrypted_credentials)
-    } catch (decryptError: any) {
+    } catch (decryptError) {
       return NextResponse.json(
         {
           error: 'Failed to decrypt credentials',
@@ -86,7 +86,7 @@ export async function POST(
           debug:
             process.env.NODE_ENV === 'development'
               ? {
-                  originalError: decryptError.message,
+                  originalError: decryptError instanceof Error ? decryptError.message : String(decryptError),
                   connectionId: connectionId,
                 }
               : undefined,
@@ -171,7 +171,7 @@ export async function POST(
 // GET SESSION INFO (GET)
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ connectionId: string }> }
+  _context: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
@@ -197,7 +197,7 @@ export async function GET(
 // KEEP SESSION ALIVE (PUT)
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ connectionId: string }> }
+  _context: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')
@@ -223,7 +223,7 @@ export async function PUT(
 // CLOSE SESSION (DELETE)
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ connectionId: string }> }
+  _context: { params: Promise<{ connectionId: string }> }
 ) {
   try {
     const sessionToken = request.headers.get('x-session-token')

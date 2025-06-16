@@ -11,12 +11,12 @@ export interface AuthContext {
 
 export type AuthenticatedHandler = (
   req: NextRequest,
-  context: any,
+  context: { params: Promise<Record<string, string | string[]>> },
   auth: AuthContext
 ) => Promise<NextResponse>;
 
 export function withAuth(handler: AuthenticatedHandler) {
-  return async (req: NextRequest, context: any) => {
+  return async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }) => {
     try {
       const supabase = await createClient();
       const { data: { user }, error } = await supabase.auth.getUser();

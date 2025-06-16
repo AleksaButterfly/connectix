@@ -35,7 +35,7 @@ export const formatFileSize = (bytes: number): string => {
 // File extension check
 export const isFileAllowed = (filename: string): boolean => {
   const extension = filename.split('.').pop()?.toLowerCase()
-  return !extension || !BLOCKED_EXTENSIONS.includes(extension as any)
+  return !extension || !BLOCKED_EXTENSIONS.includes(extension as typeof BLOCKED_EXTENSIONS[number])
 }
 
 // Image file check

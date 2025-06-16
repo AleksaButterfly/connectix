@@ -2,7 +2,7 @@
 
 import { UseFormRegister, FieldErrors } from 'react-hook-form'
 import { FormattedMessage } from '@/lib/i18n'
-import { FormField, FormInput } from '@/components/ui'
+import { FormField } from '@/components/ui'
 import { ConnectionFormData } from './validation'
 
 interface BasicConnectionSectionProps {

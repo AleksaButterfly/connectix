@@ -37,11 +37,12 @@ export function FileUpload({
 
         await onUpload(fileList)
         results.push({ file, success: true })
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
         results.push({
           file,
           success: false,
-          error: error.message || intl.formatMessage({ id: 'fileUpload.error.unknown' }),
+          error: errorMessage || intl.formatMessage({ id: 'fileUpload.error.unknown' }),
         })
       }
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useToast } from '@/components/ui/ToastContext'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
 import type { FileInfo } from '@/types/ssh'
@@ -31,6 +31,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
   const [fileType, setFileType] = useState<FileType>('text')
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  
 
   const { toast } = useToast()
   const lastToastMessage = useRef<string>('')
@@ -136,6 +137,52 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
     setHasChanges(content !== originalContent)
   }, [content, originalContent])
 
+  // Save file function
+  const saveFile = useCallback(async () => {
+    if (fileType !== 'text') return
+
+    try {
+      setIsSaving(true)
+      const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-token': sessionToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+      })
+
+      if (!response.ok) {
+        const errorState = await parseError(response)
+
+        if (errorState.type === 'permission') {
+          showToast(intl.formatMessage({ id: 'fileEditor.error.permissionDeniedWrite' }))
+        } else {
+          showToast(errorState.message)
+        }
+        return
+      }
+
+      setOriginalContent(content)
+      showToast(intl.formatMessage({ id: 'fileEditor.save.success' }), 'success')
+      // Note: Removed onSave() call to keep user in the file editor after saving
+    } catch (error: unknown) {
+      showToast(intl.formatMessage({ id: 'fileEditor.error.networkSave' }))
+    } finally {
+      setIsSaving(false)
+    }
+  }, [
+    fileType,
+    connectionId,
+    file.path,
+    sessionToken,
+    content,
+    parseError,
+    showToast,
+    intl,
+  ])
+
   // Add keyboard shortcut for saving (only for text files)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -151,7 +198,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       window.addEventListener('keydown', handleKeyDown)
       return () => window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [hasChanges, isSaving, error.type, fileType])
+  }, [hasChanges, isSaving, error.type, fileType, saveFile])
 
   // Download file
   const downloadFile = async () => {
@@ -164,6 +211,7 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           headers: {
             'x-session-token': sessionToken,
           },
+          credentials: 'include',
         }
       )
 
@@ -182,90 +230,152 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
       document.body.removeChild(a)
 
       showToast(intl.formatMessage({ id: 'fileEditor.download.success' }), 'success')
-    } catch (error: any) {
-      showToast(error.message || intl.formatMessage({ id: 'fileEditor.error.download' }))
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      showToast(errorMessage || intl.formatMessage({ id: 'fileEditor.error.download' }))
     } finally {
       setIsDownloading(false)
     }
   }
 
-  const loadFileContent = async () => {
-    try {
-      setIsLoading(true)
-      setError({ type: 'none', message: '' })
 
-      // Cancel any previous request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-      abortControllerRef.current = new AbortController()
+  // Create a stable reference for the file key
+  const fileKey = `${connectionId}-${file.path}`
+  const fileKeyRef = useRef(fileKey)
+  
+  useEffect(() => {
+    // Only load if the file has actually changed
+    if (fileKeyRef.current === fileKey) {
+      return
+    }
+    fileKeyRef.current = fileKey
 
-      const type = getFileType(file.name)
-      setFileType(type)
+    const loadFile = async () => {
+      console.log('Starting to load file:', file.path)
+      try {
+        setIsLoading(true)
+        setError({ type: 'none', message: '' })
+        setContent('')
+        setMediaUrl(null)
 
-      if (type === 'text') {
-        // Load text content as before
-        const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
-          headers: {
-            'x-session-token': sessionToken,
-          },
-          signal: abortControllerRef.current.signal,
-        })
-
-        if (!response.ok) {
-          const errorState = await parseError(response)
-          setError(errorState)
-          return
+        // Cancel any previous request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
         }
+        abortControllerRef.current = new AbortController()
 
-        const data = await response.text()
-        setContent(data)
-        setOriginalContent(data)
-      } else if (type === 'image' || type === 'video' || type === 'pdf') {
-        // Clean up previous media URL if exists
-        if (mediaUrlRef.current) {
-          URL.revokeObjectURL(mediaUrlRef.current)
-          mediaUrlRef.current = null
-        }
+        const type = getFileType(file.name)
+        setFileType(type)
+        console.log('File type determined:', type)
 
-        // For media files, use the download endpoint
-        const response = await fetch(
-          `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
-          {
+        if (type === 'text') {
+          console.log('Loading text file...')
+          const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
             headers: {
               'x-session-token': sessionToken,
             },
             signal: abortControllerRef.current.signal,
+          })
+
+          if (!response.ok) {
+            console.log('Response not ok:', response.status)
+            let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
+            let errorType: ErrorState['type'] = 'unknown'
+
+            try {
+              const data = await response.json()
+              message = data.error || data.message || message
+
+              if (response.status === 403 || message.toLowerCase().includes('permission')) {
+                errorType = 'permission'
+                message = intl.formatMessage({ id: 'fileEditor.error.permissionDeniedRead' })
+              } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
+                errorType = 'not_found'
+                message = intl.formatMessage({ id: 'fileEditor.error.notFound' })
+              }
+            } catch {
+              message = response.statusText || intl.formatMessage({ id: 'fileEditor.error.loadFile' })
+            }
+
+            setError({ type: errorType, message })
+            return
           }
-        )
 
-        if (!response.ok) {
-          const errorState = await parseError(response)
-          setError(errorState)
-          return
+          const data = await response.text()
+          console.log('Text file loaded, length:', data.length)
+          setContent(data)
+          setOriginalContent(data)
+        } else if (type === 'image' || type === 'video' || type === 'pdf') {
+          console.log('Loading media file...')
+          // Clean up previous media URL if exists
+          if (mediaUrlRef.current) {
+            URL.revokeObjectURL(mediaUrlRef.current)
+            mediaUrlRef.current = null
+          }
+
+          const response = await fetch(
+            `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
+            {
+              headers: {
+                'x-session-token': sessionToken,
+              },
+              credentials: 'include',
+              signal: abortControllerRef.current.signal,
+            }
+          )
+
+          if (!response.ok) {
+            console.log('Media response not ok:', response.status)
+            let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
+            let errorType: ErrorState['type'] = 'unknown'
+
+            try {
+              const data = await response.json()
+              message = data.error || data.message || message
+
+              if (response.status === 403 || message.toLowerCase().includes('permission')) {
+                errorType = 'permission'
+                message = intl.formatMessage({ id: 'fileEditor.error.permissionDeniedRead' })
+              } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
+                errorType = 'not_found'
+                message = intl.formatMessage({ id: 'fileEditor.error.notFound' })
+              }
+            } catch {
+              message = response.statusText || intl.formatMessage({ id: 'fileEditor.error.loadFile' })
+            }
+
+            setError({ type: errorType, message })
+            return
+          }
+
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          mediaUrlRef.current = url
+          setMediaUrl(url)
+          console.log('Media file loaded')
         }
-
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        mediaUrlRef.current = url
-        setMediaUrl(url)
+      } catch (error: any) {
+        console.log('Error loading file:', error)
+        if (error.name !== 'AbortError') {
+          setError({
+            type: 'network',
+            message: intl.formatMessage({ id: 'fileEditor.error.network' }),
+          })
+          if (lastToastMessage.current !== intl.formatMessage({ id: 'fileEditor.error.network' })) {
+            lastToastMessage.current = intl.formatMessage({ id: 'fileEditor.error.network' })
+            toast.error(intl.formatMessage({ id: 'fileEditor.error.network' }))
+            setTimeout(() => {
+              lastToastMessage.current = ''
+            }, 2000)
+          }
+        }
+      } finally {
+        console.log('Setting isLoading to false')
+        setIsLoading(false)
       }
-      // For binary files, we just show the download button
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        setError({
-          type: 'network',
-          message: intl.formatMessage({ id: 'fileEditor.error.network' }),
-        })
-        showToast(intl.formatMessage({ id: 'fileEditor.error.network' }))
-      }
-    } finally {
-      setIsLoading(false)
     }
-  }
 
-  useEffect(() => {
-    loadFileContent()
+    loadFile()
 
     // Cleanup function
     return () => {
@@ -280,42 +390,104 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
         mediaUrlRef.current = null
       }
     }
-  }, [file.path]) // Re-load if file path changes
+  }, [fileKey]) // Only depend on the file key
 
-  const saveFile = async () => {
-    if (fileType !== 'text') return
+  // Load initial file on mount
+  useEffect(() => {
+    const loadInitialFile = async () => {
+      try {
+        setIsLoading(true)
+        setError({ type: 'none', message: '' })
+        setContent('')
+        setMediaUrl(null)
 
-    try {
-      setIsSaving(true)
-      const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-session-token': sessionToken,
-        },
-        body: JSON.stringify({ content }),
-      })
+        const type = getFileType(file.name)
+        setFileType(type)
 
-      if (!response.ok) {
-        const errorState = await parseError(response)
+        if (type === 'text') {
+          const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
+            headers: {
+              'x-session-token': sessionToken,
+            },
+          })
 
-        if (errorState.type === 'permission') {
-          showToast(intl.formatMessage({ id: 'fileEditor.error.permissionDeniedWrite' }))
-        } else {
-          showToast(errorState.message)
+          if (!response.ok) {
+            let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
+            let errorType: ErrorState['type'] = 'unknown'
+
+            try {
+              const data = await response.json()
+              message = data.error || data.message || message
+
+              if (response.status === 403 || message.toLowerCase().includes('permission')) {
+                errorType = 'permission'
+                message = intl.formatMessage({ id: 'fileEditor.error.permissionDeniedRead' })
+              } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
+                errorType = 'not_found'
+                message = intl.formatMessage({ id: 'fileEditor.error.notFound' })
+              }
+            } catch {
+              message = response.statusText || intl.formatMessage({ id: 'fileEditor.error.loadFile' })
+            }
+
+            setError({ type: errorType, message })
+            return
+          }
+
+          const data = await response.text()
+          setContent(data)
+          setOriginalContent(data)
+        } else if (type === 'image' || type === 'video' || type === 'pdf') {
+          const response = await fetch(
+            `/api/connections/${connectionId}/files/download?path=${encodeURIComponent(file.path)}`,
+            {
+              headers: {
+                'x-session-token': sessionToken,
+              },
+              credentials: 'include',
+            }
+          )
+
+          if (!response.ok) {
+            let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
+            let errorType: ErrorState['type'] = 'unknown'
+
+            try {
+              const data = await response.json()
+              message = data.error || data.message || message
+
+              if (response.status === 403 || message.toLowerCase().includes('permission')) {
+                errorType = 'permission'
+                message = intl.formatMessage({ id: 'fileEditor.error.permissionDeniedRead' })
+              } else if (response.status === 404 || message.toLowerCase().includes('not found')) {
+                errorType = 'not_found'
+                message = intl.formatMessage({ id: 'fileEditor.error.notFound' })
+              }
+            } catch {
+              message = response.statusText || intl.formatMessage({ id: 'fileEditor.error.loadFile' })
+            }
+
+            setError({ type: errorType, message })
+            return
+          }
+
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          mediaUrlRef.current = url
+          setMediaUrl(url)
         }
-        return
+      } catch (error: any) {
+        setError({
+          type: 'network',
+          message: intl.formatMessage({ id: 'fileEditor.error.network' }),
+        })
+      } finally {
+        setIsLoading(false)
       }
-
-      setOriginalContent(content)
-      showToast(intl.formatMessage({ id: 'fileEditor.save.success' }), 'success')
-      onSave()
-    } catch (error: any) {
-      showToast(intl.formatMessage({ id: 'fileEditor.error.networkSave' }))
-    } finally {
-      setIsSaving(false)
     }
-  }
+
+    loadInitialFile()
+  }, []) // Only run on mount
 
   const handleClose = () => {
     if (fileType === 'text' && hasChanges) {
@@ -373,12 +545,45 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-terminal-green border-t-transparent"></div>
-          <p className="text-foreground-muted">
-            <FormattedMessage id="fileEditor.loading" />
-          </p>
+      <div className="flex h-full flex-col">
+        {/* Header Skeleton */}
+        <div className="border-b border-border bg-background-secondary px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-5 w-32 animate-pulse rounded bg-foreground-muted/20"></div>
+              <div className="h-5 w-16 animate-pulse rounded bg-terminal-green/20"></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-16 animate-pulse rounded bg-foreground-muted/20"></div>
+              <div className="h-8 w-16 animate-pulse rounded bg-foreground-muted/20"></div>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <div className="h-3 w-48 animate-pulse rounded bg-foreground-muted/20"></div>
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 p-4">
+          <div className="space-y-3">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-4 animate-pulse rounded bg-foreground-muted/10"
+                style={{ width: `${Math.random() * 40 + 60}%` }}
+              ></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Bar Skeleton */}
+        <div className="border-t border-border bg-background-secondary px-4 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-3 w-20 animate-pulse rounded bg-foreground-muted/20"></div>
+              <div className="h-3 w-24 animate-pulse rounded bg-foreground-muted/20"></div>
+            </div>
+          </div>
         </div>
       </div>
     )

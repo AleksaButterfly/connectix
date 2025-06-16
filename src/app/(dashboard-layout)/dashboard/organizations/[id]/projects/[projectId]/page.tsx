@@ -82,7 +82,7 @@ export default function ProjectOverviewPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [projectId, router, orgId, intl])
+  }, [projectId, router, orgId])
 
   useEffect(() => {
     fetchData()

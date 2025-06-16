@@ -19,10 +19,6 @@ export default function OrganizationProjectsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchData()
-  }, [orgId, fetchData])
-
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -41,12 +37,17 @@ export default function OrganizationProjectsPage() {
       setProjects(projectsList)
     } catch (err: unknown) {
       console.error('Failed to fetch data:', err)
-      const errorMessage = err instanceof Error ? err.message : intl.formatMessage({ id: 'projects.error.loadFailed' })
+      const errorMessage =
+        err instanceof Error ? err.message : intl.formatMessage({ id: 'projects.error.loadFailed' })
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [orgId, router, intl, setOrganization])
+  }, [orgId, router])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const handleNewProject = () => {
     router.push(`/dashboard/organizations/${orgId}/projects/new`)

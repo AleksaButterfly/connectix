@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
       }
 
       setIsEmailSent(true)
-    } catch (error) {
+    } catch {
       setError('root', {
         message: intl.formatMessage({ id: 'auth.forgotPassword.error.unexpected' }),
       })

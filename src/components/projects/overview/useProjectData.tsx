@@ -88,7 +88,7 @@ export const useProjectData = ({
     } finally {
       setIsLoading(false)
     }
-  }, [orgId, projectId, router, intl])
+  }, [orgId, projectId, router])
 
   useEffect(() => {
     fetchData()

@@ -73,7 +73,7 @@ export const projectService = {
   async updateProject(projectId: string, updates: UpdateProjectInput): Promise<Project> {
     const supabase = createClient()
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
 
     // If name is being updated, regenerate slug
     if (updates.name) {

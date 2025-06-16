@@ -36,7 +36,7 @@ export default function AllConnectionsPage() {
         )
         setHasLoadedOnce(true)
       })
-  }, []) // Empty deps - only load once on mount
+  }, []) // Only load once on mount
 
   // Handle redirect when connections are loaded
   useEffect(() => {
@@ -99,23 +99,23 @@ export default function AllConnectionsPage() {
               d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 002 2z"
             />
           </svg>
-          <h2 className="mb-2 text-xl font-semibold text-foreground">
+          <h3 className="mb-2 text-lg font-medium text-foreground">
             <FormattedMessage id="connections.empty.title" />
-          </h2>
-          <p className="mb-4 max-w-[28.125rem] text-sm text-foreground-muted">
+          </h3>
+          <p className="mb-6 text-sm text-foreground-muted">
             <FormattedMessage id="connections.empty.description" />
           </p>
           <Link
             href={`/dashboard/organizations/${orgId}/projects/${projectId}/connections/new`}
             className="btn-primary"
           >
-            <FormattedMessage id="connections.empty.createButton" />
+            <FormattedMessage id="connections.actions.create" />
           </Link>
         </div>
       </div>
     )
   }
 
-  // This should never be reached, but just in case
+  // Should not reach here due to redirect, but just in case
   return null
 }

@@ -4,7 +4,7 @@ import { ErrorCodes } from '@/lib/api/errorCodes';
 export interface ApiError {
   error: string;
   message: string;
-  details?: any;
+  details?: unknown;
   statusCode?: number;
 }
 
@@ -13,7 +13,7 @@ export class ApiErrorResponse extends Error {
     public error: string,
     public message: string,
     public statusCode: number = 500,
-    public details?: any
+    public details?: unknown
   ) {
     super(message);
   }

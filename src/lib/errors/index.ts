@@ -3,7 +3,7 @@ interface APIError {
   detail?: string
   status?: string
   title?: string
-  [key: string]: any // In case there are additional fields
+  [key: string]: unknown // In case there are additional fields
 }
 
 interface ErrorWithAPI extends Partial<Error> {
@@ -11,9 +11,9 @@ interface ErrorWithAPI extends Partial<Error> {
   statusText?: string
   data?: {
     errors?: APIError[]
-    [key: string]: any
+    [key: string]: unknown
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**

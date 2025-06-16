@@ -40,9 +40,10 @@ export default function EditConnectionPage() {
         }
 
         setConnection(foundConnection)
-      } catch (error: any) {
+      } catch (error) {
         console.error('Failed to load connection:', error)
-        toast.error(error.message || intl.formatMessage({ id: 'connections.errors.loadFailed' }))
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        toast.error(errorMessage || intl.formatMessage({ id: 'connections.errors.loadFailed' }))
         // Redirect back to connections list on error
         router.push(`/dashboard/organizations/${orgId}/projects/${projectId}/connections`)
       } finally {

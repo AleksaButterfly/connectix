@@ -95,7 +95,7 @@ export default function RegisterPage() {
 
       // Success - show confirmation
       setShowSuccess(true)
-    } catch (error) {
+    } catch {
       setError('root', { message: intl.formatMessage({ id: 'auth.register.error.unexpected' }) })
       setIsLoading(false)
     }
