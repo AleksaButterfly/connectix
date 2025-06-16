@@ -251,7 +251,6 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
     fileKeyRef.current = fileKey
 
     const loadFile = async () => {
-      console.log('Starting to load file:', file.path)
       try {
         setIsLoading(true)
         setError({ type: 'none', message: '' })
@@ -266,10 +265,8 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
 
         const type = getFileType(file.name)
         setFileType(type)
-        console.log('File type determined:', type)
 
         if (type === 'text') {
-          console.log('Loading text file...')
           const response = await fetch(`/api/connections/${connectionId}/files${file.path}`, {
             headers: {
               'x-session-token': sessionToken,
@@ -278,7 +275,6 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           })
 
           if (!response.ok) {
-            console.log('Response not ok:', response.status)
             let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
             let errorType: ErrorState['type'] = 'unknown'
 
@@ -302,11 +298,9 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           }
 
           const data = await response.text()
-          console.log('Text file loaded, length:', data.length)
           setContent(data)
           setOriginalContent(data)
         } else if (type === 'image' || type === 'video' || type === 'pdf') {
-          console.log('Loading media file...')
           // Clean up previous media URL if exists
           if (mediaUrlRef.current) {
             URL.revokeObjectURL(mediaUrlRef.current)
@@ -325,7 +319,6 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           )
 
           if (!response.ok) {
-            console.log('Media response not ok:', response.status)
             let message = intl.formatMessage({ id: 'fileEditor.error.generic' })
             let errorType: ErrorState['type'] = 'unknown'
 
@@ -352,10 +345,8 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           const url = window.URL.createObjectURL(blob)
           mediaUrlRef.current = url
           setMediaUrl(url)
-          console.log('Media file loaded')
         }
       } catch (error: any) {
-        console.log('Error loading file:', error)
         if (error.name !== 'AbortError') {
           setError({
             type: 'network',
@@ -370,7 +361,6 @@ export function FileEditor({ connectionId, file, sessionToken, onClose, onSave }
           }
         }
       } finally {
-        console.log('Setting isLoading to false')
         setIsLoading(false)
       }
     }
