@@ -220,6 +220,66 @@ export function useFileOperations({
     [isDownloading, handleApiError]
   )
 
+  const copyFiles = useCallback(
+    async (sourceFiles: FileInfo[], destinationPath: string) => {
+      try {
+        await Promise.all(
+          sourceFiles.map((file) =>
+            apiCall(`/api/connections/${connectionIdRef.current}/files/copy`, {
+              method: 'POST',
+              headers: { 'x-session-token': sessionTokenRef.current },
+              body: JSON.stringify({
+                sourcePath: file.path,
+                destinationPath: `${destinationPath}/${file.name}`,
+              }),
+            })
+          )
+        )
+
+        toast.success(
+          intl.formatMessage(
+            { id: 'files.copy.success' },
+            { count: sourceFiles.length }
+          )
+        )
+        await onRefreshRef.current()
+      } catch (error) {
+        handleApiError(error, intl.formatMessage({ id: 'files.copy.error' }))
+      }
+    },
+    [handleApiError]
+  )
+
+  const moveFiles = useCallback(
+    async (sourceFiles: FileInfo[], destinationPath: string) => {
+      try {
+        await Promise.all(
+          sourceFiles.map((file) =>
+            apiCall(`/api/connections/${connectionIdRef.current}/files/move`, {
+              method: 'POST',
+              headers: { 'x-session-token': sessionTokenRef.current },
+              body: JSON.stringify({
+                sourcePath: file.path,
+                destinationPath: `${destinationPath}/${file.name}`,
+              }),
+            })
+          )
+        )
+
+        toast.success(
+          intl.formatMessage(
+            { id: 'files.move.success' },
+            { count: sourceFiles.length }
+          )
+        )
+        await onRefreshRef.current()
+      } catch (error) {
+        handleApiError(error, intl.formatMessage({ id: 'files.move.error' }))
+      }
+    },
+    [handleApiError]
+  )
+
   return {
     deleteFiles,
     renameFile,
@@ -227,6 +287,8 @@ export function useFileOperations({
     createFolder,
     changePermissions,
     downloadFiles,
+    copyFiles,
+    moveFiles,
     isDownloading,
   }
 }

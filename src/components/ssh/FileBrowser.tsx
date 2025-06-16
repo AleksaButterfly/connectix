@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react'
 import { FileList } from './FileList'
 import { FileEditor } from './FileEditor'
 import { FileBrowserToolbar } from './FileBrowserToolbar'
+import { FileContextMenu } from './FileContextMenu'
 import { useConfirmation } from '@/hooks/useConfirmation'
 import { useToast } from '@/components/ui/ToastContext'
 import { useIntl, FormattedMessage } from '@/lib/i18n'
@@ -11,6 +12,7 @@ import { useFileOperations } from '@/hooks/useFileOperations'
 import { useFileSelection } from '@/hooks/useFileSelection'
 import { useFileNavigation } from '@/hooks/useFileNavigation'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useClipboard } from '@/hooks/useClipboard'
 import { apiCall, ApiResponseError } from '@/types/ssh'
 import type { FileInfo } from '@/types/ssh'
 import type { ApiSuccessResponse } from '@/lib/api/response'
@@ -43,6 +45,10 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
   const [renameFile, setRenameFile] = useState<FileInfo | null>(null)
   const [permissionsFile, setPermissionsFile] = useState<FileInfo | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean
+    position: { x: number; y: number }
+  }>({ isOpen: false, position: { x: 0, y: 0 } })
 
   // Hooks
   const { toast } = useToast()
@@ -66,6 +72,15 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
     clearSelection,
     selectAll,
   } = useFileSelection(files)
+
+  // Clipboard functionality
+  const {
+    hasClipboard,
+    clipboardInfo,
+    copyFiles,
+    cutFiles,
+    clearClipboard,
+  } = useClipboard()
 
   // Load files callback
   const loadFiles = useCallback(async () => {
@@ -180,6 +195,69 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
     [currentPath, connectionId, sessionToken, loadFiles]
   )
 
+  // Clipboard operation handlers
+  const handleCopyFiles = useCallback(() => {
+    if (selectedItems.length > 0) {
+      copyFiles(selectedItems)
+      toast.success(
+        intl.formatMessage(
+          { id: 'files.clipboard.copied' },
+          { count: selectedItems.length }
+        )
+      )
+    }
+  }, [selectedItems, copyFiles, toast, intl])
+
+  const handleCutFiles = useCallback(() => {
+    if (selectedItems.length > 0) {
+      cutFiles(selectedItems)
+      toast.success(
+        intl.formatMessage(
+          { id: 'files.clipboard.cut' },
+          { count: selectedItems.length }
+        )
+      )
+    }
+  }, [selectedItems, cutFiles, toast, intl])
+
+  const handlePasteFiles = useCallback(async () => {
+    if (!hasClipboard || !clipboardInfo) {
+      toast.error(intl.formatMessage({ id: 'files.clipboard.empty' }))
+      return
+    }
+
+    try {
+      if (clipboardInfo.isCopy) {
+        await fileOps.copyFiles(clipboardInfo.files, currentPath)
+      } else {
+        await fileOps.moveFiles(clipboardInfo.files, currentPath)
+        clearClipboard() // Clear clipboard after successful move
+      }
+      
+      toast.success(
+        intl.formatMessage(
+          { id: 'files.paste.success' },
+          { count: clipboardInfo.count }
+        )
+      )
+    } catch (error) {
+      toast.error(intl.formatMessage({ id: 'files.paste.error' }))
+    }
+  }, [hasClipboard, clipboardInfo, fileOps, currentPath, clearClipboard, toast, intl])
+
+  // Context menu handlers
+  const handleContextMenu = useCallback((event: React.MouseEvent) => {
+    event.preventDefault()
+    setContextMenu({
+      isOpen: true,
+      position: { x: event.clientX, y: event.clientY },
+    })
+  }, [])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu({ isOpen: false, position: { x: 0, y: 0 } })
+  }, [])
+
   const handleSearchSelect = useCallback(
     (file: { path: string; name: string; type: string }) => {
       if (file.type === 'directory') {
@@ -204,6 +282,14 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
     { key: 'n', ctrl: true, shift: true, handler: () => setShowCreateFolder(true) },
     { key: 'n', ctrl: true, handler: () => setShowCreateFile(true) },
     { key: 'r', ctrl: true, handler: loadFiles },
+    { key: 'c', ctrl: true, handler: handleCopyFiles, enabled: selectedFiles.size > 0 },
+    { key: 'x', ctrl: true, handler: handleCutFiles, enabled: selectedFiles.size > 0 },
+    { key: 'v', ctrl: true, handler: handlePasteFiles, enabled: hasClipboard },
+    { key: 'F2', handler: () => {
+      if (selectedItems.length === 1) {
+        setRenameFile(selectedItems[0])
+      }
+    }, enabled: selectedItems.length === 1 },
   ])
 
   // Render file editor if editing
@@ -272,7 +358,7 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
       />
 
       {/* File List */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" onContextMenu={handleContextMenu}>
         <FileList
           files={files}
           isLoading={isLoading}
@@ -320,6 +406,46 @@ export function FileBrowser({ connectionId, sessionToken, onDisconnect }: FileBr
           />
         )}
       </Suspense>
+
+      {/* Context Menu */}
+      <FileContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        selectedFiles={selectedItems}
+        selectionStats={selectionStats}
+        hasClipboard={hasClipboard}
+        clipboardInfo={clipboardInfo}
+        onClose={closeContextMenu}
+        onCopy={handleCopyFiles}
+        onCut={handleCutFiles}
+        onPaste={handlePasteFiles}
+        onRename={() => {
+          if (selectedItems.length === 1) {
+            setRenameFile(selectedItems[0])
+          }
+          closeContextMenu()
+        }}
+        onDelete={() => {
+          handleDeleteFiles()
+          closeContextMenu()
+        }}
+        onDownload={() => {
+          fileOps.downloadFiles(files, selectedFiles)
+          closeContextMenu()
+        }}
+        onPermissions={() => {
+          if (selectedItems.length === 1) {
+            setPermissionsFile(selectedItems[0])
+          }
+          closeContextMenu()
+        }}
+        onEdit={() => {
+          if (selectedItems.length === 1 && selectedItems[0].type === 'file') {
+            setEditingFile(selectedItems[0])
+          }
+          closeContextMenu()
+        }}
+      />
 
       <ConfirmationModal />
     </div>
