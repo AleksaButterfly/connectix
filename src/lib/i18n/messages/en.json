@@ -522,6 +522,10 @@
   "fileBrowser.cut": "Cut", 
   "fileBrowser.paste": "Paste {count, plural, one {# item} other {# items}} ({operation})",
   "fileBrowser.edit": "Edit",
+  "fileBrowser.rename": "Rename",
+  "fileBrowser.delete": "Delete",
+  "fileBrowser.download": "Download",
+  "fileBrowser.permissions": "Permissions",
   "fileBrowser.contextMenu.selection": "{count, plural, one {# item} other {# items}} selected ({size} bytes)",
 
   "files.connection.establishing": "Establishing SSH connection...",
